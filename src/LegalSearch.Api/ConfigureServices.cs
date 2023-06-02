@@ -4,11 +4,14 @@ using System.Reflection;
 using System.Text;
 using LegalSearch.Api.Filters;
 using LegalSearch.Api.Middlewares;
+using LegalSearch.Application.Models.Constants;
+using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -39,10 +42,10 @@ namespace LegalSearch.Api
 
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
             
-            // services.AddDbContext<AppDbContext>(x =>
-            // {
-            //     x.UseNpgsql(AppConstants.DbConnectionString, o => o.MigrationsAssembly("LegalSearch.Infrastructure"));
-            // });
+            services.AddDbContext<AppDbContext>(x =>
+            {
+                x.UseNpgsql(AppConstants.DbConnectionString, o => o.MigrationsAssembly("LegalSearch.Infrastructure"));
+            });
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
