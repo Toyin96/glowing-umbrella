@@ -11,8 +11,15 @@ using Microsoft.Extensions.Logging;
 
 namespace LegalSearch.Api.Middlewares
 {
+    /// <summary>
+    /// Configures A Global Exception Handler To Handle Uncaught Exceptions
+    /// </summary>
     public static class GlobalExceptionHandlerMiddleware
     {
+        /// <summary>
+        /// Extension Method Handling Global Exceptions
+        /// </summary>
+        /// <param name="app"></param>
         public static void UseGlobalExceptionHandler(this IApplicationBuilder app)
         {
             app.UseExceptionHandler(appError =>
