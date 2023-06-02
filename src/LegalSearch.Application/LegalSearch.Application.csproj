@@ -19,4 +19,8 @@
       </Reference>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\LegalSearch.Domain\LegalSearch.Domain.csproj" />
+    </ItemGroup>
+
 </Project>
