@@ -7,8 +7,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.3"/>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\LegalSearch.Infrastructure\LegalSearch.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Fcmb.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.dll</HintPath>
+      </Reference>
+      <Reference Include="Fcmb.Shared.Auth, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.Auth.dll</HintPath>
+      </Reference>
     </ItemGroup>
 
 </Project>
