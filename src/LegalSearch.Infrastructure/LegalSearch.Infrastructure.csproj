@@ -6,4 +6,25 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\LegalSearch.Application\LegalSearch.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="Fcmb.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>Libraries\Fcmb.Shared.dll</HintPath>
+      </Reference>
+      <Reference Include="Fcmb.Shared.Auth, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <HintPath>Libraries\Fcmb.Shared.Auth.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="7.0.5" />
+      <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
+      <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="7.0.0" />
+    </ItemGroup>
+
 </Project>
