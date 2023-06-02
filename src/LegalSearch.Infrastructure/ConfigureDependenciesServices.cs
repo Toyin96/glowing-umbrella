@@ -12,7 +12,6 @@ namespace LegalSearch.Infrastructure
             services.AddTransient<IAuthService, AuthService>();
 
             services.AddTransient<IAuthTokenGenerator, JwtTokenGenerator>();
-            // services.AddTransient<IOtpManager, OtpManager>();
         }
     }
 }
