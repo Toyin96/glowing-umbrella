@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using LegalSearch.Api.Filters;
-using LegalSearch.Application.Models.Constants;
+using LegalSearch.Api.Middlewares;
 using LegalSearch.Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -65,7 +65,7 @@ namespace LegalSearch.Api
 
             app.UseHttpsRedirection();
             
-            // app.UseGlobalExceptionHandler();
+            app.UseGlobalExceptionHandler();
 
             app.UseAuthentication();
             app.UseAuthorization();
