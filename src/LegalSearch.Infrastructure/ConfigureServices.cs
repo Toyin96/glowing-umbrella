@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Reflection;
 using Fcmb.Shared.Models.Constants;
+using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Domain.Entities.User;
+using LegalSearch.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,12 +26,33 @@ namespace LegalSearch.Infrastructure
                 cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             });
             
+            services.ConfigureIdentity();
             services.ConfigureHttpClients(configuration);
         }
 
         private static void ConfigureHttpClients(this IServiceCollection services, IConfiguration configuration)
         {
             ConfigureAuthHttpClient(services, configuration);
+        }
+        
+        private static void ConfigureIdentity(this IServiceCollection services)
+        {
+            static void SetupIdentityOptions(IdentityOptions x)
+            {
+                // x.User./
+                x.User.RequireUniqueEmail = true;
+                
+                // Password settings.
+                x.Password.RequiredLength = 8;
+                
+                // Lockout settings.
+                x.Lockout.MaxFailedAccessAttempts = 3;
+                x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+            }
+
+            services.AddIdentity<User, Role>(SetupIdentityOptions)
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
         }
         
         private static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)
