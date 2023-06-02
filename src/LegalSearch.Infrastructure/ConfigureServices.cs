@@ -66,7 +66,6 @@ namespace LegalSearch.Infrastructure
 
                 client.BaseAddress = new Uri(baseUrl);
                 client.DefaultRequestHeaders.Clear();
-                client.DefaultRequestHeaders.Add("Content-Type", "application/json");
                 client.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
                 client.DefaultRequestHeaders.Add("client_id", clientId);
                 client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
