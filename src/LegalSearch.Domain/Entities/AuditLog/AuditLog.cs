@@ -1,5 +1,6 @@
 ﻿using System;
 using LegalSearch.Domain.Common;
+using LegalSearch.Domain.Enums.AuditLog;
 
 namespace LegalSearch.Domain.Entities.AuditLog
 {
@@ -16,10 +17,5 @@ namespace LegalSearch.Domain.Entities.AuditLog
         public string Log { get; set; }
 
         public bool IsSuccessful { get; set; } = true;
-    }
-    
-    public enum AuditAction
-    {
-        Auth
     }
 }
