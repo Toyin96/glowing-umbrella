@@ -2,6 +2,7 @@
 using System.IO;
 using System.Reflection;
 using System.Text;
+using LegalSearch.Api.Filters;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
@@ -31,7 +32,10 @@ namespace LegalSearch.Api
             services.AddHttpClient();
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
-            services.AddControllers();
+            services.AddControllers(options =>
+            {
+                options.Filters.Add<RequestValidationFilter>();
+            });
 
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
             
