@@ -2,7 +2,7 @@
 using System.Reflection;
 using Fcmb.Shared.Models.Constants;
 using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -50,7 +50,7 @@ namespace LegalSearch.Infrastructure
                 x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             }
 
-            services.AddIdentity<User, Role>(SetupIdentityOptions)
+            services.AddIdentity<Solicitor, Role>(SetupIdentityOptions)
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
         }
