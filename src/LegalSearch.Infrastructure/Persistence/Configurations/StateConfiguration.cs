@@ -21,7 +21,7 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
         {
             builder.HasQueryFilter(x => !x.IsDeleted);
             
-            builder.HasIndex(c => new {c.Name, c.StateId})
+            builder.HasIndex(c => new {c.Name, c.StateId}, "Idx_OneUniqueLgaInState")
                 .IsUnique()
                 .HasFilter($" \"{nameof(Lga.IsDeleted)}\" = false");
         }
