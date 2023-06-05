@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Models\Requests" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Reference Include="Fcmb.Shared, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
         <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.dll</HintPath>
       </Reference>
