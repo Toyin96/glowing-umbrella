@@ -5,6 +5,7 @@ using LegalSearch.Application.Models.Constants;
 using LegalSearch.Domain.Entities.AuditLog;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,12 @@ namespace LegalSearch.Infrastructure.Persistence
         }
         
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Solicitor> Solicitors { get; set; }
+        public DbSet<State> States { get; set; }
+        public DbSet<Lga> Lgas { get; set; }
+        public DbSet<Firm> Firms { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<Bank> Banks { get; set; }
         
         protected override void OnModelCreating(ModelBuilder builder)
         {
