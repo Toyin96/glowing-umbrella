@@ -6,7 +6,7 @@ namespace LegalSearch.Application.Interfaces.Auth
     public interface ISessionService
     {
         UserSession? GetUserSession();
-        
+        StaffSession? GetStaffSession();
         Task<bool> HasPermissionAsync(params string[] permissions);
     }
 }

@@ -8,5 +8,6 @@ namespace LegalSearch.Application.Interfaces.Auth
     public interface IAuthSetupService
     {
         Task<ObjectResponse<LoginResponse>> LoginAsync(LoginRequest request);
+        Task<StatusResponse> GuestLoginAsync(LoginRequest request);
     }
 }

@@ -25,7 +25,7 @@ namespace LegalSearch.Infrastructure.Services.Auth
             this.authTokenGenerator = authTokenGenerator;
         }
 
-        public async Task<ObjectResponse<LoginResponse>> LoginAsync(LoginRequest request)
+        public async Task<StatusResponse> GuestLoginAsync(LoginRequest request)
         {
             var result = await authService.LoginAsync(request);
 
@@ -48,7 +48,37 @@ namespace LegalSearch.Infrastructure.Services.Auth
             logger.LogWarning("{Username} unsuccessfully logged in", request.Email);
             return new ObjectResponse<LoginResponse>("Invalid Credentials", ResponseCodes.InvalidCredentials);
         }
-        
+
+        public async Task<ObjectResponse<LoginResponse>> LoginAsync(LoginRequest request)
+        {
+            var result = await authService.LoginAsync(request);
+
+            if (result.Code is ResponseCodes.Success)
+            {
+                logger.LogInformation("{Username} successfully logged in", request.Email);
+
+                var staffSession = GenerateStaffSession(result.Data);
+                var token = authTokenGenerator.Generate(staffSession, TimeSpan.FromHours(1));
+
+                return new ObjectResponse<LoginResponse>("Successfully Logged In Staff")
+                {
+                    Data = new LoginResponse
+                    {
+                        Token = token
+                    }
+                };
+            }
+
+            logger.LogWarning("{Username} unsuccessfully logged in", request.Email);
+            return new ObjectResponse<LoginResponse>("Invalid Credentials", ResponseCodes.InvalidCredentials);
+        }
+        private static StaffSession GenerateStaffSession(AdLoginResponse loginResponse)
+        {
+            return new(loginResponse.StaffId, loginResponse.StaffName, loginResponse.DisplayName,
+                loginResponse.MobileNo, loginResponse.Email, loginResponse.Department,
+                loginResponse.ManagerName, loginResponse.ManagerDepartment, loginResponse.BranchId, loginResponse.Groups, loginResponse.Sol);
+        }
+
         private static UserSession GenerateUserSession(AdLoginResponse loginResponse)
         {
             return new(loginResponse.StaffId, loginResponse.StaffName, loginResponse.DisplayName,

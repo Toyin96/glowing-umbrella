@@ -39,5 +39,22 @@ namespace LegalSearch.Api.Controllers
             var response = await authSetupService.LoginAsync(request);
             return HandleResponse(response);
         }
+
+        /// <summary>
+        /// Initiates a login by a guest. A 2FA token is sent to the supplied email if the credentials are correct
+        /// </summary>
+        /// <param name="request"></param>
+        /// <remarks>
+        /// The user will get a mail containing the 2FA token which will be passed to the login-guest-2fa API for verification
+        /// </remarks>
+        /// <returns></returns>
+        [HttpPost("login-guest")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<StatusResponse>> LoginGuest([FromBody] LoginRequest request)
+        {
+            var response = await authSetupService.GuestLoginAsync(request);
+            return HandleResponse(response);
+        }
     }
 }
