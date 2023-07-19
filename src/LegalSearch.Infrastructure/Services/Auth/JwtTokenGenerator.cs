@@ -52,5 +52,39 @@ namespace LegalSearch.Infrastructure.Services.Auth
 
             return tokenString;
         }
+
+        public string Generate(StaffSession session, TimeSpan validity)
+        {
+            logger.LogInformation("Generating Staff Auth JWT Token...");
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(jwtKey);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(nameof(StaffSession.UserId), session.UserId ?? string.Empty),
+                    new Claim(nameof(StaffSession.Name), session.Name ?? string.Empty),
+                    new Claim(nameof(StaffSession.DisplayName), session.DisplayName ?? string.Empty),
+                    new Claim(nameof(StaffSession.PhoneNumber), session.PhoneNumber ?? string.Empty),
+                    new Claim(nameof(StaffSession.Email), session.Email ?? string.Empty),
+                    new Claim(nameof(StaffSession.Department), session.Department ?? string.Empty),
+                    new Claim(nameof(StaffSession.ManagerName), session.ManagerName ?? string.Empty),
+                    new Claim(nameof(StaffSession.ManagerDepartment), session.ManagerDepartment ?? string.Empty),
+                    new Claim(nameof(StaffSession.BranchId), session.BranchId ?? string.Empty),
+                    new Claim(nameof(StaffSession.Groups), session.Groups ?? string.Empty),
+                    new Claim(nameof(StaffSession.Sol), session.Sol ?? string.Empty),
+                }),
+                Expires = DateTime.UtcNow.Add(validity),
+                Issuer = ApiIssuer,
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return tokenString;
+        }
+
     }
 }

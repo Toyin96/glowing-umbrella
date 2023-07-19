@@ -19,6 +19,7 @@ namespace LegalSearch.Infrastructure.Services.Auth
         private readonly object claimsLocker = new();
         
         private UserSession userSession;
+        private StaffSession staffSession;
         private Dictionary<string, Claim> claimsDictionary;
         
         private Dictionary<string, string> permissionDictionary;
@@ -49,6 +50,78 @@ namespace LegalSearch.Infrastructure.Services.Auth
                 logger.LogError(e, "Unable to resolve session");
                 return null;
             }
+        }
+
+        public StaffSession? GetStaffSession()
+        {
+            try
+            {
+                if (staffSession is not null) return staffSession;
+
+                staffSession = ProcessStaffSession();
+                if (staffSession is not null)
+                    logger.LogInformation("Resolved New Session For Staff {User}", staffSession!.Name);
+
+                return staffSession;
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Unable to resolve session");
+                return null;
+            }
+        }
+
+        private StaffSession? ProcessStaffSession()
+        {
+            if (contextAccessor.HttpContext is null || !contextAccessor.HttpContext.User.Claims.Any()) return null;
+            if (claimsDictionary is null) InitClaimsDict();
+
+            var userIdClaim = claimsDictionary[nameof(StaffSession.UserId)];
+            var userId = userIdClaim.Value;
+            if (string.IsNullOrEmpty(userId)) userId = string.Empty;
+
+            var nameClaim = claimsDictionary[nameof(StaffSession.Name)];
+            var name = nameClaim.Value;
+            if (string.IsNullOrEmpty(name)) name = string.Empty;
+
+            var displayNameClaim = claimsDictionary[nameof(StaffSession.DisplayName)];
+            var displayName = displayNameClaim.Value;
+            if (string.IsNullOrEmpty(displayName)) displayName = string.Empty;
+
+            var phoneClaim = claimsDictionary[nameof(StaffSession.PhoneNumber)];
+            var phoneNumber = phoneClaim.Value;
+            if (string.IsNullOrEmpty(phoneNumber)) phoneNumber = string.Empty;
+
+            var emailClaim = claimsDictionary![nameof(StaffSession.Email)];
+            var email = emailClaim.Value;
+            if (string.IsNullOrEmpty(email)) email = string.Empty;
+
+            var departmentClaim = claimsDictionary[nameof(StaffSession.Department)];
+            var department = departmentClaim.Value;
+            if (string.IsNullOrEmpty(department)) department = string.Empty;
+
+            var managerNameClaim = claimsDictionary[nameof(StaffSession.ManagerName)];
+            var managerName = managerNameClaim.Value;
+            if (string.IsNullOrEmpty(managerName)) managerName = string.Empty;
+
+            var managerDepartmentClaim = claimsDictionary[nameof(StaffSession.ManagerDepartment)];
+            var managerDepartment = managerDepartmentClaim.Value;
+            if (string.IsNullOrEmpty(managerDepartment)) managerDepartment = string.Empty;
+
+            var branchIdClaim = claimsDictionary[nameof(StaffSession.BranchId)];
+            var branchId = branchIdClaim.Value;
+            if (string.IsNullOrEmpty(branchId)) branchId = string.Empty;
+
+            var groupClaim = claimsDictionary[nameof(StaffSession.Groups)];
+            var group = groupClaim.Value;
+            if (string.IsNullOrEmpty(group)) group = string.Empty;
+
+            var solClaim = claimsDictionary[nameof(StaffSession.Sol)];
+            var sol = solClaim.Value;
+            if (string.IsNullOrEmpty(group)) sol = string.Empty;
+
+            return new StaffSession(userId, name, displayName, phoneNumber, email, department, managerName, managerDepartment,
+                branchId, group, sol);
         }
 
         private UserSession? ProcessUserSession()

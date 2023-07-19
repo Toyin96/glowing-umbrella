@@ -6,5 +6,6 @@ namespace LegalSearch.Application.Interfaces.Auth
     public interface IAuthTokenGenerator
     {
         string Generate(UserSession session, TimeSpan validity);
+        string Generate(StaffSession session, TimeSpan validity);
     }
 }
