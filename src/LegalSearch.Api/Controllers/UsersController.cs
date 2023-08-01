@@ -39,5 +39,23 @@ namespace LegalSearch.Api.Controllers
             var response = await userSetupService.OnboardSolicitorAsync(request);
             return HandleResponse(response);
         }
+
+        /// <summary>
+        /// Endpoint to allow solicitors log in to their accounts
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("solicitor/Login")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<SolicitorOnboardResponse>>> Login([FromBody] SolicitorOnboardRequest request)
+        {
+            var response = await userSetupService.OnboardSolicitorAsync(request);
+            return HandleResponse(response);
+        }
     }
 }

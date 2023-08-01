@@ -16,12 +16,6 @@ namespace LegalSearch.Api.Controllers
     [Produces("application/json")] 
     public class AuthController : BaseController
     {
-        private readonly IAuthSetupService authSetupService;
-
-        public AuthController(IAuthSetupService authSetupService)
-        {
-            this.authSetupService = authSetupService;
-        }
 
         /// <summary>
         /// Logins in a user to the AD based on the username and password
@@ -31,14 +25,14 @@ namespace LegalSearch.Api.Controllers
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
-        [HttpPost("login")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<ObjectResponse<LoginResponse>>> Login([FromBody]LoginRequest request)
-        {
-            var response = await authSetupService.LoginAsync(request);
-            return HandleResponse(response);
-        }
+        //[HttpPost("login")]
+        //[ProducesResponseType((int)HttpStatusCode.OK)]
+        //[ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        //public async Task<ActionResult<ObjectResponse<LoginResponse>>> Login([FromBody]LoginRequest request)
+        //{
+        //    //var response;//await authSetupService.LoginAsync(request);
+        //    //return HandleResponse(response);
+        //}
 
         /// <summary>
         /// Initiates a login by a guest. A 2FA token is sent to the supplied email if the credentials are correct
@@ -48,13 +42,13 @@ namespace LegalSearch.Api.Controllers
         /// The user will get a mail containing the 2FA token which will be passed to the login-guest-2fa API for verification
         /// </remarks>
         /// <returns></returns>
-        [HttpPost("login-guest")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<StatusResponse>> LoginGuest([FromBody] LoginRequest request)
-        {
-            var response = await authSetupService.GuestLoginAsync(request);
-            return HandleResponse(response);
-        }
+        //[HttpPost("login-guest")]
+        //[ProducesResponseType((int)HttpStatusCode.OK)]
+        //[ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        //public async Task<ActionResult<StatusResponse>> LoginGuest([FromBody] LoginRequest request)
+        //{
+        //    var response = await authSetupService.GuestLoginAsync(request);
+        //    return HandleResponse(response);
+        //}
     }
 }

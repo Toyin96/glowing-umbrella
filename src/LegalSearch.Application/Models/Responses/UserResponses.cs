@@ -10,9 +10,7 @@ namespace LegalSearch.Application.Models.Responses
         public string Email { get; init; }
         public string PhoneNumber { get; init; }
         public string Address { get; init; }
-        public string Bank { get; init; }
         public string AccountNumber { get; init; }
-        public string AccountName { get; init; }
         public string Firm { get; init; }
         public string State { get; init; }
         public string Lga { get; init; }

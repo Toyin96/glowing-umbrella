@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace LegalSearch.Infrastructure.Services.Auth
 {
-    public class JwtTokenGenerator : IAuthTokenGenerator
+    public class JwtTokenGenerator // : IAuthTokenGenerator
     {
         private readonly ILogger<JwtTokenGenerator> logger;
         private readonly string jwtKey;

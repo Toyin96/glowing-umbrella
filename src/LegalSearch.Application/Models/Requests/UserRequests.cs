@@ -32,7 +32,7 @@ namespace LegalSearch.Application.Models.Requests
         public Guid StateId { get; init; }
         
         [Required(ErrorMessage = "Please Provide LGA")]
-        public Guid LgaId { get; init; }
+        public Guid RegionId { get; init; }
         
         [Required(ErrorMessage = "Please Provide Bank Account")]
         public Guid BankAccountId { get; init; }

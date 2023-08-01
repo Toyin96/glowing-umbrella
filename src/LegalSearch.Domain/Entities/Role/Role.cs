@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 
 namespace LegalSearch.Domain.Entities.Role
 {
@@ -12,7 +10,7 @@ namespace LegalSearch.Domain.Entities.Role
             UpdatedAt = DateTime.UtcNow;
         }
         
-        public List<string> Permissions { get; set; } = new();
+        public List<RolePermission> Permissions { get; set; } = new();
         
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
