@@ -113,7 +113,6 @@ namespace LegalSearch.Infrastructure.Services.User
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 BankAccount = request.BankAccount,
-                // Set other properties as needed during onboarding
             };
 
             var result = await _userManager.CreateAsync(newSolicitor, defaultPassword);
