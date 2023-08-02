@@ -8,6 +8,7 @@ namespace LegalSearch.Application.Interfaces.Auth
         Task<bool> AssignRoleAsync(Solicitor user, string roleName);
         Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims);
         Task<Solicitor> GetUserByEmailAsync(string email);
-        Task<IList<string>> GetRolesAsync(Solicitor user);
+        ClaimsIdentity GetClaimsIdentity(Domain.Entities.User.User user);
+        Task<IList<string>> GetRolesForUserAsync(Domain.Entities.User.User user);
     }
 }

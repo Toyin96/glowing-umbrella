@@ -1,9 +1,10 @@
 ﻿using System.Net;
-using System.Threading.Tasks;
 using Fcmb.Shared.Models.Responses;
+using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalSearch.Api.Controllers
@@ -15,11 +16,13 @@ namespace LegalSearch.Api.Controllers
     public class UsersController : BaseController
     {
         private readonly IUserSetupService userSetupService;
-        
+        private readonly ISolicitorAuthService<Solicitor> _solicitorAuthService;
+
         // GET
-        public UsersController(IUserSetupService userSetupService)
+        public UsersController(IUserSetupService userSetupService, ISolicitorAuthService<Solicitor> solicitorAuthService)
         {
             this.userSetupService = userSetupService;
+            _solicitorAuthService = solicitorAuthService;
         }
         
         /// <summary>
@@ -36,7 +39,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<ObjectResponse<SolicitorOnboardResponse>>> OnboardSolicitor([FromBody]SolicitorOnboardRequest request)
         {
-            var response = await userSetupService.OnboardSolicitorAsync(request);
+            var response = await _solicitorAuthService.OnboardSolicitorAsync(request);
             return HandleResponse(response);
         }
 
@@ -48,14 +51,14 @@ namespace LegalSearch.Api.Controllers
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
-        [HttpPost("solicitor/Login")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<SolicitorOnboardResponse>>> Login([FromBody] SolicitorOnboardRequest request)
-        {
-            var response = await userSetupService.OnboardSolicitorAsync(request);
-            return HandleResponse(response);
-        }
+        //[HttpPost("solicitor/Login")]
+        //[ProducesResponseType((int)HttpStatusCode.OK)]
+        //[ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        //[ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        //public async Task<ActionResult<ObjectResponse<SolicitorOnboardResponse>>> Login([FromBody] SolicitorLoginRequest request)
+        //{
+        //    //var response = await userSetupService.SolicitorLogin(request);
+        //    //return HandleResponse(response);
+        //}
     }
 }

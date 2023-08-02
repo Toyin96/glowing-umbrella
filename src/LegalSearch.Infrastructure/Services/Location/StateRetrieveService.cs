@@ -3,6 +3,7 @@ using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -45,12 +46,13 @@ namespace LegalSearch.Infrastructure.Services.Location
             };
         }
 
+        public async Task<State> GetStateById(Guid id)
+        {
+            return await _appDbContext.States.FirstOrDefaultAsync(x => x.Id == id);
+        }
+
         public async Task<ListResponse<StateResponse>> GetStatesAsync()
         {
-            var session = _sessionService.GetUserSession();
-
-            if (session is null) return new ListResponse<StateResponse>("User Is Unauthenticated", ResponseCodes.Unauthenticated);
-
             var response = await GetStatesQuery();
 
             return new ListResponse<StateResponse>("Successfully Retrieved states")

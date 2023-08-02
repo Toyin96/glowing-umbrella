@@ -25,20 +25,19 @@ namespace LegalSearch.Infrastructure.Persistence
             modelBuilder.Entity<Solicitor>()
                 .HasOne(s => s.Firm)
                 .WithMany()
-                .HasForeignKey(s => s.FirmId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Solicitor>()
-                .HasOne(s => s.State)
-                .WithMany()
-                .HasForeignKey(s => s.StateId)
-                .OnDelete(DeleteBehavior.Restrict);
+            //modelBuilder.Entity<Solicitor>()
+            //    .HasOne(s => s.State)
+            //    .WithMany()
+            //    .HasForeignKey(s => s.StateId)
+            //    .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Solicitor>()
-                .HasOne(s => s.Region)
-                .WithMany()
-                .HasForeignKey(s => s.RegionId)
-                .OnDelete(DeleteBehavior.Restrict);
+            //modelBuilder.Entity<Solicitor>()
+            //    .HasOne(s => s.Region)
+            //    .WithMany()
+            //    .HasForeignKey(s => s.RegionId)
+            //    .OnDelete(DeleteBehavior.Restrict);
 
 
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

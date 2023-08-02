@@ -8,10 +8,10 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<Solicitor> builder)
         {
-                        builder.HasOne(u => u.State)
-                        .WithMany()
-                        .HasForeignKey(u => u.StateId)
-                        .OnDelete(DeleteBehavior.Restrict);
+            //builder.HasOne(u => u.State)
+            //.WithMany()
+            //.HasForeignKey(u => u.StateId)
+            //.OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

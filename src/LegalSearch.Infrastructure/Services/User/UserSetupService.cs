@@ -43,9 +43,9 @@ namespace LegalSearch.Infrastructure.Services.User
 
             var solicitor = new Solicitor
             {
-                Address = request.Address, Email = request.Email,
-                FirmId = request.FirmId, RegionId = request.RegionId,
-                StateId = request.StateId,
+                Email = request.Email,
+                //RegionId = request.RegionId,
+                //StateId = request.StateId,
                 FirstName = request.FirstName, LastName = request.LastName,
                 PhoneNumber = request.PhoneNumber
             };
@@ -66,7 +66,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 Data = userResponse
             };
         }
-        
+
         private async Task<(bool, string)> CreateSolicitor(Solicitor solicitor, string defaultPassword)
         {
             var result = await userManager.CreateAsync(solicitor, defaultPassword);
@@ -85,14 +85,14 @@ namespace LegalSearch.Infrastructure.Services.User
         {
             var solicitor = await (from user in dbContext.Solicitors
                 //join lga in dbContext.Regions.Include(x => x.State) on user.RegionId equals lga.Id
-                join firm in dbContext.Firms on user.FirmId equals firm.Id
+                //join firm in dbContext.Firms on user.FirmId equals firm.Id
                 select new SolicitorOnboardResponse
                 {
-                    Email = user.Email, Firm = firm.Name,
+                    Email = user.Email, //Firm = firm.Name,
                    // Lga = lga.Name, State = lga.State.Name,
                     AccountNumber = user.BankAccount, FirstName = user.FirstName,
                     LastName = user.LastName, PhoneNumber = user.PhoneNumber, SolicitorId = user.Id,
-                    Address = user.Address
+                    //Address = user.Address
                 }).FirstAsync(x => x.SolicitorId == solicitorId);
 
             return solicitor;

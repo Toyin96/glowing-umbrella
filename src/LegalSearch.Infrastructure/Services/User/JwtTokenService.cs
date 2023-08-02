@@ -1,22 +1,23 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+﻿using LegalSearch.Application.Interfaces.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
-namespace LegalSearch.Infrastructure.Services.Auth
+namespace LegalSearch.Infrastructure.Services.User
 {
-    public class JwtTokenHelper
+    public class JwtTokenService : IJwtTokenService
     {
         private readonly IConfiguration _configuration;
         private readonly string _issuer;
         private readonly string _audience;
         private readonly string _secretKey;
 
-        public JwtTokenHelper(IConfiguration configuration)
+        public JwtTokenService(IConfiguration configuration)
         {
             _configuration = configuration;
-            _issuer = _configuration["JwtSettings:Issuer"]; // You should define these values in appsettings.json
+            _issuer = _configuration["JwtSettings:Issuer"];
             _audience = null;
             _secretKey = _configuration["JwtSettings:SecretKey"];
         }
@@ -30,7 +31,7 @@ namespace LegalSearch.Infrastructure.Services.Auth
                 _issuer,
                 _audience,
                 identity.Claims,
-                expires: DateTime.UtcNow.AddHours(1), // Set the token expiration time here
+                expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: signingCredentials
             );
 
@@ -56,10 +57,9 @@ namespace LegalSearch.Infrastructure.Services.Auth
             }
             catch
             {
-                return null; // Token validation failed
+                return null;
             }
         }
     }
-
 
 }

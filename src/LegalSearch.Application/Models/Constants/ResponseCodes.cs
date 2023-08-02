@@ -9,6 +9,9 @@ namespace LegalSearch.Application.Models.Constants
         public const string InvalidToken = "801";
         public const string LockedOutUser = "802";
         #endregion
-        
+
+        #region User Creation
+
+        #endregion
     }
 }
