@@ -20,13 +20,13 @@ namespace LegalSearch.Infrastructure.Services.User
 {
     public class UserSetupService : IUserSetupService
     {
-        private readonly UserManager<Solicitor> userManager;
+        private readonly UserManager<Domain.Entities.User.User> userManager;
         private readonly AppDbContext dbContext;
         private readonly ISessionService sessionService;
         private readonly ILogger<UserSetupService> logger;
         private readonly IMediator mediator;
 
-        public UserSetupService(AppDbContext dbContext, ISessionService sessionService, ILogger<UserSetupService> logger, IMediator mediator, UserManager<Solicitor> userManager)
+        public UserSetupService(AppDbContext dbContext, ISessionService sessionService, ILogger<UserSetupService> logger, IMediator mediator, UserManager<LegalSearch.Domain.Entities.User.User> userManager)
         {
             this.dbContext = dbContext;
             this.sessionService = sessionService;
@@ -43,9 +43,9 @@ namespace LegalSearch.Infrastructure.Services.User
 
             var solicitor = new Solicitor
             {
-                Address = request.Address, Email = request.Email,
-                FirmId = request.FirmId, LgaId = request.LgaId,
-                StateId = request.StateId, BankAccountId = request.BankAccountId,
+                Email = request.Email,
+                //RegionId = request.RegionId,
+                //StateId = request.StateId,
                 FirstName = request.FirstName, LastName = request.LastName,
                 PhoneNumber = request.PhoneNumber
             };
@@ -66,7 +66,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 Data = userResponse
             };
         }
-        
+
         private async Task<(bool, string)> CreateSolicitor(Solicitor solicitor, string defaultPassword)
         {
             var result = await userManager.CreateAsync(solicitor, defaultPassword);
@@ -84,17 +84,15 @@ namespace LegalSearch.Infrastructure.Services.User
         private async Task<SolicitorOnboardResponse> GetSolicitorDetails(Guid solicitorId)
         {
             var solicitor = await (from user in dbContext.Solicitors
-                join lga in dbContext.Lgas.Include(x => x.State) on user.LgaId equals lga.Id
-                join firm in dbContext.Firms on user.FirmId equals firm.Id
-                join bankAccount in dbContext.BankAccounts on user.BankAccountId equals bankAccount.Id
-                join bank in dbContext.Banks on bankAccount.BankId equals bank.Id
+                //join lga in dbContext.Regions.Include(x => x.State) on user.RegionId equals lga.Id
+                //join firm in dbContext.Firms on user.FirmId equals firm.Id
                 select new SolicitorOnboardResponse
                 {
-                    Bank = bank.Name, Email = user.Email, Firm = firm.Name,
-                    Lga = lga.Name, State = lga.State.Name, AccountName = bankAccount.AccountName,
-                    AccountNumber = bankAccount.AccountNumber, FirstName = user.FirstName,
+                    Email = user.Email, //Firm = firm.Name,
+                   // Lga = lga.Name, State = lga.State.Name,
+                    AccountNumber = user.BankAccount, FirstName = user.FirstName,
                     LastName = user.LastName, PhoneNumber = user.PhoneNumber, SolicitorId = user.Id,
-                    Address = user.Address
+                    //Address = user.Address
                 }).FirstAsync(x => x.SolicitorId == solicitorId);
 
             return solicitor;

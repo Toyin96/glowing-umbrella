@@ -4,8 +4,6 @@ using LegalSearch.Api.Filters;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Infrastructure.Persistence;
-using LegalSearch.Infrastructure.Services.Auth;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,11 +33,9 @@ namespace LegalSearch.Api
             });
 
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
-            
-            services.AddDbContext<AppDbContext>(x =>
-            {
-                x.UseNpgsql(AppConstants.DbConnectionString, o => o.MigrationsAssembly("LegalSearch.Infrastructure"));
-            });
+
+            //configure database
+            services.ConfigureDatabase();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
@@ -76,35 +72,42 @@ namespace LegalSearch.Api
         /// <param name="configuration"></param>
         private static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
+            // Configure JWT Authentication
+            var jwtSettings = configuration.GetSection("JwtSettings");
+            var secretKey = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwt(configuration);
-        }
-
-        private static void AddJwt(this AuthenticationBuilder builder, IConfiguration configuration)
-        {
-            var keyParam = configuration["JWTConfig:Key"]!;
-            var key = Encoding.ASCII.GetBytes(keyParam);
-            builder.AddJwtBearer(x =>
+            })
+            .AddJwtBearer(options =>
             {
-                x.RequireHttpsMetadata = false;
-                x.SaveToken = true;
-                x.TokenValidationParameters = new TokenValidationParameters
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidateIssuer = true,
-                    ValidIssuer = JwtTokenGenerator.ApiIssuer,
                     ValidateAudience = false,
-                    ValidateLifetime = true,
-                    RequireExpirationTime = false
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtSettings["Issuer"],
+                    ValidAudience = jwtSettings["Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(secretKey),
                 };
             });
         }
-        
+
+        private static void ConfigureDatabase(this IServiceCollection services)
+        {
+            // Add database context
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseSqlServer(AppConstants.DbConnectionString + ";TrustServerCertificate=True", sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
+                    sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.
+                });
+            });
+        }
+
         private static void ConfigureSwagger(this IServiceCollection services)
         {
             services.AddSwaggerGen(c =>

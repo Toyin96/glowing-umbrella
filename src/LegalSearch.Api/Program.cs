@@ -1,6 +1,7 @@
 using LegalSearch.Api;
 using LegalSearch.Infrastructure;
-using Microsoft.AspNetCore.Builder;
+using LegalSearch.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,14 @@ var configuration = builder.Configuration;
 builder.Services.AddServicesToContainer(configuration);
 builder.Services.ConfigureInfrastructureServices(configuration);
 var app = builder.Build();
+
+using (var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+{
+    var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
+
+    context.Database.Migrate();
+    context.Database.EnsureCreated();
+}
 
 app.ConfigureHttpRequestPipeline();
 app.Run();

@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Fcmb.Shared.Models.Constants;
 
 namespace LegalSearch.Application.Models.Requests
@@ -25,20 +24,29 @@ namespace LegalSearch.Application.Models.Requests
     
     public record SolicitorOnboardRequest : BaseUserRequest
     {
-        [Required(ErrorMessage = "Please Provide Firm")]
-        public Guid FirmId { get; init; }
-        
-        [Required(ErrorMessage = "Please Provide State")]
-        public Guid StateId { get; init; }
-        
-        [Required(ErrorMessage = "Please Provide LGA")]
-        public Guid LgaId { get; init; }
-        
-        [Required(ErrorMessage = "Please Provide Bank Account")]
-        public Guid BankAccountId { get; init; }
-        
-        [Required(ErrorMessage = "Please Provide Address"), RegularExpression(RegexConstants.TextRegex, ErrorMessage = "Please Provide A Valid Address.")]
-        [StringLength(100, ErrorMessage = "Address Cannot Be More Than Length Of 100")]
-        public string Address { get; init; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public FirmRequest Firm { get; set; }
+        public Guid StateId { get; set; }
+        public AddressRequest Address { get; set; }
+        [Required]
+        public string PhoneNumber { get; set; }
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+        [Required]
+        public string BankAccount { get; set; }
+    }
+
+    public class FirmRequest
+    {
+        public string Name { get; set; }
+        public AddressRequest Address { get; set; }
+    }
+
+    public class AddressRequest
+    {
+        public string Street { get; set; }
+        public Guid StateId { get; set; }
     }
 }

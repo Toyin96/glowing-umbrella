@@ -1,17 +1,19 @@
-﻿using System;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace LegalSearch.Domain.Entities.User.Solicitor
 {
     public class Solicitor : User
     {
-        public string Address { get; set; }
-        public Guid FirmId { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
         public Firm Firm { get; set; }
-        public Guid StateId { get; set; }
-        public State State { get; set; }
-        public Guid LgaId { get; set; }
-        public Lga Lga { get; set; }
-        public Guid BankAccountId { get; set; }
-        public Guid BankAccount { get; set; }
+        public Address Address { get; set; }
+        [Required]
+        public string PhoneNumber { get; set; }
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+        [Required]
+        public string BankAccount { get; set; }
     }
 }

@@ -18,7 +18,10 @@ namespace LegalSearch.Domain.Entities.User
         public DateTime CreatedAt { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
-        
+
+        // Role properties
+        public Guid? RoleId { get; set; }
+        public Role.Role Role { get; set; }
 
         public string FullName => $"{FirstName} {LastName}";
     }
