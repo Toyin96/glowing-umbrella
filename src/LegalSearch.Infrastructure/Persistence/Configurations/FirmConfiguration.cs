@@ -11,7 +11,7 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
             builder.HasQueryFilter(x => !x.IsDeleted);
             
             builder.HasIndex(c => c.Name)
-                .IsUnique();
+                .IsUnique(false);
         }
     }
 }

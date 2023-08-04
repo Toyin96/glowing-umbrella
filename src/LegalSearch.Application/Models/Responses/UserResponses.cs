@@ -13,6 +13,5 @@ namespace LegalSearch.Application.Models.Responses
         public string AccountNumber { get; init; }
         public string Firm { get; init; }
         public string State { get; init; }
-        public string Lga { get; init; }
     }
 }

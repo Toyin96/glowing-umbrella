@@ -1,13 +1,21 @@
-﻿using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Auth.Models.Requests;
+using Fcmb.Shared.Auth.Models.Responses;
+using Fcmb.Shared.Auth.Services;
+using Fcmb.Shared.Models.Responses;
 using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Location;
+using LegalSearch.Application.Models.Auth;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Entities.User.CustomerServiceOfficer;
 using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
@@ -18,15 +26,20 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly RoleManager<Role> _roleManager;
         private readonly IJwtTokenService _jwtTokenHelper;
         private readonly IStateRetrieveService _stateRetrieveService;
+        private readonly Application.Interfaces.Auth.IAuthService _authService;
+        private readonly ILogger<SolicitorAuthService> _logger;
 
         public SolicitorAuthService(UserManager<Domain.Entities.User.User> userManager, 
             RoleManager<Role> roleManager, IJwtTokenService jwtTokenHelper,
-            IStateRetrieveService stateRetrieveService)
+            IStateRetrieveService stateRetrieveService, Application.Interfaces.Auth.IAuthService authService,
+            ILogger<SolicitorAuthService> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _jwtTokenHelper = jwtTokenHelper;
             _stateRetrieveService = stateRetrieveService;
+            _authService = authService;
+            _logger = logger;
         }
         public async Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims)
         {
@@ -48,14 +61,86 @@ namespace LegalSearch.Infrastructure.Services.User
             return result.Succeeded;
         }
 
-        public ClaimsIdentity GetClaimsIdentity(Domain.Entities.User.User user)
+        public async Task<ObjectResponse<StaffLoginResponse>> FCMBLoginAsync(LoginRequest request)
         {
-            var claims = new List<Claim>
+            ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+
+            if (result.Code is ResponseCodes.Success)
             {
-                new Claim(ClaimTypes.Name, user.FirstName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()) // Add the user's role as a claim
-            };
+                _logger.LogInformation("{Username} successfully logged in", request.Email);
+
+                // create shadow user for staff if not already created
+                var shadowUser = await _userManager.FindByEmailAsync(request.Email);
+
+                if (shadowUser == null)
+                {
+                    // Create shadow (i.e CSO) user account
+
+                    CustomerServiceOfficer staff = new CustomerServiceOfficer
+                    {
+                        FirstName = result.Data.StaffName,
+                       // LastName = result.Data.StaffName,
+                        ManagerName = result.Data.ManagerName,
+                        ManagerDepartment = result.Data.ManagerDepartment,
+                        Department = result.Data.Department,
+                        StaffId = result.Data.StaffId,
+                        BranchId = result.Data.BranchId,
+                        Sol = result.Data.Sol,
+                        PhoneNumber = result.Data.MobileNo
+                    };
+
+                    var userCreationStatus = await _userManager.CreateAsync(staff);
+
+                    if (!userCreationStatus.Succeeded)
+                    {
+                        _logger.LogError($"Error creating shadow user for staff with email: {request.Email}");
+                        return new ObjectResponse<StaffLoginResponse>("Error creating shadow user for staff", ResponseCodes.ServiceError);
+                    }
+
+                    // Assign roles (if not already assigned)
+                    var roleName = nameof(RoleType.Cso);
+                    var role = await _roleManager.FindByNameAsync(roleName);
+
+                    if (role == null)
+                        return new ObjectResponse<StaffLoginResponse>("Staff login failed; role must be added first", ResponseCodes.ServiceError);
+
+                    // Assign the role to the CSO
+                    await _userManager.AddToRoleAsync(staff, roleName);
+
+                    var identity = await GetClaimsIdentity(staff);
+                    var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
+
+                    return new ObjectResponse<StaffLoginResponse>("Successfully Logged In Staff")
+                    {
+                        Data = new StaffLoginResponse
+                        {
+                            Token = jwtToken,
+                            Role = 
+                        }
+                    };
+
+
+                }
+
+                return new ObjectResponse<StaffLoginResponse>("Successfully Logged In Staff")
+                {
+                    Data = new StaffLoginResponse
+                    {
+                        Token = token
+                    }
+                };
+            }
+        }
+
+        public async Task<ClaimsIdentity> GetClaimsIdentity(Domain.Entities.User.User user)
+        {
+            var roles = await GetRolesForUserAsync(user);
+
+            var claims = new List<Claim>();
+
+            claims.Add(new Claim(ClaimTypes.Role, roles.First()));
+            claims.Add(new Claim(ClaimTypes.Name, user.FirstName));
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
 
             var identity = new ClaimsIdentity(claims, "JWT");
 
@@ -86,7 +171,7 @@ namespace LegalSearch.Infrastructure.Services.User
             var state = await _stateRetrieveService.GetStateById(request.StateId);
 
             if (state == null)
-                return new ObjectResponse<SolicitorOnboardResponse>("State ", ResponseCodes.ServiceError);
+                return new ObjectResponse<SolicitorOnboardResponse>("State Id is not valid", ResponseCodes.ServiceError);
 
             var defaultPassword = Helpers.GenerateDefaultPassword();
 
@@ -111,6 +196,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     StateId = state.Id
                 },
                 Email = request.Email,
+                UserName = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 BankAccount = request.BankAccount,
             };
@@ -120,15 +206,11 @@ namespace LegalSearch.Infrastructure.Services.User
             if (result.Succeeded)
             {
                 // Onboarding succeeded, now assign the role to the solicitor
-                var roleName = "Solicitor"; // The role name for solicitors (you can customize this as needed)
+                var roleName = nameof(RoleType.Solicitor); 
                 var role = await _roleManager.FindByNameAsync(roleName);
 
                 if (role == null)
-                {
-                    // If the role doesn't exist, create it
-                    role = new Role { Name = roleName };
-                    await _roleManager.CreateAsync(role);
-                }
+                    return new ObjectResponse<SolicitorOnboardResponse>("Solicitor onboarding failed; role must be added first", ResponseCodes.ServiceError);
 
                 // Assign the role to the solicitor
                 await _userManager.AddToRoleAsync(newSolicitor, roleName);
@@ -138,7 +220,15 @@ namespace LegalSearch.Infrastructure.Services.User
                 {
                     Data = new SolicitorOnboardResponse
                     {
-
+                        SolicitorId = newSolicitor.Id,
+                        FirstName = newSolicitor.FirstName,
+                        LastName = newSolicitor.LastName,
+                        Email = newSolicitor.Email,
+                        PhoneNumber=newSolicitor.PhoneNumber,
+                        AccountNumber = newSolicitor.BankAccount,
+                        State = newSolicitor.Address.State.Name,
+                        Firm = newSolicitor.Firm.Name,
+                        Address = newSolicitor.Address.Street
                     }
                 };
             }
@@ -146,7 +236,7 @@ namespace LegalSearch.Infrastructure.Services.User
             return new ObjectResponse<SolicitorOnboardResponse>("Solicitor onboarding failed", ResponseCodes.ServiceError);
         }
 
-        public async Task<ObjectResponse<LoginResponse>> SolicitorLogin(SolicitorLoginRequest request)
+        public async Task<ObjectResponse<LoginResponse>> SolicitorLogin(LoginRequest request)
         {
             (SignInResult signInResult, string responseCodes, string message) loginResult = await UserSignInHelper(request.Email, request.Password);
 
@@ -154,7 +244,7 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 var user = await GetUserByEmailAsync(request.Email);
 
-                var identity = GetClaimsIdentity(user);
+                var identity = await GetClaimsIdentity(user);
                 var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
 
                 // Return the JWT token to the client
