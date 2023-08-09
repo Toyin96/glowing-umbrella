@@ -16,7 +16,7 @@ namespace LegalSearch.Infrastructure.Services.Location
         private readonly AppDbContext _appDbContext;
         private readonly ILogger<StateRetrieveService> _logger;
 
-        public StateRetrieveService(ISessionService sessionService, 
+        public StateRetrieveService(ISessionService sessionService,
             AppDbContext appDbContext, ILogger<StateRetrieveService> logger)
         {
             _sessionService = sessionService;

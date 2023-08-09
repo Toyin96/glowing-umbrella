@@ -1,14 +1,14 @@
-﻿using LegalSearch.Application.Interfaces.Auth;
-using Microsoft.AspNetCore.Identity;
-using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Application.Models.Requests;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
+using Fcmb.Shared.Utilities;
+using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Models.Constants;
+using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Responses;
+using LegalSearch.Domain.Entities.Role;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
-using LegalSearch.Application.Models.Responses;
-using Microsoft.EntityFrameworkCore;
-using Fcmb.Shared.Utilities;
 
 namespace LegalSearch.Infrastructure.Services.Roles
 {

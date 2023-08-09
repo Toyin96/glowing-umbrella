@@ -1,9 +1,7 @@
-﻿using Azure;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LegalSearch.Api.Controllers

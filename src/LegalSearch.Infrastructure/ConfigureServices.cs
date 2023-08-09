@@ -1,16 +1,11 @@
-﻿using System;
-using System.Reflection;
-using Fcmb.Shared.Models.Constants;
+﻿using Fcmb.Shared.Models.Constants;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
-using LegalSearch.Domain.Entities.User.CustomerServiceOfficer;
-using LegalSearch.Domain.Entities.User.LegalPerfectionTeam;
-using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using System.Reflection;
 
 namespace LegalSearch.Infrastructure
 {
@@ -25,11 +20,12 @@ namespace LegalSearch.Infrastructure
         {
             services.AutoInjectService();
             services.ConfigureThirdPartyServices();
-            
-            services.AddMediatR(cfg => {
+
+            services.AddMediatR(cfg =>
+            {
                 cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             });
-            
+
             //configuring identity & users
             services.ConfigureIdentity();
             services.ConfigureHttpClients(configuration);

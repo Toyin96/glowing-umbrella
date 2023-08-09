@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 

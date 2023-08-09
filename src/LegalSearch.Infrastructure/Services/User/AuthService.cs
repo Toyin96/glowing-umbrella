@@ -1,12 +1,12 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Fcmb.Shared.Auth.Models.Requests;
+using Fcmb.Shared.Auth.Models.Responses;
+using Fcmb.Shared.Models.Responses;
+using Fcmb.Shared.Utilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
-using System.Xml.Linq;
 using System.Xml;
-using Fcmb.Shared.Models.Responses;
-using Fcmb.Shared.Auth.Models.Responses;
-using Fcmb.Shared.Auth.Models.Requests;
-using Fcmb.Shared.Utilities;
+using System.Xml.Linq;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
@@ -41,7 +41,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 string code = loginResponse2.Item1;
                 string message = loginResponse2.Item2;
                 AdLoginResponse loginResponse = loginResponse2.Item3;
-                ObjectResponse<AdLoginResponse> obj = new ObjectResponse<AdLoginResponse>(message, code) 
+                ObjectResponse<AdLoginResponse> obj = new ObjectResponse<AdLoginResponse>(message, code)
                 {
                     Data = loginResponse,
                 };

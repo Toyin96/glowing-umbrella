@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Models.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -21,7 +18,7 @@ namespace LegalSearch.Api.Filters
             var hasJsonConversionError = entry.Value.Errors.Any(err =>
                 err.ErrorMessage.Contains("json value could not be converted",
                     StringComparison.InvariantCultureIgnoreCase));
-            
+
             var error = hasJsonConversionError
                 ? "Please Verify JSON Payload Body"
                 : entry.Value.Errors.First().ErrorMessage;

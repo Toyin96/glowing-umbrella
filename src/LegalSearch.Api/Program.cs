@@ -19,5 +19,9 @@ using (var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>(
     context.Database.EnsureCreated();
 }
 
-app.ConfigureHttpRequestPipeline();
+app.ConfigureHttpRequestPipeline(configuration);
+
+//jobs
+//RecurringJob.AddOrUpdate<IBackgroundService>(x => x.AssignRequestToSolicitors(Guid.NewGuid()), Cron.Minutely);
+
 app.Run();

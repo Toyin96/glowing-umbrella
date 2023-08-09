@@ -1,6 +1,4 @@
-﻿using LegalSearch.Application.Interfaces.Auth;
-using LegalSearch.Infrastructure.Services.Auth;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace LegalSearch.Infrastructure
 {

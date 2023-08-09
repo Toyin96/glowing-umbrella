@@ -1,5 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using LegalSearch.Domain.Common;
+﻿using LegalSearch.Domain.Common;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegalSearch.Domain.Entities.User.Solicitor
 {
@@ -10,7 +10,7 @@ namespace LegalSearch.Domain.Entities.User.Solicitor
         public Guid RegionId { get; set; }
         public Region Region { get; set; }
     }
-    
+
     public class Region : BaseEntity
     {
         public string Name { get; set; }

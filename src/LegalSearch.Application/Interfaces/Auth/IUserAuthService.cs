@@ -13,6 +13,6 @@ namespace LegalSearch.Application.Interfaces.Auth
         Task<Solicitor> GetUserByEmailAsync(string email);
         Task<ClaimsIdentity> GetClaimsIdentity(Domain.Entities.User.User user);
         Task<IList<string>> GetRolesForUserAsync(Domain.Entities.User.User user);
-        Task<ObjectResponse<StaffLoginResponse>> FCMBLoginAsync(LoginRequest model);
+        Task<ObjectResponse<StaffLoginResponse>> FCMBLoginAsync(LoginRequest model, bool isCso = false);
     }
 }
