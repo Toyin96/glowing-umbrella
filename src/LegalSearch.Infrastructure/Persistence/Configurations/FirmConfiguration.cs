@@ -9,10 +9,9 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<Firm> builder)
         {
             builder.HasQueryFilter(x => !x.IsDeleted);
-            
+
             builder.HasIndex(c => c.Name)
-                .IsUnique()
-                .HasFilter($" \"{nameof(Firm.IsDeleted)}\" = false");
+                .IsUnique(false);
         }
     }
 }

@@ -8,22 +8,26 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<State> builder)
         {
-            builder.HasQueryFilter(x => !x.IsDeleted);
-            
-            builder.HasIndex(c => c.Name)
-                .IsUnique()
-                .HasFilter($" \"{nameof(State.IsDeleted)}\" = false");
+            // Set the primary key
+            builder.HasKey(s => s.Id);
+
+            // Set the name property as a unique index (if needed)
+            builder.HasIndex(s => s.Name).IsUnique();
+
+            // Set the foreign key relationship with the Region entity
+            builder.HasOne(s => s.Region)
+                   .WithMany(r => r.States)
+                   .HasForeignKey(s => s.RegionId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            // Add any additional configurations or constraints here
         }
     }
-    public class LgaConfiguration : IEntityTypeConfiguration<Lga>
+    public class LgaConfiguration : IEntityTypeConfiguration<Region>
     {
-        public void Configure(EntityTypeBuilder<Lga> builder)
+        public void Configure(EntityTypeBuilder<Region> builder)
         {
             builder.HasQueryFilter(x => !x.IsDeleted);
-            
-            builder.HasIndex(c => new {c.Name, c.StateId}, "Idx_OneUniqueLgaInState")
-                .IsUnique()
-                .HasFilter($" \"{nameof(Lga.IsDeleted)}\" = false");
         }
     }
 }

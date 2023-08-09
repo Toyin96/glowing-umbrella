@@ -1,13 +1,9 @@
-﻿using System.Net;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Exceptions;
 using LegalSearch.Application.Models.Constants;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace LegalSearch.Api.Middlewares
 {

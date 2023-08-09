@@ -1,16 +1,14 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using LegalSearch.Application.Interfaces.Auth;
-using LegalSearch.Application.Models.Auth;
+﻿using LegalSearch.Application.Models.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace LegalSearch.Infrastructure.Services.Auth
 {
-    public class JwtTokenGenerator : IAuthTokenGenerator
+    public class JwtTokenGenerator // : IAuthTokenGenerator
     {
         private readonly ILogger<JwtTokenGenerator> logger;
         private readonly string jwtKey;

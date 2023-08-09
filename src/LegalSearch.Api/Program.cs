@@ -1,6 +1,7 @@
 using LegalSearch.Api;
 using LegalSearch.Infrastructure;
-using Microsoft.AspNetCore.Builder;
+using LegalSearch.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,5 +11,17 @@ builder.Services.AddServicesToContainer(configuration);
 builder.Services.ConfigureInfrastructureServices(configuration);
 var app = builder.Build();
 
-app.ConfigureHttpRequestPipeline();
+using (var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+{
+    var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
+
+    context.Database.Migrate();
+    context.Database.EnsureCreated();
+}
+
+app.ConfigureHttpRequestPipeline(configuration);
+
+//jobs
+//RecurringJob.AddOrUpdate<IBackgroundService>(x => x.AssignRequestToSolicitors(Guid.NewGuid()), Cron.Minutely);
+
 app.Run();

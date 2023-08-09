@@ -1,7 +1,4 @@
-﻿using Fcmb.Shared.Auth.Services;
-using LegalSearch.Application.Interfaces.Auth;
-using LegalSearch.Infrastructure.Services.Auth;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace LegalSearch.Infrastructure
 {
@@ -9,9 +6,9 @@ namespace LegalSearch.Infrastructure
     {
         public static void ConfigureThirdPartyServices(this IServiceCollection services)
         {
-            services.AddTransient<IAuthService, AuthService>();
+            //services.AddTransient<IAuthService, AuthService>();
 
-            services.AddTransient<IAuthTokenGenerator, JwtTokenGenerator>();
+            //services.AddTransient<IAuthTokenGenerator, JwtTokenGenerator>();
         }
     }
 }

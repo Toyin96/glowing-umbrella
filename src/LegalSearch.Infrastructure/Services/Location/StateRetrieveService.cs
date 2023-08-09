@@ -1,10 +1,9 @@
 ﻿using Fcmb.Shared.Models.Responses;
-using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Responses;
-using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,7 +16,7 @@ namespace LegalSearch.Infrastructure.Services.Location
         private readonly AppDbContext _appDbContext;
         private readonly ILogger<StateRetrieveService> _logger;
 
-        public StateRetrieveService(ISessionService sessionService, 
+        public StateRetrieveService(ISessionService sessionService,
             AppDbContext appDbContext, ILogger<StateRetrieveService> logger)
         {
             _sessionService = sessionService;
@@ -31,7 +30,7 @@ namespace LegalSearch.Infrastructure.Services.Location
 
             if (session is null) return new ListResponse<LgaResponse>("User Is Unauthenticated", ResponseCodes.Unauthenticated);
 
-            var lgas = await _appDbContext.Lgas.Where(x => x.StateId == stateId).ToListAsync();
+            var lgas = ""; // await _appDbContext.Regions.Where(x => x.StateId == stateId).ToListAsync();
 
             if (lgas is null)
             {
@@ -42,17 +41,18 @@ namespace LegalSearch.Infrastructure.Services.Location
 
             return new ListResponse<LgaResponse>("Successfully Retrieved regions")
             {
-                Data = lgas.Select(x => new LgaResponse { Name = x.Name}).ToList(),
-                Total = lgas.Count
+                Data = null, //lgas.Select(x => new LgaResponse { Name = x.Name}).ToList(),
+                Total = 1 //lgas.Count
             };
+        }
+
+        public async Task<State> GetStateById(Guid id)
+        {
+            return await _appDbContext.States.FirstOrDefaultAsync(x => x.Id == id);
         }
 
         public async Task<ListResponse<StateResponse>> GetStatesAsync()
         {
-            var session = _sessionService.GetUserSession();
-
-            if (session is null) return new ListResponse<StateResponse>("User Is Unauthenticated", ResponseCodes.Unauthenticated);
-
             var response = await GetStatesQuery();
 
             return new ListResponse<StateResponse>("Successfully Retrieved states")

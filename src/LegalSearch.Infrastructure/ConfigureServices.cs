@@ -1,12 +1,11 @@
-﻿using System;
-using System.Reflection;
-using Fcmb.Shared.Models.Constants;
+﻿using Fcmb.Shared.Models.Constants;
 using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Domain.Entities.User;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace LegalSearch.Infrastructure
 {
@@ -21,11 +20,13 @@ namespace LegalSearch.Infrastructure
         {
             services.AutoInjectService();
             services.ConfigureThirdPartyServices();
-            
-            services.AddMediatR(cfg => {
+
+            services.AddMediatR(cfg =>
+            {
                 cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             });
-            
+
+            //configuring identity & users
             services.ConfigureIdentity();
             services.ConfigureHttpClients(configuration);
         }
@@ -34,27 +35,28 @@ namespace LegalSearch.Infrastructure
         {
             ConfigureAuthHttpClient(services, configuration);
         }
-        
+
         private static void ConfigureIdentity(this IServiceCollection services)
         {
             static void SetupIdentityOptions(IdentityOptions x)
             {
                 // x.User./
                 x.User.RequireUniqueEmail = true;
-                
+
                 // Password settings.
                 x.Password.RequiredLength = 8;
-                
+
                 // Lockout settings.
                 x.Lockout.MaxFailedAccessAttempts = 3;
                 x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             }
 
-            services.AddIdentity<Solicitor, Role>(SetupIdentityOptions)
-                .AddEntityFrameworkStores<AppDbContext>()
-                .AddDefaultTokenProviders();
+            services.AddIdentity<User, Role>(SetupIdentityOptions)
+                    .AddEntityFrameworkStores<AppDbContext>()
+                    .AddRoleManager<RoleManager<Role>>()
+                    .AddSignInManager<SignInManager<User>>();
         }
-        
+
         private static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHttpClient(HttpConstants.AuthHttpClient, client =>
@@ -76,7 +78,7 @@ namespace LegalSearch.Infrastructure
         {
             //Register Services with Interface
             services.Scan(scan => scan.FromCallingAssembly().AddClasses(classes => classes
-                    .Where(type => type.Name.EndsWith("Service") && type.GetInterfaces().Length > 0), false)
+                    .Where(type => (type.Name.EndsWith("Service") || type.Name.EndsWith("Manager")) && type.GetInterfaces().Length > 0), false)
                 .AsSelfWithInterfaces()
                 .WithTransientLifetime());
         }

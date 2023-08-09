@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Runtime.Serialization;
 
 namespace LegalSearch.Application.Exceptions
@@ -16,11 +15,11 @@ namespace LegalSearch.Application.Exceptions
         {
         }
 
-        protected InAppException(string message, params object[] args) 
+        protected InAppException(string message, params object[] args)
             : base(String.Format(CultureInfo.CurrentCulture, message, args))
         {
         }
-        
+
         protected InAppException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
