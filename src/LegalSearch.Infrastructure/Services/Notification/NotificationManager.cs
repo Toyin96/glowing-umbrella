@@ -39,19 +39,14 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return pendingNotifications ?? Enumerable.Empty<Domain.Entities.Notification.Notification>();
         }
 
-        public async Task<List<NotificationResponse>> GetPendingNotificationsForUser(string userId)
+        public async Task<IEnumerable<Domain.Entities.Notification.Notification>> GetPendingNotificationsForUser(string userId)
         {
-            return await _appDbContext.Notifications
+            var pendingNotifications = await _appDbContext.Notifications
                                    .Where(n => n.RecipientUserId == userId && !n.IsRead)
-                                   .Select(x => new NotificationResponse
-                                   {
-                                       Title = x.Title,
-                                       NotificationType = x.NotificationType,
-                                       RecipientUserId = userId,
-                                       Message = x.Message,
-                                       IsRead = x.IsRead,
-                                       MetaData = x.MetaData    
-                                   }).ToListAsync();
+                                   .ToListAsync();
+
+            return pendingNotifications ?? Enumerable.Empty<Domain.Entities.Notification.Notification>();
+
         }
 
         public async Task<bool> MarkAllNotificationAsRead(string userId)

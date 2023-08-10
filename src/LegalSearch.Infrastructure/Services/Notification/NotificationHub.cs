@@ -81,12 +81,13 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId);
 
                 // Combine and send both sets of pending notifications to the connected user
-                //var allPendingNotifications = null; // pendingNotificationsForRole.Concat(pendingNotificationsForUser).ToList();
-                //foreach (var notification in allPendingNotifications)
-                //{
-                //    var jsonNotification = JsonSerializer.Serialize(notification);
-                //    await Clients.User(userId).SendAsync("ReceiveNotification", jsonNotification);
-                //}
+                var pendingNotificationsForRoleList = pendingNotificationsForRole.ToList();
+                var allPendingNotifications = pendingNotificationsForRoleList.Concat(pendingNotificationsForUser).ToList();
+                foreach (var notification in allPendingNotifications)
+                {
+                    var jsonNotification = JsonSerializer.Serialize(notification);
+                    await Clients.User(userId).SendAsync("ReceiveNotification", jsonNotification);
+                }
 
                 // Clear pending notifications for the connected user
                 await _notificationService.MarkAllNotificationAsRead(userId);
