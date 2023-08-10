@@ -9,6 +9,7 @@ using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 
 namespace LegalSearch.Infrastructure.Services.LegalSearchService
@@ -18,15 +19,18 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly AppDbContext _appDbContext;
         private readonly ILogger<LegalSearchRequestService> _logger;
         private readonly IFCMBService _fCMBService;
+        private readonly UserManager<Domain.Entities.User.User> _userManager;
 
         public LegalSearchRequestService(AppDbContext appDbContext,
-            ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService)
+            ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService,
+            UserManager<Domain.Entities.User.User> userManager)
         {
             _appDbContext = appDbContext;
             _logger = logger;
             _fCMBService = fCMBService;
+            _userManager = userManager;
         }
-        public async Task<ObjectResponse<string>> CreateNewRequest(LegalSearchRequest legalSearchRequest)
+        public async Task<ObjectResponse<string>> CreateNewRequest(LegalSearchRequest legalSearchRequest, string userId)
         {
             try
             {
@@ -37,8 +41,17 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 // place lien on customer's account
 
-                var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
+                // get user
+                var user = await _userManager.FindByIdAsync(userId);
+                var branch = _appDbContext.Branches.First(x => x.SolId == user.SolId)?.Address;
 
+                if (branch == null)
+                    return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
+
+                var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
+                newLegalSearchRequest.Branch = branch;
+                newLegalSearchRequest.RequestInitiator = user.FirstName;
+                
                 // add the files
                 List<SupportingDocument> documents = await ProcessFiles(legalSearchRequest.SupportingDocuments);
 

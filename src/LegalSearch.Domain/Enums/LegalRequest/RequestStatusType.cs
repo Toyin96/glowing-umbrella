@@ -4,6 +4,8 @@
     {
         Initiated = 1,
         Lawyer,
+        LawyerAccepted,
+        LawyerRejected,
         UnAssigned,
         Completed
     }

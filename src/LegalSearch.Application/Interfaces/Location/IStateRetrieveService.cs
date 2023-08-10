@@ -8,6 +8,7 @@ namespace LegalSearch.Application.Interfaces.Location
     {
         Task<ListResponse<StateResponse>> GetStatesAsync();
         Task<State> GetStateById(Guid id);
+        Task<Guid> GetRegionOfState(Guid stateId);
         Task<ListResponse<LgaResponse>> GetRegionsAsync(Guid stateId);
     }
 }

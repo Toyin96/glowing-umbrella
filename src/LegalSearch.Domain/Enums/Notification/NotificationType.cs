@@ -7,6 +7,7 @@
         RequestWithElapsedSLA = 3,
         RequestPendingWithCso = 4,
         ManualSolicitorAssignment = 5,
-        CompletedRequest = 6
+        CompletedRequest = 6,
+        UnAssignedRequest = 7
     }
 }

@@ -10,6 +10,7 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User.CustomerServiceOfficer;
 using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -18,20 +19,20 @@ using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
-    public class SolicitorAuthService : ISolicitorAuthService<Solicitor>
+    public class GeneralAuthService : IGeneralAuthService<Solicitor>
     {
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly RoleManager<Role> _roleManager;
         private readonly IJwtTokenService _jwtTokenHelper;
         private readonly IStateRetrieveService _stateRetrieveService;
         private readonly IAuthService _authService;
-        private readonly ILogger<SolicitorAuthService> _logger;
+        private readonly ILogger<GeneralAuthService> _logger;
         private readonly IBranchRetrieveService _branchRetrieveService;
 
-        public SolicitorAuthService(UserManager<Domain.Entities.User.User> userManager,
+        public GeneralAuthService(UserManager<Domain.Entities.User.User> userManager,
             RoleManager<Role> roleManager, IJwtTokenService jwtTokenHelper,
             IStateRetrieveService stateRetrieveService, IAuthService authService,
-            ILogger<SolicitorAuthService> logger, IBranchRetrieveService branchRetrieveService)
+            ILogger<GeneralAuthService> logger, IBranchRetrieveService branchRetrieveService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -101,7 +102,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 await UpdateUserLastLoginTime(staff);
 
                 // create jwt token for staff
-                var identity = await GetClaimsIdentity(staff);
+                var identity = await GetClaimsIdentityForStaff(staff);
                 var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
 
                 return await CreateStaffLoginResponse(staff, jwtToken);
@@ -111,7 +112,7 @@ namespace LegalSearch.Infrastructure.Services.User
             await UpdateUserLastLoginTime(shadowUser);
 
             // create jwt token for staff
-            var staffIdentity = await GetClaimsIdentity(shadowUser);
+            var staffIdentity = await GetClaimsIdentityForStaff(shadowUser);
             var staffJwtToken = _jwtTokenHelper.GenerateJwtToken(staffIdentity);
 
             return await CreateStaffLoginResponse(shadowUser, staffJwtToken);
@@ -136,7 +137,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 StaffId = adLoginResponse.StaffId,
                 BranchId = adLoginResponse.BranchId,
                 SolId = adLoginResponse.Sol,
-                PhoneNumber = adLoginResponse.MobileNo
+                PhoneNumber = adLoginResponse.MobileNo,
             };
         }
 
@@ -176,13 +177,31 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
-        public async Task<ClaimsIdentity> GetClaimsIdentity(Domain.Entities.User.User user)
+        public async Task<ClaimsIdentity> GetClaimsIdentityForSolicitor(Domain.Entities.User.User user)
         {
             var roles = await GetRolesForUserAsync(user);
 
             var claims = new List<Claim>();
 
             claims.Add(new Claim("UserId", user.Id.ToString()));
+            claims.Add(new Claim(ClaimTypes.Role, roles.First()));
+            claims.Add(new Claim(ClaimTypes.Name, user.FirstName));
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+
+            var identity = new ClaimsIdentity(claims, "JWT");
+
+            return identity;
+        }
+
+        public async Task<ClaimsIdentity> GetClaimsIdentityForStaff(Domain.Entities.User.User user)
+        {
+            var roles = await GetRolesForUserAsync(user);
+
+            var claims = new List<Claim>();
+
+            claims.Add(new Claim(nameof(ClaimType.SolId), user.SolId.ToString()));
+            claims.Add(new Claim(nameof(ClaimType.BranchId), user.BranchId.ToString()));
+            claims.Add(new Claim(nameof(ClaimType.UserId), user.Id.ToString()));
             claims.Add(new Claim(ClaimTypes.Role, roles.First()));
             claims.Add(new Claim(ClaimTypes.Name, user.FirstName));
             claims.Add(new Claim(ClaimTypes.Email, user.Email));
@@ -280,7 +299,7 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 var user = await GetUserByEmailAsync(request.Email);
 
-                var identity = await GetClaimsIdentity(user);
+                var identity = await GetClaimsIdentityForSolicitor(user);
                 var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
 
                 // Return the JWT token to the client

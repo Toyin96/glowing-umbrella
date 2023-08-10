@@ -8,14 +8,14 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
-    public class NotificationHub : Hub
+    public class NotificationHub : Hub, INotificationService
     {
-        private readonly INotificationService _notificationService;
+        private readonly INotificationManager _notificationService;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly Dictionary<string, List<Domain.Entities.Notification.Notification>> _pendingNotifications = new Dictionary<string, List<Domain.Entities.Notification.Notification>>();
 
-        public NotificationHub(INotificationService notificationService,
+        public NotificationHub(INotificationManager notificationService,
             UserManager<Domain.Entities.User.User> userManager, 
             IJwtTokenService jwtTokenService)
         {
@@ -31,25 +31,25 @@ namespace LegalSearch.Infrastructure.Services.Notification
             await Clients.Group(roleName).SendAsync("ReceiveNotification", jsonNotification);
         }
 
-        public async Task SendNotificationToUser(string userId, Domain.Entities.Notification.Notification notification)
+        public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await _userManager.FindByIdAsync(userId.ToString());
             var jwtToken = Context.GetHttpContext()?.Request?.Headers["Authorization"].ToString()?.Replace("Bearer ", "");
 
             var principal = _jwtTokenService.ValidateJwtToken(jwtToken);
 
-            string id = principal.FindFirst("UserId").Value;
+            string id = principal.FindFirst("UserId").Value.ToString();
 
-            if (user == null || principal == null)
+            if (userId.ToString() != id)
             {
                 // User is not authenticated, store the notification for later retrieval
-                await StorePendingNotification(userId, notification);
+                await StorePendingNotification(userId.ToString(), notification);
             }
             else
             {
                 // User is authenticated and connected, send the notification immediately
                 var jsonNotification = JsonSerializer.Serialize(notification);
-                await Clients.User(userId).SendAsync("ReceiveNotification", jsonNotification);
+                await Clients.User(userId.ToString()).SendAsync("ReceiveNotification", jsonNotification);
             }
         }
 

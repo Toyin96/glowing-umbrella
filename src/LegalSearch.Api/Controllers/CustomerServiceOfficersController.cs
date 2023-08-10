@@ -1,6 +1,7 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -37,7 +38,10 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<ObjectResponse<string>>> CreateNewRequest([FromForm] LegalSearchRequest request)
         {
-            var result = await _legalSearchRequestService.CreateNewRequest(request);
+            //get userId 
+            string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+
+            var result = await _legalSearchRequestService.CreateNewRequest(request, userId);
             return HandleResponse(result);
         }
     }

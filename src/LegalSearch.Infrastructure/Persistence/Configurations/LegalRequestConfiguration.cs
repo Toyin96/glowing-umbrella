@@ -11,10 +11,6 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
             builder.HasMany(x => x.SupportingDocuments)
                 .WithOne(x => x.LegalRequest)
                 .IsRequired(false);
-
-            builder.HasOne(x => x.Solicitor)
-                .WithMany(x => x.LegalRequests)
-                .IsRequired(false);
         }
     }
 }

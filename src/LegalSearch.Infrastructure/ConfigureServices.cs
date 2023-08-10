@@ -19,7 +19,6 @@ namespace LegalSearch.Infrastructure
         public static void ConfigureInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AutoInjectService();
-            services.ConfigureThirdPartyServices();
 
             services.AddMediatR(cfg =>
             {
