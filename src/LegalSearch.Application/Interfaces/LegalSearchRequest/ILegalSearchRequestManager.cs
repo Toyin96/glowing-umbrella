@@ -1,0 +1,9 @@
+﻿namespace LegalSearch.Application.Interfaces.LegalSearchRequest
+{
+    public interface ILegalSearchRequestManager
+    {
+        Task<Domain.Entities.LegalRequest.LegalRequest> GetLegalSearchRequest(Guid requestId);
+        Task<bool> UpdateLegalSearchRequest(Domain.Entities.LegalRequest.LegalRequest legalRequest);
+        Task<IEnumerable<Domain.Entities.LegalRequest.LegalRequest>> GetRequestsToReroute();
+    }
+}

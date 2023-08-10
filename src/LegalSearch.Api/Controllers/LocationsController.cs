@@ -41,7 +41,7 @@ namespace LegalSearch.Api.Controllers
         public async Task<ActionResult<ListResponse<StateResponse>>> GetStates()
         {
             string userId = User.FindFirst("UserId").Value;
-            string email = User.FindFirst(x => x.)
+            //string email = User.FindFirst(x => x.)
             var response = await _stateRetrieveService.GetStatesAsync();
             return HandleResponse(response);
         }

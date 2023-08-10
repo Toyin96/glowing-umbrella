@@ -3,5 +3,6 @@
     public interface IBackgroundService
     {
         Task AssignRequestToSolicitors(Guid requestId);
+        Task CheckAndRerouteRequests();
     }
 }

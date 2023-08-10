@@ -22,6 +22,7 @@ namespace LegalSearch.Infrastructure.Persistence
         public DbSet<SupportingDocument> SupportingDocuments { get; set; }
         public DbSet<Branch> Branches { get; set; }
         public DbSet<Region> Regions { get; set; }
+        public DbSet<SolicitorAssignment> SolicitorAssignments { get; set; }
         public DbSet<Firm> Firms { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }

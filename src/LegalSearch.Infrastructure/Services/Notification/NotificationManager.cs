@@ -11,11 +11,11 @@ using System.Threading.Tasks;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
-    public class NotificationService : INotificationService
+    public class NotificationManager : INotificationManager
     {
         private readonly AppDbContext _appDbContext;
 
-        public NotificationService(AppDbContext appDbContext)
+        public NotificationManager(AppDbContext appDbContext)
         {
             _appDbContext = appDbContext;
         }

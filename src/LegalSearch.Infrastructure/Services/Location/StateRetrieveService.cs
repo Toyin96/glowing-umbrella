@@ -12,24 +12,29 @@ namespace LegalSearch.Infrastructure.Services.Location
 {
     public class StateRetrieveService : IStateRetrieveService
     {
-        private readonly ISessionService _sessionService;
         private readonly AppDbContext _appDbContext;
         private readonly ILogger<StateRetrieveService> _logger;
 
-        public StateRetrieveService(ISessionService sessionService,
-            AppDbContext appDbContext, ILogger<StateRetrieveService> logger)
+        public StateRetrieveService(AppDbContext appDbContext, ILogger<StateRetrieveService> logger)
         {
-            _sessionService = sessionService;
             _appDbContext = appDbContext;
             _logger = logger;
         }
 
+        public async Task<Guid> GetRegionOfState(Guid stateId)
+        {
+            var state = await _appDbContext.States.FirstOrDefaultAsync(x => x.Id == stateId);
+
+            if (state == null)
+            {
+                return Guid.Empty;
+            }
+
+            return state.RegionId;
+        }
+
         public async Task<ListResponse<LgaResponse>> GetRegionsAsync(Guid stateId)
         {
-            var session = _sessionService.GetUserSession();
-
-            if (session is null) return new ListResponse<LgaResponse>("User Is Unauthenticated", ResponseCodes.Unauthenticated);
-
             var lgas = ""; // await _appDbContext.Regions.Where(x => x.StateId == stateId).ToListAsync();
 
             if (lgas is null)
