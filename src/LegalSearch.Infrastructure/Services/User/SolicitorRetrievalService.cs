@@ -139,5 +139,21 @@ namespace LegalSearch.Infrastructure.Services.User
 
             return requestIds ?? Enumerable.Empty<Guid>();
         }
+
+        public async Task<IEnumerable<Guid>> GetUnattendedAcceptedRequestsForTheTimeFrame(DateTime timeframe)
+        {
+            /*
+             this method queries requests that have been accepted by solicitors but 
+            left unattended within the timeframe. Time can be past 24 hours(1 day) or past 72 hours (3 days)
+             */
+
+            var requestIds = await _appDbContext.SolicitorAssignments
+                                                .Where(a => a.IsAccepted && a.AssignedAt <= timeframe)
+                                                .Select(a => a.RequestId)
+                                                .Distinct()
+                                                .ToListAsync();
+
+            return requestIds ?? Enumerable.Empty<Guid>();
+        }
     }
 }

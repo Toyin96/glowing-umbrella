@@ -1,8 +1,8 @@
 ﻿using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Notification;
+using LegalSearch.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -33,16 +33,15 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
             var jwtToken = Context.GetHttpContext()?.Request?.Headers["Authorization"].ToString()?.Replace("Bearer ", "");
 
             var principal = _jwtTokenService.ValidateJwtToken(jwtToken);
 
-            string id = principal.FindFirst("UserId").Value.ToString();
+            string id = principal.FindFirst(nameof(ClaimType.UserId))?.Value?.ToString();
 
             if (userId.ToString() != id)
             {
-                // User is not authenticated, store the notification for later retrieval
+                // User is not logged in, store the notification for later retrieval
                 await StorePendingNotification(userId.ToString(), notification);
             }
             else
@@ -81,12 +80,13 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId);
 
                 // Combine and send both sets of pending notifications to the connected user
-                //var allPendingNotifications = null; // pendingNotificationsForRole.Concat(pendingNotificationsForUser).ToList();
-                //foreach (var notification in allPendingNotifications)
-                //{
-                //    var jsonNotification = JsonSerializer.Serialize(notification);
-                //    await Clients.User(userId).SendAsync("ReceiveNotification", jsonNotification);
-                //}
+                var pendingNotificationsForRoleList = pendingNotificationsForRole.ToList();
+                var allPendingNotifications = pendingNotificationsForRoleList.Concat(pendingNotificationsForUser).ToList();
+                foreach (var notification in allPendingNotifications)
+                {
+                    var jsonNotification = JsonSerializer.Serialize(notification);
+                    await Clients.User(userId).SendAsync("ReceiveNotification", jsonNotification);
+                }
 
                 // Clear pending notifications for the connected user
                 await _notificationService.MarkAllNotificationAsRead(userId);
@@ -94,8 +94,6 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             await base.OnConnectedAsync();
         }
-
-
     }
 }
 

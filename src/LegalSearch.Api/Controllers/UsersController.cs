@@ -36,7 +36,7 @@ namespace LegalSearch.Api.Controllers
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
-        [HttpPost("solicitor/onboard")]
+        [HttpPost("Solicitor/Onboard")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]

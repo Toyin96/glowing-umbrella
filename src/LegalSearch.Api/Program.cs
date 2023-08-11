@@ -24,6 +24,6 @@ using (var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>(
 app.ConfigureHttpRequestPipeline(configuration);
 
 //jobs
-RecurringJob.AddOrUpdate<IBackgroundService>(x => x.CheckAndRerouteRequests(), Cron.Minutely);
+//RecurringJob.AddOrUpdate<IBackgroundService>(x => x.CheckAndRerouteRequests(), Cron.Minutely);
 
 app.Run();
