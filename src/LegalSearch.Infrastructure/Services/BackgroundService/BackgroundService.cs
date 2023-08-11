@@ -87,7 +87,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 // Get the legalRequest entity and check its status
                 var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
 
-                if (legalSearchRequest.Status == nameof(NotificationType.UnAssignedRequest))
+                if (legalSearchRequest.Status == nameof(RequestStatusType.UnAssigned))
                 {
                     /*
                      This request has been routed to legalPerfection team either due to:
@@ -186,7 +186,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             // Notify LegalPerfectionTeam of new request was unassigned
             await _notificationService.SendNotificationToRole(nameof(RoleType.LegalPerfectionTeam), notification);
 
-            // update legalsearch request status
+            // update legalsearch request here
+            request.AssignedSolicitorId = default;
             request.Status = nameof(RequestStatusType.UnAssigned);
             await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
         }
