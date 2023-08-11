@@ -12,6 +12,6 @@ namespace LegalSearch.Application.Interfaces.User
 
         Task<IEnumerable<SolicitorRetrievalResponse>> FetchSolicitorsInSameRegion(Guid regionId);
         Task<IEnumerable<Guid>> GetRequestsToReroute();
-
+        Task<IEnumerable<Guid>> GetUnattendedAcceptedRequestsForTheTimeFrame(DateTime timeframe);
     }
 }

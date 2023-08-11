@@ -2,7 +2,9 @@
 {
     public interface IBackgroundService
     {
-        Task AssignRequestToSolicitors(Guid requestId);
-        Task CheckAndRerouteRequests();
+        Task AssignRequestToSolicitorsJob(Guid requestId);
+        Task CheckAndRerouteRequestsJob();
+        Task NotificationReminderForUnAttendedRequestsJob();
+        Task PushRequestToNextSolicitorInOrder(Guid requestId, int currentAssignedSolicitorOrder = 0);
     }
 }

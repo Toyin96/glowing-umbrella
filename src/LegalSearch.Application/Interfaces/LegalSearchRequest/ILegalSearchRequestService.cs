@@ -4,7 +4,8 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
 {
     public interface ILegalSearchRequestService
     {
-        Task<ObjectResponse<string>> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
-        Task<Domain.Entities.LegalRequest.LegalRequest> GetLegalSearchRequest(Guid requestId);
+        Task<StatusResponse> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
+        Task<StatusResponse> AcceptLegalSearchRequest(Models.Requests.Solicitor.AcceptRequest acceptRequest);
+        Task<StatusResponse> RejectLegalSearchRequest(Models.Requests.Solicitor.RejectRequest rejectRequest);
     }
 }

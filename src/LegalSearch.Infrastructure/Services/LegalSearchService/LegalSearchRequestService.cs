@@ -3,8 +3,10 @@ using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
+using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
@@ -20,17 +22,29 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly ILogger<LegalSearchRequestService> _logger;
         private readonly IFCMBService _fCMBService;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
+        private readonly ILegalSearchRequestManager _legalSearchRequestManager;
+        private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
 
         public LegalSearchRequestService(AppDbContext appDbContext,
             ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService,
-            UserManager<Domain.Entities.User.User> userManager)
+            UserManager<Domain.Entities.User.User> userManager,
+            ILegalSearchRequestManager legalSearchRequestManager, 
+            ISolicitorAssignmentManager solicitorAssignmentManager)
         {
             _appDbContext = appDbContext;
             _logger = logger;
             _fCMBService = fCMBService;
             _userManager = userManager;
+            _legalSearchRequestManager = legalSearchRequestManager;
+            _solicitorAssignmentManager = solicitorAssignmentManager;
         }
-        public async Task<ObjectResponse<string>> CreateNewRequest(LegalSearchRequest legalSearchRequest, string userId)
+
+        public Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<StatusResponse> CreateNewRequest(LegalSearchRequest legalSearchRequest, string userId)
         {
             try
             {
@@ -59,17 +73,43 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
 
                 // persist request
-                await _appDbContext.LegalSearchRequests.AddAsync(newLegalSearchRequest);
-
-                var result = await _appDbContext.SaveChangesAsync() > 0;
+                var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
 
                 if (result == false)
                     return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
 
                 // Enqueue the request for background processing
-                BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitors(newLegalSearchRequest.Id));
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitorsJob(newLegalSearchRequest.Id));
 
-                return new ObjectResponse<string>("Request created successfully", ResponseCodes.Success);
+                return new StatusResponse("Request created successfully", ResponseCodes.Success);
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+        }
+
+        public async Task<StatusResponse> RejectLegalSearchRequest(RejectRequest rejectRequest)
+        {
+            try
+            {
+                // get legal request
+                var request = await _legalSearchRequestManager.GetLegalSearchRequest(rejectRequest.RequestId);
+
+                if (request == null)
+                    return new StatusResponse("Could not find request", ResponseCodes.ServiceError);
+
+
+                if (request.AssignedSolicitorId != rejectRequest.SolicitorId) 
+                    return new StatusResponse("Sorry you cannot reject a request not mapped to you", ResponseCodes.ServiceError); 
+                
+
+
+                // Enqueue the request for background processing
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.PushRequestToNextSolicitorInOrder(request.Id, 0));
+
+                return new StatusResponse("Request has been successfully rejected", ResponseCodes.Success);
             }
             catch (Exception)
             {

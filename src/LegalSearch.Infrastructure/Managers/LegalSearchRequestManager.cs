@@ -4,7 +4,7 @@ using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace LegalSearch.Infrastructure.Services.LegalSearchService
+namespace LegalSearch.Infrastructure.Managers
 {
     internal class LegalSearchRequestManager : ILegalSearchRequestManager
     {
@@ -14,19 +14,27 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             _appDbContext = appDbContext;
         }
+
+        public async Task<bool> AddNewLegalSearchRequest(LegalRequest legalRequest)
+        {
+            await _appDbContext.LegalSearchRequests.AddAsync(legalRequest);
+
+            return await _appDbContext.SaveChangesAsync() > 0;
+        }
+
         public async Task<LegalRequest> GetLegalSearchRequest(Guid requestId)
         {
             return await _appDbContext.LegalSearchRequests.FirstOrDefaultAsync(x => x.Id == requestId);
         }
 
-        public Task<IEnumerable<LegalRequest>> GetRequestsToReroute()
+        public async Task<IEnumerable<LegalRequest>> GetRequestsToReroute()
         {
             var twentyMinutesAgo = DateTime.UtcNow.AddMinutes(-20); // 20 minutes ago
 
             var requestsToReroute = await _appDbContext.LegalSearchRequests
                 .Where(request =>
-                    request.Status == nameof(RequestStatusType.Lawyer) && // Request assigned to lawyer
-                    request.AssignedAt <= twentyMinutesAgo) // Assigned more than 20 minutes ago
+                    request.Status == nameof(RequestStatusType.Lawyer) /*&& // Request assigned to lawyer
+                    request.AssignedAt <= twentyMinutesAgo*/) // Assigned more than 20 minutes ago
                 .ToListAsync();
 
             return requestsToReroute;
@@ -36,7 +44,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             _appDbContext.LegalSearchRequests.Update(legalRequest);
 
-            return await _appDbContext.SaveChangesAsync() > 0;    
+            return await _appDbContext.SaveChangesAsync() > 0;
         }
     }
 }

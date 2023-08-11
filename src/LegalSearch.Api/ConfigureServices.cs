@@ -8,10 +8,12 @@ using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 
 namespace LegalSearch.Api
 {
@@ -27,9 +29,13 @@ namespace LegalSearch.Api
             services.AddControllers(options =>
             {
                 // options.Filters.Add<RequestValidationFilter>();
+            }).AddJsonOptions(x =>
+            {
+                x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+                x.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase; // Keep camelCase
             });
             services.ConfigureAuthentication(configuration);
-            services.AddRouting(x => x.LowercaseUrls = true);
+            services.AddRouting();
             services.AddHttpContextAccessor();
             services.AddHttpClient();
             services.AddSignalR(); // added signalR capability
@@ -179,6 +185,8 @@ namespace LegalSearch.Api
                         Type = ReferenceType.SecurityScheme
                     }
                 };
+
+                c.DescribeAllParametersInCamelCase();
 
                 c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
 

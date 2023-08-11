@@ -33,21 +33,21 @@ namespace LegalSearch.Infrastructure.Services.Location
             return state.RegionId;
         }
 
-        public async Task<ListResponse<LgaResponse>> GetRegionsAsync(Guid stateId)
+        public async Task<ListResponse<RegionResponse>> GetRegionsAsync()
         {
-            var lgas = ""; // await _appDbContext.Regions.Where(x => x.StateId == stateId).ToListAsync();
+            var regions = await _appDbContext.Regions.ToListAsync();
 
-            if (lgas is null)
+            if (regions is null)
             {
-                _logger.LogInformation("Regions with state ID {ID} not found", stateId);
+                _logger.LogInformation("No region found");
 
-                return new ListResponse<LgaResponse>("Regions Not Found", ResponseCodes.DataNotFound);
+                return new ListResponse<RegionResponse>("Regions Not Found", ResponseCodes.DataNotFound);
             }
 
-            return new ListResponse<LgaResponse>("Successfully Retrieved regions")
+            return new ListResponse<RegionResponse>("Successfully Retrieved regions")
             {
-                Data = null, //lgas.Select(x => new LgaResponse { Name = x.Name}).ToList(),
-                Total = 1 //lgas.Count
+                Data = regions.Select(x => new RegionResponse { Name = x.Name, Id = x.Id}).ToList(),
+                Total = regions.Count
             };
         }
 
@@ -67,12 +67,39 @@ namespace LegalSearch.Infrastructure.Services.Location
             };
         }
 
+        public async Task<ListResponse<StateResponse>> GetStatesUnderRegionAsync(Guid regionId)
+        {
+             var states = await _appDbContext.States
+                               .AsNoTracking()
+                               .Where(x => x.RegionId == regionId)
+                               .Select(x => new StateResponse
+                               {
+                                   Id = x.Id,
+                                   Name = x.Name,
+                               })
+                               .ToListAsync();
+
+            if (states is null)
+            {
+                _logger.LogInformation("No region found");
+
+                return new ListResponse<StateResponse>("No State Found For The Region Provided", ResponseCodes.DataNotFound);
+            }
+
+            return new ListResponse<StateResponse>("Successfully Fetched States under Region", ResponseCodes.Success)
+            {
+                Data = states,
+                Total = states.Count
+            };
+        }
+
         private async Task<List<StateResponse>> GetStatesQuery()
         {
             return await _appDbContext.States
                                        .AsNoTracking()
                                        .Select(x => new StateResponse
                                        {
+                                           Id = x.Id,
                                            Name = x.Name,
                                        })
                                        .ToListAsync();

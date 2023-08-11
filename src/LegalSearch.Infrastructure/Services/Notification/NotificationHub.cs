@@ -1,8 +1,8 @@
 ﻿using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Notification;
+using LegalSearch.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -33,16 +33,15 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
             var jwtToken = Context.GetHttpContext()?.Request?.Headers["Authorization"].ToString()?.Replace("Bearer ", "");
 
             var principal = _jwtTokenService.ValidateJwtToken(jwtToken);
 
-            string id = principal.FindFirst("UserId").Value.ToString();
+            string id = principal.FindFirst(nameof(ClaimType.UserId))?.Value?.ToString();
 
             if (userId.ToString() != id)
             {
-                // User is not authenticated, store the notification for later retrieval
+                // User is not logged in, store the notification for later retrieval
                 await StorePendingNotification(userId.ToString(), notification);
             }
             else
@@ -95,8 +94,6 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             await base.OnConnectedAsync();
         }
-
-
     }
 }
 
