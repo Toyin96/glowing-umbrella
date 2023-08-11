@@ -145,6 +145,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (solicitorAssignmentRecord == null)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
+                request.ReasonForRejection = request.ReasonForRejection;
+                request.Status = nameof(RequestStatusType.LawyerRejected);
+                var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
+
+                if (!isRequestUpdated)
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+
                 // Enqueue the request for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.PushRequestToNextSolicitorInOrder(request.Id, solicitorAssignmentRecord.Order));
 
