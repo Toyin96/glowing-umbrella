@@ -1,6 +1,7 @@
 ﻿using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace LegalSearch.Infrastructure.Managers
 {
@@ -12,9 +13,9 @@ namespace LegalSearch.Infrastructure.Managers
         {
             _appDbContext = appDbContext;
         }
-        public Task<SolicitorAssignment> GetSolicitorAssignmentById(Guid id)
+        public async Task<SolicitorAssignment> GetSolicitorAssignmentBySolicitorId(Guid id)
         {
-            throw new NotImplementedException();
+            return await _appDbContext.SolicitorAssignments.FirstOrDefaultAsync(x => x.SolicitorId == id);
         }
     }
 }

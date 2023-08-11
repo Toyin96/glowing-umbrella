@@ -1,6 +1,5 @@
 ﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
-using LegalSearch.Api.Filters;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Infrastructure.Persistence;
@@ -8,7 +7,6 @@ using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;

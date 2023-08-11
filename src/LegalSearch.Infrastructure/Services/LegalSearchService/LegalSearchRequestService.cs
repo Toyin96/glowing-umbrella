@@ -13,6 +13,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.LegalSearchService
 {
@@ -24,12 +25,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
         private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
+        private readonly ISolicitorAssignmentManager _solicitorAssignmentManager1;
 
         public LegalSearchRequestService(AppDbContext appDbContext,
             ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService,
             UserManager<Domain.Entities.User.User> userManager,
             ILegalSearchRequestManager legalSearchRequestManager, 
-            ISolicitorAssignmentManager solicitorAssignmentManager)
+            ISolicitorAssignmentManager solicitorAssignmentManager,
+            ISolicitorAssignmentManager solicitorAssignmentManager1)
         {
             _appDbContext = appDbContext;
             _logger = logger;
@@ -37,11 +40,41 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             _userManager = userManager;
             _legalSearchRequestManager = legalSearchRequestManager;
             _solicitorAssignmentManager = solicitorAssignmentManager;
+            _solicitorAssignmentManager1 = solicitorAssignmentManager1;
         }
 
-        public Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest)
+        public async Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // get legal request
+                var request = await _legalSearchRequestManager.GetLegalSearchRequest(acceptRequest.RequestId);
+
+                if (request == null)
+                    return new StatusResponse("Could not find request", ResponseCodes.ServiceError);
+
+                // check if request is currently assigned to solicitor
+                if (request.AssignedSolicitorId != acceptRequest.SolicitorId)
+                    return new StatusResponse("Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
+
+                if (request.Status != nameof(RequestStatusType.Lawyer))
+                    return new StatusResponse("Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+
+                // update request status
+                request.Status = nameof(RequestStatusType.LawyerAccepted);
+                var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
+
+                if (!isRequestUpdated)
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+
+                return new StatusResponse("Request was successfully accepted", ResponseCodes.Success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An exception occured inside AcceptLegalSearchRequest. See reason: {JsonSerializer.Serialize(ex)}");
+
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+            }
         }
 
         public async Task<StatusResponse> CreateNewRequest(LegalSearchRequest legalSearchRequest, string userId)
@@ -83,10 +116,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 return new StatusResponse("Request created successfully", ResponseCodes.Success);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError($"An exception occured inside CreateNewRequest. See reason: {JsonSerializer.Serialize(ex)}");
 
-                throw;
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
         }
 
@@ -100,21 +134,27 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (request == null)
                     return new StatusResponse("Could not find request", ResponseCodes.ServiceError);
 
-
+                // check if request is currently assigned to solicitor
                 if (request.AssignedSolicitorId != rejectRequest.SolicitorId) 
-                    return new StatusResponse("Sorry you cannot reject a request not mapped to you", ResponseCodes.ServiceError); 
-                
+                    return new StatusResponse("Sorry you cannot reject a request not assigned to you", ResponseCodes.ServiceError);
 
+                // get solicitor assignment record
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request.AssignedSolicitorId);
+
+                // check if request is currently assigned to solicitor
+                if (solicitorAssignmentRecord == null)
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
                 // Enqueue the request for background processing
-                BackgroundJob.Enqueue<IBackgroundService>(x => x.PushRequestToNextSolicitorInOrder(request.Id, 0));
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.PushRequestToNextSolicitorInOrder(request.Id, solicitorAssignmentRecord.Order));
 
-                return new StatusResponse("Request has been successfully rejected", ResponseCodes.Success);
+                return new StatusResponse("Operation is successful", ResponseCodes.Success);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                _logger.LogError($"An exception occured inside RejectLegalSearchRequest. See reason: {JsonSerializer.Serialize(ex)}");
+                
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
         }
 
