@@ -8,7 +8,6 @@ using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Domain.Entities.User.CustomerServiceOfficer;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
@@ -19,7 +18,7 @@ using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
-    public class GeneralAuthService : IGeneralAuthService<Solicitor>
+    public class GeneralAuthService : IGeneralAuthService<Domain.Entities.User.User>
     {
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly RoleManager<Role> _roleManager;
@@ -52,7 +51,7 @@ namespace LegalSearch.Infrastructure.Services.User
             return result.Succeeded;
         }
 
-        public async Task<bool> AssignRoleAsync(Solicitor user, string roleName)
+        public async Task<bool> AssignRoleAsync(Domain.Entities.User.User user, string roleName)
         {
             var role = await _roleManager.FindByNameAsync(roleName);
             if (role == null)
@@ -64,18 +63,45 @@ namespace LegalSearch.Infrastructure.Services.User
 
         public async Task<ObjectResponse<StaffLoginResponse>> FCMBLoginAsync(LoginRequest request, bool isCso = false)
         {
-            ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+            //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
 
-            if (result.Code is ResponseCodes.Success)
+            //if (result.Code is ResponseCodes.Success)
+            //{
+            //    _logger.LogInformation("{Username} successfully logged in", request.Email);
+
+            //    var staffLoginResponse = await HandleSuccessfulLoginAsync(result.Data, request.Email, isCso);
+
+            //    return staffLoginResponse;
+            //}
+
+            //return new ObjectResponse<StaffLoginResponse>("Staff login failed", result.Code);
+
+            var staff = new Domain.Entities.User.User
             {
-                _logger.LogInformation("{Username} successfully logged in", request.Email);
+                FirstName = "def",
+                LastName = "jam",
+                UserName = "tonero1",
+                Email = request.Email,
+            };
 
-                var staffLoginResponse = await HandleSuccessfulLoginAsync(result.Data, request.Email, isCso);
+            var userCreationStatus = await _userManager.CreateAsync(staff);
 
-                return staffLoginResponse;
-            }
+            // assign role to staff
+            await AssignRoleToUserAsync(staff, nameof(RoleType.Cso));
 
-            return new ObjectResponse<StaffLoginResponse>("Staff login failed", result.Code);
+            await UpdateUserLastLoginTime(staff);
+
+            // create jwt token for staff
+            var identity = await GetClaimsIdentityForSolicitor(staff);
+            var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
+
+            return new ObjectResponse<StaffLoginResponse>("successful", ResponseCodes.Success)
+            {
+                Data = new StaffLoginResponse
+                {
+                    Token = jwtToken
+                }
+            };
         }
 
         private async Task<ObjectResponse<StaffLoginResponse>> HandleSuccessfulLoginAsync(AdLoginResponse adLoginResponse, string userEmail, bool isCso = false)
@@ -125,9 +151,9 @@ namespace LegalSearch.Infrastructure.Services.User
             await _userManager.UpdateAsync(user);
         }
 
-        private CustomerServiceOfficer MapToCustomerServiceOfficer(AdLoginResponse adLoginResponse)
+        private Domain.Entities.User.User MapToCustomerServiceOfficer(AdLoginResponse adLoginResponse)
         {
-            return new CustomerServiceOfficer
+            return new Domain.Entities.User.User
             {
                 FirstName = adLoginResponse.StaffName,
                 UserName = adLoginResponse.DisplayName,
@@ -141,7 +167,7 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
-        private async Task AssignRoleToUserAsync(CustomerServiceOfficer staff, string roleType)
+        private async Task AssignRoleToUserAsync(Domain.Entities.User.User staff, string roleType)
         {
             var role = await _roleManager.FindByNameAsync(roleType);
 
@@ -216,9 +242,9 @@ namespace LegalSearch.Infrastructure.Services.User
             return await _userManager.GetRolesAsync(user);
         }
 
-        public async Task<Solicitor> GetUserByEmailAsync(string email)
+        public async Task<Domain.Entities.User.User?> GetUserByEmailAsync(string email)
         {
-            return await _userManager.FindByEmailAsync(email) as Solicitor;
+            return await _userManager.FindByEmailAsync(email);
         }
 
         public async Task<ObjectResponse<SolicitorOnboardResponse>> OnboardSolicitorAsync(SolicitorOnboardRequest request)
@@ -239,14 +265,14 @@ namespace LegalSearch.Infrastructure.Services.User
 
             var defaultPassword = Helpers.GenerateDefaultPassword();
 
-            var newSolicitor = new Solicitor
+            var newSolicitor = new Domain.Entities.User.User
             {
                 FirstName = request.FirstName,
                 LastName = request.LastName,
                 Firm = new Firm
                 {
                     Name = request.Firm.Name,
-                    Street = request.Firm.Street,
+                    Address = request.Firm.Address,
                     StateId = state.Id
                 },
                 Email = request.Email,

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSearch.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230808061729_MadeFieldsOptionalInUserTable")]
-    partial class MadeFieldsOptionalInUserTable
+    [Migration("20230812154848_UpdatedRelationshipBetweenUserAndFirm")]
+    partial class UpdatedRelationshipBetweenUserAndFirm
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -68,6 +68,37 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.Discussion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Conversation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LegalSearchRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LegalSearchRequestId");
+
+                    b.ToTable("Discussions");
+                });
+
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -77,21 +108,44 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<string>("AdditionalInformation")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("AssignedSolicitorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Branch")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("BusinessLocation")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CustomerAccount")
+                    b.Property<string>("CustomerAccountName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CustomerAccountNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateAssignedToSolicitor")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateDue")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("InitiatorId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ReasonForRejection")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("RegistrationDate")
                         .HasColumnType("datetime2");
@@ -103,12 +157,13 @@ namespace LegalSearch.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RequestType")
+                    b.Property<string>("RequestInitiator")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("SolicitorId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("RequestType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StaffId")
                         .IsRequired()
@@ -121,9 +176,12 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("SolicitorId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("LegalSearchRequests");
                 });
@@ -180,12 +238,62 @@ namespace LegalSearch.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("SolId")
-                        .HasColumnType("int");
+                    b.Property<string>("SolId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.ToTable("Branches");
+                });
+
+            modelBuilder.Entity("LegalSearch.Domain.Entities.Notification.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsBroadcast")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MetaData")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NotificationType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecipientRole")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecipientUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.Role.Role", b =>
@@ -260,6 +368,10 @@ namespace LegalSearch.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -273,22 +385,17 @@ namespace LegalSearch.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<Guid>("StateId")
+                    b.Property<Guid?>("StateId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("StateId");
 
                     b.ToTable("Firms");
                 });
@@ -318,6 +425,44 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Regions");
+                });
+
+            modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.SolicitorAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAccepted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SolicitorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SolicitorAssignments");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.State", b =>
@@ -391,6 +536,12 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("FirmId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("FirmId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -446,6 +597,9 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<string>("StaffId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("StateId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
@@ -458,6 +612,10 @@ namespace LegalSearch.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("FirmId");
+
+                    b.HasIndex("FirmId1");
+
                     b.HasIndex("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -469,6 +627,8 @@ namespace LegalSearch.Infrastructure.Migrations
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
                     b.HasIndex("RoleId");
+
+                    b.HasIndex("StateId");
 
                     b.ToTable("AspNetUsers", (string)null);
 
@@ -588,21 +748,25 @@ namespace LegalSearch.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("FirmId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasIndex("FirmId");
-
                     b.HasDiscriminator().HasValue("Solicitor");
+                });
+
+            modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.Discussion", b =>
+                {
+                    b.HasOne("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", "LegalRequest")
+                        .WithMany("Discussions")
+                        .HasForeignKey("LegalSearchRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LegalRequest");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", b =>
                 {
-                    b.HasOne("LegalSearch.Domain.Entities.User.User", "Solicitor")
+                    b.HasOne("LegalSearch.Domain.Entities.User.User", null)
                         .WithMany("LegalRequests")
-                        .HasForeignKey("SolicitorId");
-
-                    b.Navigation("Solicitor");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.SupportingDocument", b =>
@@ -621,6 +785,15 @@ namespace LegalSearch.Infrastructure.Migrations
                         .HasForeignKey("RoleId");
                 });
 
+            modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.Firm", b =>
+                {
+                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.State", "State")
+                        .WithMany("Firms")
+                        .HasForeignKey("StateId");
+
+                    b.Navigation("State");
+                });
+
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.State", b =>
                 {
                     b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Region", "Region")
@@ -634,11 +807,28 @@ namespace LegalSearch.Infrastructure.Migrations
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.User", b =>
                 {
+                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Firm", "Firm")
+                        .WithMany()
+                        .HasForeignKey("FirmId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Firm", null)
+                        .WithMany("Users")
+                        .HasForeignKey("FirmId1");
+
                     b.HasOne("LegalSearch.Domain.Entities.Role.Role", "Role")
                         .WithMany()
                         .HasForeignKey("RoleId");
 
+                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.State", "State")
+                        .WithMany("Users")
+                        .HasForeignKey("StateId");
+
+                    b.Navigation("Firm");
+
                     b.Navigation("Role");
+
+                    b.Navigation("State");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -692,19 +882,10 @@ namespace LegalSearch.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.Solicitor", b =>
-                {
-                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Firm", "Firm")
-                        .WithMany()
-                        .HasForeignKey("FirmId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Firm");
-                });
-
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", b =>
                 {
+                    b.Navigation("Discussions");
+
                     b.Navigation("SupportingDocuments");
                 });
 
@@ -713,9 +894,21 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Navigation("Permissions");
                 });
 
+            modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.Firm", b =>
+                {
+                    b.Navigation("Users");
+                });
+
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.Region", b =>
                 {
                     b.Navigation("States");
+                });
+
+            modelBuilder.Entity("LegalSearch.Domain.Entities.User.Solicitor.State", b =>
+                {
+                    b.Navigation("Firms");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.User", b =>

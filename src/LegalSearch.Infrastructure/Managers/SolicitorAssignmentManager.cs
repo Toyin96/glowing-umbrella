@@ -13,7 +13,7 @@ namespace LegalSearch.Infrastructure.Managers
         {
             _appDbContext = appDbContext;
         }
-        public async Task<SolicitorAssignment> GetSolicitorAssignmentBySolicitorId(Guid id)
+        public async Task<SolicitorAssignment?> GetSolicitorAssignmentBySolicitorId(Guid id)
         {
             return await _appDbContext.SolicitorAssignments.FirstOrDefaultAsync(x => x.SolicitorId == id);
         }

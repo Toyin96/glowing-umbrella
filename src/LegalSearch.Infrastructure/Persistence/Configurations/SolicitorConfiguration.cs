@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace LegalSearch.Infrastructure.Persistence.Configurations
 {
-    internal class SolicitorConfiguration : IEntityTypeConfiguration<Solicitor>
+    internal class SolicitorConfiguration : IEntityTypeConfiguration<Domain.Entities.User.User>
     {
-        public void Configure(EntityTypeBuilder<Solicitor> builder)
+        public void Configure(EntityTypeBuilder<Domain.Entities.User.User> builder)
         {
             //builder.HasOne(u => u.State)
             //.WithMany()

@@ -17,10 +17,10 @@ namespace LegalSearch.Api.Controllers
     [Produces("application/json")]
     public class AuthController : BaseController
     {
-        private readonly IGeneralAuthService<Solicitor> _solicitorAuthService;
+        private readonly IGeneralAuthService<Domain.Entities.User.User> _solicitorAuthService;
         private readonly IUserAuthService<User> _userAuthService;
 
-        public AuthController(IGeneralAuthService<Solicitor> solicitorAuthService,
+        public AuthController(IGeneralAuthService<Domain.Entities.User.User> solicitorAuthService,
             IUserAuthService<User> userAuthService)
         {
             _solicitorAuthService = solicitorAuthService;

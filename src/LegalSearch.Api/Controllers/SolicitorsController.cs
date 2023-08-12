@@ -1,7 +1,7 @@
 ﻿using Fcmb.Shared.Models.Responses;
-using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
-using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Authorization;
@@ -18,19 +18,19 @@ namespace LegalSearch.Api.Controllers
     [ApiController]
     public class SolicitorsController : BaseController
     {
-        private readonly IGeneralAuthService<Solicitor> _generalAuthService;
         private readonly ILegalSearchRequestService _legalSearchRequestService;
+        private readonly ISolicitorRetrievalService _solicitorRetrievalService;
 
         /// <summary>
         /// Constructs the service needed upon instantiation of the SolicitorsController class.
         /// </summary>
-        /// <param name="generalAuthService"></param>
+        /// <param name="solicitorRetrievalService"></param>
         /// <param name="legalSearchRequestService"></param>
-        public SolicitorsController(IGeneralAuthService<Solicitor> generalAuthService,
-            ILegalSearchRequestService legalSearchRequestService)
+        public SolicitorsController(ILegalSearchRequestService legalSearchRequestService,
+            ISolicitorRetrievalService solicitorRetrievalService)
         {
-            _generalAuthService = generalAuthService;
             _legalSearchRequestService = legalSearchRequestService;
+            _solicitorRetrievalService = solicitorRetrievalService;
         }
 
         /// <summary>
@@ -70,6 +70,63 @@ namespace LegalSearch.Api.Controllers
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
             request.SolicitorId = Guid.Parse(userId);
             var response = await _legalSearchRequestService.RejectLegalSearchRequest(request);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
+        /// </summary>
+        /// <remarks>
+        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("Solicitor/RequestAdditionalInformation")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> RequestAdditionalInformation([FromForm] Application.Models.Requests.Solicitor.ReturnRequest request)
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+            var response = await _legalSearchRequestService.PushBackLegalSearchRequestForMoreInfo(request, Guid.Parse(userId!));
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
+        /// </summary>
+        /// <remarks>
+        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpGet("Solicitor/ViewProfile")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<SolicitorProfileDto>>> ViewProfile()
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+            var response = await _solicitorRetrievalService.ViewSolicitorProfile(Guid.Parse(userId!));
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
+        /// </summary>
+        /// <remarks>
+        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("Solicitor/EditProfile")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> EditProfile([FromForm] Application.Models.Requests.Solicitor.ReturnRequest request)
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+            var response = await _legalSearchRequestService.PushBackLegalSearchRequestForMoreInfo(request, Guid.Parse(userId!));
             return HandleResponse(response);
         }
     }

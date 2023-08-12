@@ -22,22 +22,11 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<LegalRequest> GetLegalSearchRequest(Guid requestId)
+        public async Task<LegalRequest?> GetLegalSearchRequest(Guid requestId)
         {
-            return await _appDbContext.LegalSearchRequests.FirstOrDefaultAsync(x => x.Id == requestId);
-        }
-
-        public async Task<IEnumerable<LegalRequest>> GetRequestsToReroute()
-        {
-            var twentyMinutesAgo = DateTime.UtcNow.AddMinutes(-20); // 20 minutes ago
-
-            var requestsToReroute = await _appDbContext.LegalSearchRequests
-                .Where(request =>
-                    request.Status == nameof(RequestStatusType.Lawyer) /*&& // Request assigned to lawyer
-                    request.AssignedAt <= twentyMinutesAgo*/) // Assigned more than 20 minutes ago
-                .ToListAsync();
-
-            return requestsToReroute;
+            return await _appDbContext.LegalSearchRequests
+                                      .Include(x => x.SupportingDocuments)
+                                      .FirstOrDefaultAsync(x => x.Id == requestId);
         }
 
         public async Task<bool> UpdateLegalSearchRequest(LegalRequest legalRequest)

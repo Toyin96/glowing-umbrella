@@ -1,13 +1,6 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
-using LegalSearch.Application.Models.Responses;
-using LegalSearch.Domain.Entities.Notification;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
