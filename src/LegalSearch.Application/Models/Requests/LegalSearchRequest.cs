@@ -10,7 +10,8 @@ namespace LegalSearch.Application.Models.Requests
         public string RequestType { get; set; }
         public Guid BusinessLocation { get; set; }
         public Guid RegistrationLocation { get; set; }
-        public string CustomerAccount { get; set; }
+        public string CustomerAccountName { get; set; }
+        public string CustomerAccountNumber { get; set; }
         public string RegistrationNumber { get; set; }
         public DateTime RegistrationDate { get; set; }
         public string AdditionalInformation { get; set; }

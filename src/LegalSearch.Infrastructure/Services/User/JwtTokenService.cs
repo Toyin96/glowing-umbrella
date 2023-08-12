@@ -31,7 +31,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 _issuer,
                 _audience,
                 identity.Claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddHours(1), // expiration time for token
                 signingCredentials: signingCredentials
             );
 

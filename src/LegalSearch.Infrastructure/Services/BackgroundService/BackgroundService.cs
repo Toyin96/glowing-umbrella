@@ -54,7 +54,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                 var solicitorsList = solicitors.ToList();
 
-                if (solicitorsList.Count == 0)
+                if (solicitorsList == null || solicitorsList?.Count == 0)
                 {
                     // Route to Legal Perfection Team
                     await NotifyLegalPerfectionTeam(request);
@@ -115,7 +115,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             if (nextSolicitor == null)
             {
                 // Route to Legal Perfection Team
-                await NotifyLegalPerfectionTeam(request);
+                await NotifyLegalPerfectionTeam(request!);
                 return;
             }
 
@@ -123,7 +123,9 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
 
             // Update the request status and assigned solicitor(s)
-            request.Status = nameof(RequestStatusType.Lawyer);
+            request!.Status = nameof(RequestStatusType.AssignedToLawyer);
+            request.DateAssignedToSolicitor = nextSolicitor.AssignedAt;
+            request.DateDue = TimeUtils.CalculateDateDueForRequest(); // 3 days from present time
             request.AssignedSolicitorId = nextSolicitor.SolicitorId; // Assuming you have a property to track assigned solicitor
 
             // Send notification to the solicitor
@@ -142,7 +144,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             await _appDbContext.SaveChangesAsync();
         }
 
-        private async Task AssignOrdersAsync(Guid requestId, List<SolicitorRetrievalResponse> solicitors)
+        private async Task AssignOrdersAsync(Guid requestId, List<SolicitorRetrievalResponse> solicitors, int batchSize = 100)
         {
             if (solicitors.Count == 0)
             {
@@ -150,26 +152,40 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 return;
             }
 
-            // Shuffle the solicitors list to randomize the order
+            // Perform Fisher-Yates shuffle on the solicitors list
             var random = new Random();
-            var shuffledSolicitors = solicitors.OrderBy(_ => random.Next()).ToList();
-
-            for (int i = 0; i < shuffledSolicitors.Count; i++)
+            for (int i = solicitors.Count - 1; i >= 1; i--)
             {
-                var solicitorId = shuffledSolicitors[i].SolicitorId;
-                var assignment = new SolicitorAssignment
-                {
-                    SolicitorId = solicitorId,
-                    RequestId = requestId,
-                    Order = i + 1,
-                    AssignedAt = TimeUtils.GetCurrentLocalTime(),
-                    IsAccepted = false
-                };
-
-                _appDbContext.SolicitorAssignments.Add(assignment);
+                int j = random.Next(i + 1);
+                var temp = solicitors[i];
+                solicitors[i] = solicitors[j];
+                solicitors[j] = temp;
             }
 
-            await _appDbContext.SaveChangesAsync();
+            var batchCount = (int)Math.Ceiling((double)solicitors.Count / batchSize);
+
+            for (int batchIndex = 0; batchIndex < batchCount; batchIndex++)
+            {
+                var batchSolicitors = solicitors.Skip(batchIndex * batchSize).Take(batchSize);
+                var assignments = new List<SolicitorAssignment>();
+
+                for (int i = 0; i < batchSolicitors.Count(); i++)
+                {
+                    var solicitorId = batchSolicitors.ElementAt(i).SolicitorId;
+                    var assignment = new SolicitorAssignment
+                    {
+                        SolicitorId = solicitorId,
+                        RequestId = requestId,
+                        Order = batchIndex * batchSize + i + 1, // Start order from 1
+                        AssignedAt = TimeUtils.GetCurrentLocalTime(),
+                        IsAccepted = false
+                    };
+                    assignments.Add(assignment);
+                }
+
+                _appDbContext.SolicitorAssignments.AddRange(assignments);
+                await _appDbContext.SaveChangesAsync();
+            }
         }
 
         private async Task NotifyLegalPerfectionTeam(LegalRequest request)
@@ -178,6 +194,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             var notification = new Domain.Entities.Notification.Notification
             {
                 Title = "UnAssigned Request",
+                IsBroadcast = true,
                 NotificationType = NotificationType.UnAssignedRequest,
                 Message = ConstantMessage.UnAssignedRequestMessage,
                 MetaData = JsonSerializer.Serialize(request)
@@ -265,6 +282,24 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
 
             #endregion
+        }
+
+        public async Task PushBackRequestToCSOJob(Guid requestId)
+        {
+            // Load the request and perform assignment logic
+            var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+            if (request == null) return;
+
+            var notification = new Domain.Entities.Notification.Notification
+            {
+                Title = "Request Needs Additional Information",
+                NotificationType = NotificationType.RequestReturnedToCso,
+                Message = ConstantMessage.RequestRoutedBackToCSOMessage,
+                MetaData = JsonSerializer.Serialize(request)
+            };
+
+            // get staff id
+            await _notificationService.SendNotificationToUser(request.InitiatorId, notification);
         }
     }
 }

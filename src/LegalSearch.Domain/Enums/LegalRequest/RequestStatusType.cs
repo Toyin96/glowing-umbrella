@@ -3,9 +3,10 @@
     public enum RequestStatusType
     {
         Initiated = 1,
-        Lawyer,
+        AssignedToLawyer,
         LawyerAccepted,
         LawyerRejected,
+        BackToCso,
         UnAssigned,
         Completed
     }

@@ -1,4 +1,5 @@
-﻿using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Constants;
+using Fcmb.Shared.Models.Responses;
 using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
@@ -48,19 +49,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             try
             {
                 // get legal request
-                var request = await _legalSearchRequestManager.GetLegalSearchRequest(acceptRequest.RequestId);
+                var result = await FetchAndValidateRequest(acceptRequest.RequestId, acceptRequest.SolicitorId);
 
-                if (request == null)
-                    return new StatusResponse("Could not find request", ResponseCodes.ServiceError);
-
-                // check if request is currently assigned to solicitor
-                if (request.AssignedSolicitorId != acceptRequest.SolicitorId)
-                    return new StatusResponse("Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
-
-                if (request.Status != nameof(RequestStatusType.Lawyer))
-                    return new StatusResponse("Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+                if (result.errorCode == ResponseCodes.ServiceError)
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
 
                 // update request status
+                var request = result.request;
                 request.Status = nameof(RequestStatusType.LawyerAccepted);
                 var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
 
@@ -97,6 +92,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
                 newLegalSearchRequest.Branch = branch;
+                newLegalSearchRequest.InitiatorId = user!.Id;
                 newLegalSearchRequest.RequestInitiator = user.FirstName;
                 
                 // add the files
@@ -124,22 +120,68 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
+        public async Task<StatusResponse> PushBackLegalSearchRequestForMoreInfo(ReturnRequest returnRequest, Guid solicitorId)
+        {
+            try
+            {
+                var result = await FetchAndValidateRequest(returnRequest.RequestId, solicitorId);
+
+                if (result.errorCode == ResponseCodes.ServiceError)
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
+
+                var request = result!.request;
+
+                // add the files & feedback if any
+                if (returnRequest.SupportingDocuments.Any())
+                {
+                    var supportingDocuments = await ProcessFiles(returnRequest.SupportingDocuments);
+
+                    supportingDocuments.ForEach(x =>
+                    {
+                        request!.SupportingDocuments.Add(x);
+                    });
+                }
+
+                if (!string.IsNullOrEmpty(returnRequest.Feedback))
+                {
+                    request!.Discussions.Add(new Discussion { Conversation = returnRequest.Feedback });
+                }
+
+                // update request
+                request!.Status = nameof(RequestStatusType.BackToCso);
+                bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
+
+                if (isRequestUpdated == false)
+                    return new StatusResponse("An error occured while sending request. Please try again later.", result.errorCode);
+
+                // Enqueue the request for background processing
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.PushBackRequestToCSOJob(request!.Id));
+
+                return new StatusResponse("Request has been successfully pushed back to staff for additional information/clarification"
+                    , ResponseCodes.Success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An exception occured inside PushBackLegalSearchRequestForMoreInfo. See reason: {JsonSerializer.Serialize(ex)}");
+
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+            }
+        }
+
         public async Task<StatusResponse> RejectLegalSearchRequest(RejectRequest rejectRequest)
         {
             try
             {
                 // get legal request
-                var request = await _legalSearchRequestManager.GetLegalSearchRequest(rejectRequest.RequestId);
+                var result = await FetchAndValidateRequest(rejectRequest.RequestId, rejectRequest.SolicitorId);
 
-                if (request == null)
-                    return new StatusResponse("Could not find request", ResponseCodes.ServiceError);
+                if (result.errorCode == ResponseCodes.ServiceError)
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
 
-                // check if request is currently assigned to solicitor
-                if (request.AssignedSolicitorId != rejectRequest.SolicitorId) 
-                    return new StatusResponse("Sorry you cannot reject a request not assigned to you", ResponseCodes.ServiceError);
+                var request = result.request;
 
                 // get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request.AssignedSolicitorId);
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request!.AssignedSolicitorId);
 
                 // check if request is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
@@ -175,10 +217,28 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 RegistrationDate = request.RegistrationDate,
                 RegistrationLocation = request.RegistrationLocation,
                 RegistrationNumber = request.RegistrationNumber,
-                CustomerAccount = request.CustomerAccount,
+                CustomerAccountName = request.CustomerAccountName,
+                CustomerAccountNumber = request.CustomerAccountNumber,
                 Status = nameof(RequestStatusType.Initiated),
                 AdditionalInformation = request.AdditionalInformation,
             };
+        }
+        private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateRequest(Guid requestId, Guid solicitorId)
+        {
+            // get legal request
+            var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+
+            if (request == null)
+                return (request, "Could not find request", BaseResponseCodes.ServiceError);
+
+            // check if request is currently assigned to solicitor
+            if (request.AssignedSolicitorId != solicitorId)
+                return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
+
+            if (request.Status != nameof(RequestStatusType.AssignedToLawyer))
+                return (null, "Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+
+            return (request, null, ResponseCodes.Success);
         }
 
         private async Task<List<SupportingDocument>> ProcessFiles(List<IFormFile> files)

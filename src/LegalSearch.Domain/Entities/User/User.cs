@@ -1,5 +1,7 @@
 ﻿using LegalSearch.Domain.Entities.User.Solicitor;
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegalSearch.Domain.Entities.User
 {
@@ -13,12 +15,12 @@ namespace LegalSearch.Domain.Entities.User
 
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public Firm Firm { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
         public DateTime? LastLogin { get; set; }
+        public string? BankAccount { get; set; }
         public string? ManagerName { get; set; }
         public string? ManagerDepartment { get; set; }
         public string? Department { get; set; }
@@ -27,9 +29,15 @@ namespace LegalSearch.Domain.Entities.User
         public string? SolId { get; set; }
 
         // Role properties
+        [ForeignKey("Firm")]
+        public Guid? FirmId { get; set; }
+        public Firm? Firm { get; set; }
+        [ForeignKey("State")]
+        public Guid? StateId { get; set; }
+        public State? State { get; set; }
         public Guid? RoleId { get; set; }
         public Role.Role Role { get; set; }
-        public ICollection<LegalRequest.LegalRequest> LegalRequests { get; set; } = new List<LegalRequest.LegalRequest>();
+        public ICollection<LegalRequest.LegalRequest>? LegalRequests { get; set; } = new List<LegalRequest.LegalRequest>();
 
         public string FullName => $"{FirstName} {LastName}";
     }

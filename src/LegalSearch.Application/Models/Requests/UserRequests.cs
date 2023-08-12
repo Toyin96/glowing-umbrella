@@ -39,7 +39,7 @@ namespace LegalSearch.Application.Models.Requests
     public class FirmRequest
     {
         public string Name { get; set; }
-        public string Street { get; set; }
+        public string Address { get; set; }
         public Guid StateId { get; set; }
     }
 }
