@@ -231,7 +231,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     StateId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     RoleId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FirmId1 = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     BankAccount = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -262,11 +261,6 @@ namespace LegalSearch.Infrastructure.Migrations
                         principalTable: "Firms",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_AspNetUsers_Firms_FirmId1",
-                        column: x => x.FirmId1,
-                        principalTable: "Firms",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_AspNetUsers_States_StateId",
                         column: x => x.StateId,
@@ -487,11 +481,6 @@ namespace LegalSearch.Infrastructure.Migrations
                 name: "IX_AspNetUsers_FirmId",
                 table: "AspNetUsers",
                 column: "FirmId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUsers_FirmId1",
-                table: "AspNetUsers",
-                column: "FirmId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUsers_Id",

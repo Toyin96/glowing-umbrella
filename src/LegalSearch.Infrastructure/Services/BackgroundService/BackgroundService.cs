@@ -20,19 +20,19 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
     {
         private readonly AppDbContext _appDbContext;
         private readonly INotificationService _notificationService;
-        private readonly ISolicitorRetrievalService _solicitorRetrievalService;
+        private readonly ISolicitorManager _solicitorManager;
         private readonly IStateRetrieveService _stateRetrieveService;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
 
         public BackgroundService(AppDbContext appDbContext,
             INotificationService notificationService,
-            ISolicitorRetrievalService solicitorRetrievalService,
+            ISolicitorManager solicitorManager,
             IStateRetrieveService stateRetrieveService, 
             ILegalSearchRequestManager legalSearchRequestManager)
         {
             _appDbContext = appDbContext;
             _notificationService = notificationService;
-            _solicitorRetrievalService = solicitorRetrievalService;
+            _solicitorManager = solicitorManager;
             _stateRetrieveService = stateRetrieveService;
             _legalSearchRequestManager = legalSearchRequestManager;
         }
@@ -43,14 +43,14 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             if (request == null) return;
 
             // Solicitor assignment logic is done here
-            var solicitors = await _solicitorRetrievalService.DetermineSolicitors(request);
+            var solicitors = await _solicitorManager.DetermineSolicitors(request);
 
             if (solicitors == null || solicitors?.ToList()?.Count == 0)
             {
                 // reroute to other states in the same region
                 // Fetch solicitors in other states within the same region
                 var region = await _stateRetrieveService.GetRegionOfState(request.BusinessLocation);
-                solicitors = await _solicitorRetrievalService.FetchSolicitorsInSameRegion(region);
+                solicitors = await _solicitorManager.FetchSolicitorsInSameRegion(region);
 
                 var solicitorsList = solicitors.ToList();
 
@@ -62,7 +62,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 }
 
                 // Assign order to new solicitors in the same region
-                await AssignOrdersAsync(requestId, solicitorsList);
+                await AssignOrdersAsync(requestId, solicitorsList!);
 
                 // route request to first solicitor based on order arrangement
                 await PushRequestToNextSolicitorInOrder(requestId);
@@ -80,7 +80,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         public async Task CheckAndRerouteRequestsJob()
         {
             // Implement logic to query for requests assigned to lawyers for 20 minutes
-            var requestsToReroute = await _solicitorRetrievalService.GetRequestsToReroute();
+            var requestsToReroute = await _solicitorManager.GetRequestsToReroute();
 
             foreach (var request in requestsToReroute)
             {
@@ -98,7 +98,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 }
 
                 // get the currently assigned solicitor, know his/her order and route it to the next order
-                var currentlyAssignedSolicitor = await _solicitorRetrievalService.GetCurrentSolicitorMappedToRequest(request, 
+                var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(request, 
                     legalSearchRequest.AssignedSolicitorId);
 
                 await PushRequestToNextSolicitorInOrder(request, currentlyAssignedSolicitor.Order);
@@ -110,7 +110,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
 
             // Get the next solicitor in line
-            var nextSolicitor = await _solicitorRetrievalService.GetNextSolicitorInLine(requestId, currentAssignedSolicitorOrder);
+            var nextSolicitor = await _solicitorManager.GetNextSolicitorInLine(requestId, currentAssignedSolicitorOrder);
 
             if (nextSolicitor == null)
             {
@@ -214,7 +214,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             #region Send a reminder notification after 24hours that a request has been assigned
 
             // resolves time to 24 hours ago
-            var requestsAcceptedTwentyFoursAgo = await _solicitorRetrievalService.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyHoursElapsedTime());
+            var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyHoursElapsedTime());
 
             if (requestsAcceptedTwentyFoursAgo != null && requestsAcceptedTwentyFoursAgo.Any())
             {
@@ -251,7 +251,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             #region Re-route request to another solicitor after request SLA have elapsed
 
             // get assigned requests that have been unattended for the 72 hours (3 days)
-            var requestsWithElapsedSLA = await _solicitorRetrievalService.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetSeventyTwoHoursElapsedTime());
+            var requestsWithElapsedSLA = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetSeventyTwoHoursElapsedTime());
 
             // check if any matching request was returned
             if (requestsWithElapsedSLA != null && requestsWithElapsedSLA.Any())
@@ -267,7 +267,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     if (legalSearchRequest == null) continue;
 
                     // get the currently assigned solicitor to know his/her order
-                    var currentlyAssignedSolicitor = await _solicitorRetrievalService.GetCurrentSolicitorMappedToRequest(requestId,
+                    var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(requestId,
                         legalSearchRequest.AssignedSolicitorId);
 
                     elapsedSLARequestsDictionary.Add(requestId, currentlyAssignedSolicitor.Order);

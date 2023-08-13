@@ -17,7 +17,7 @@ using (var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>(
 {
     var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
 
-    context.Database.Migrate();
+    context!.Database.Migrate();
     context.Database.EnsureCreated();
 }
 

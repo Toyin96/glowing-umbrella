@@ -4,6 +4,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSearch.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230813062608_RemovedAdditionalInformationColumnFromLegalSearch")]
+    partial class RemovedAdditionalInformationColumnFromLegalSearch
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -178,46 +181,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("LegalSearchRequests");
-                });
-
-            modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.RegistrationDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("FileContent")
-                        .IsRequired()
-                        .HasColumnType("varbinary(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("LegalRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LegalRequestId");
-
-                    b.ToTable("RegistrationDocument");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.SupportingDocument", b =>
@@ -800,17 +763,6 @@ namespace LegalSearch.Infrastructure.Migrations
                         .HasForeignKey("UserId");
                 });
 
-            modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.RegistrationDocument", b =>
-                {
-                    b.HasOne("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", "LegalRequest")
-                        .WithMany("RegistrationDocuments")
-                        .HasForeignKey("LegalRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("LegalRequest");
-                });
-
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.SupportingDocument", b =>
                 {
                     b.HasOne("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", "LegalRequest")
@@ -927,8 +879,6 @@ namespace LegalSearch.Infrastructure.Migrations
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.LegalRequest", b =>
                 {
                     b.Navigation("Discussions");
-
-                    b.Navigation("RegistrationDocuments");
 
                     b.Navigation("SupportingDocuments");
                 });

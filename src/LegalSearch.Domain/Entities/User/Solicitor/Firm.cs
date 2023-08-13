@@ -5,9 +5,9 @@ namespace LegalSearch.Domain.Entities.User.Solicitor
 {
     public class Firm : BaseEntity
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public ICollection<User> Users { get; set; } = new List<User>();
-        public string Address { get; set; }
+        public required string Address { get; set; }
 
         [ForeignKey("State")]
         public Guid? StateId { get; set; }

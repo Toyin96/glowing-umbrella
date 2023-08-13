@@ -41,6 +41,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 string code = loginResponse2.Item1;
                 string message = loginResponse2.Item2;
                 AdLoginResponse loginResponse = loginResponse2.Item3;
+
                 ObjectResponse<AdLoginResponse> obj = new ObjectResponse<AdLoginResponse>(message, code)
                 {
                     Data = loginResponse,

@@ -6,12 +6,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class RolesController : BaseController
     {
         private readonly IRoleService _roleService;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="roleService"></param>
         public RolesController(IRoleService roleService)
         {
             _roleService = roleService;

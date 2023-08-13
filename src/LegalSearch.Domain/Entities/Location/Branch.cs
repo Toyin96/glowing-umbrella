@@ -1,8 +1,10 @@
-﻿namespace LegalSearch.Domain.Entities.Location
+﻿using LegalSearch.Domain.Common;
+
+namespace LegalSearch.Domain.Entities.Location
 {
-    public class Branch
+    public class Branch : BaseEntity
     {
-        public int Id { get; set; }
+        public int BranchId { get; set; }
         public string SolId { get; set; }
         public string Address { get; set; }
     }

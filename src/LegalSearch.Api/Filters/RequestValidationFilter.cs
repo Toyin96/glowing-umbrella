@@ -33,7 +33,10 @@ namespace LegalSearch.Api.Filters
 
             context.Result = new BadRequestObjectResult(response);
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
         public void OnActionExecuted(ActionExecutedContext context)
         {
         }

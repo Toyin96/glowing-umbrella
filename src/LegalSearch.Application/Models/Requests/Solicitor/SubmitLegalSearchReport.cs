@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json.Serialization;
 
 namespace LegalSearch.Application.Models.Requests.Solicitor
 {
-    public class ReturnRequest
+    public class SubmitLegalSearchReport
     {
         public Guid RequestId { get; set; }
         public string? Feedback { get; set; }
-        public List<IFormFile> SupportingDocuments { get; set; } = new List<IFormFile>();
+        public List<IFormFile> RegistrationDocuments { get; set; } = new List<IFormFile>();
     }
 }

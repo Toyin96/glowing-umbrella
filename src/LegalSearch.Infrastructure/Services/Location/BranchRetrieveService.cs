@@ -15,7 +15,7 @@ namespace LegalSearch.Infrastructure.Services.Location
         }
         public async Task<Branch> GetBranchById(int id)
         {
-            return await _appDbContext.Branches.FirstOrDefaultAsync(x => x.Id == id);
+            return await _appDbContext.Branches.FirstOrDefaultAsync(x => x.BranchId == id);
         }
     }
 }
