@@ -10,6 +10,9 @@ using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [AllowAnonymous]
@@ -20,6 +23,11 @@ namespace LegalSearch.Api.Controllers
         private readonly IGeneralAuthService<Domain.Entities.User.User> _solicitorAuthService;
         private readonly IUserAuthService<User> _userAuthService;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="solicitorAuthService"></param>
+        /// <param name="userAuthService"></param>
         public AuthController(IGeneralAuthService<Domain.Entities.User.User> solicitorAuthService,
             IUserAuthService<User> userAuthService)
         {

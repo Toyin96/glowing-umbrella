@@ -4,12 +4,15 @@ using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.Solicitor;
+using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
+using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -26,14 +29,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
         private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
-        private readonly ISolicitorAssignmentManager _solicitorAssignmentManager1;
+        private readonly INotificationService _notificationService;
 
         public LegalSearchRequestService(AppDbContext appDbContext,
             ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService,
             UserManager<Domain.Entities.User.User> userManager,
-            ILegalSearchRequestManager legalSearchRequestManager, 
+            ILegalSearchRequestManager legalSearchRequestManager,
             ISolicitorAssignmentManager solicitorAssignmentManager,
-            ISolicitorAssignmentManager solicitorAssignmentManager1)
+            INotificationService notificationService)
         {
             _appDbContext = appDbContext;
             _logger = logger;
@@ -41,7 +44,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             _userManager = userManager;
             _legalSearchRequestManager = legalSearchRequestManager;
             _solicitorAssignmentManager = solicitorAssignmentManager;
-            _solicitorAssignmentManager1 = solicitorAssignmentManager1;
+            _notificationService = notificationService;
         }
 
         public async Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest)
@@ -56,13 +59,23 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 // update request status
                 var request = result.request;
-                request.Status = nameof(RequestStatusType.LawyerAccepted);
+
+                // get solicitor assignment record
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request!.AssignedSolicitorId);
+
+                // check if request is currently assigned to solicitor
+                if (solicitorAssignmentRecord == null)
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+
+                solicitorAssignmentRecord.IsAccepted = true; // solicitor accepts request here
+
+                request!.Status = nameof(RequestStatusType.LawyerAccepted);
                 var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
 
                 if (!isRequestUpdated)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
-                return new StatusResponse("Request was successfully accepted", ResponseCodes.Success);
+                return new StatusResponse("You have successfully accepted this request", ResponseCodes.Success);
             }
             catch (Exception ex)
             {
@@ -76,8 +89,6 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                // get staff Id and add to payload
-
                 // Validate customer's account status and funding
                 //_fCMBService.GetAccountNameInquiry();
 
@@ -85,21 +96,15 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 // get user
                 var user = await _userManager.FindByIdAsync(userId);
-                var branch = _appDbContext.Branches.First(x => x.SolId == user.SolId)?.Address;
+                var branch = _appDbContext.Branches.First(x => x.SolId == user!.SolId)?.Address;
 
                 if (branch == null)
                     return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
 
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
-                newLegalSearchRequest.Branch = branch;
-                newLegalSearchRequest.InitiatorId = user!.Id;
-                newLegalSearchRequest.RequestInitiator = user.FirstName;
-                
-                // add the files
-                List<SupportingDocument> documents = await ProcessFiles(legalSearchRequest.SupportingDocuments);
 
-                // attach document to request object
-                documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
+                // add registration documents here
+                await AddAdditionalInfoAndDocuments(legalSearchRequest, user, branch, newLegalSearchRequest);
 
                 // persist request
                 var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
@@ -117,6 +122,27 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 _logger.LogError($"An exception occured inside CreateNewRequest. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+            }
+        }
+
+        private async Task AddAdditionalInfoAndDocuments(LegalSearchRequest legalSearchRequest, Domain.Entities.User.User? user, string? branch, LegalRequest newLegalSearchRequest)
+        {
+            if (legalSearchRequest.AdditionalInformation != null)
+            {
+                newLegalSearchRequest.Discussions.Add(new Discussion { Conversation = legalSearchRequest.AdditionalInformation });
+            }
+
+            newLegalSearchRequest.Branch = branch;
+            newLegalSearchRequest.InitiatorId = user!.Id;
+            newLegalSearchRequest.RequestInitiator = user.FirstName;
+
+            // add the files
+            if (legalSearchRequest.AdditionalInformation != null)
+            {
+                List<RegistrationDocument> documents = await ProcessFile(legalSearchRequest.RegistrationDocuments);
+
+                // attach document to request object
+                documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
             }
         }
 
@@ -202,27 +228,70 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             catch (Exception ex)
             {
                 _logger.LogError($"An exception occured inside RejectLegalSearchRequest. See reason: {JsonSerializer.Serialize(ex)}");
-                
+
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+            }
+        }
+        public async Task<StatusResponse> SubmitRequestReport(SubmitLegalSearchReport submitLegalSearchReport, Guid solicitorId)
+        {
+            try
+            {
+                // get legal request
+                var result = await FetchAndValidateAcceptedRequest(submitLegalSearchReport.RequestId, solicitorId);
+
+                if (result.errorCode == ResponseCodes.ServiceError)
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
+
+                var request = result.request;
+
+                // add the files & feedback if any
+                if (submitLegalSearchReport.RegistrationDocuments.Any())
+                {
+                    var supportingDocuments = await ProcessFiles(submitLegalSearchReport.RegistrationDocuments);
+
+                    supportingDocuments.ForEach(x =>
+                    {
+                        request!.SupportingDocuments.Add(x);
+                    });
+                }
+
+                if (!string.IsNullOrEmpty(submitLegalSearchReport.Feedback))
+                {
+                    request!.Discussions.Add(new Discussion { Conversation = submitLegalSearchReport.Feedback });
+                }
+
+                // update request
+                request!.Status = nameof(RequestStatusType.Completed);
+                bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
+
+                if (isRequestUpdated == false)
+                    return new StatusResponse("An error occured while sending report. Please try again later.", result.errorCode);
+
+                // Notify of the request update
+                var notification = new Domain.Entities.Notification.Notification
+                {
+                    Title = "Request has been completed",
+                    NotificationType = NotificationType.CompletedRequest,
+                    Message = ConstantMessage.CompletedRequestMessage,
+                    MetaData = JsonSerializer.Serialize(request)
+                };
+
+                // TODO: credit solicitor's account
+
+                // notify the Initiating CSO
+                await NotifyClient(request.InitiatorId, notification);
+
+                return new StatusResponse("You have successfully submitted the report for this request"
+                    , ResponseCodes.Success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An exception occured inside SubmitRequestReport. See reason: {JsonSerializer.Serialize(ex)}");
+
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
         }
 
-        private LegalRequest MapRequestToLegalRequest(LegalSearchRequest request)
-        {
-            return new LegalRequest
-            {
-                StaffId = request.StaffId,
-                RequestType = request.RequestType,
-                BusinessLocation = request.BusinessLocation,
-                RegistrationDate = request.RegistrationDate,
-                RegistrationLocation = request.RegistrationLocation,
-                RegistrationNumber = request.RegistrationNumber,
-                CustomerAccountName = request.CustomerAccountName,
-                CustomerAccountNumber = request.CustomerAccountNumber,
-                Status = nameof(RequestStatusType.Initiated),
-                AdditionalInformation = request.AdditionalInformation,
-            };
-        }
         private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateRequest(Guid requestId, Guid solicitorId)
         {
             // get legal request
@@ -241,9 +310,27 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return (request, null, ResponseCodes.Success);
         }
 
+        private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateAcceptedRequest(Guid requestId, Guid solicitorId)
+        {
+            // get legal request
+            var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+
+            if (request == null)
+                return (request, "Could not find request", BaseResponseCodes.ServiceError);
+
+            // check if request is currently assigned to solicitor
+            if (request.AssignedSolicitorId != solicitorId)
+                return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
+
+            if (request.Status != nameof(RequestStatusType.LawyerAccepted))
+                return (null, "Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+
+            return (request, null, ResponseCodes.Success);
+        }
+
         private async Task<List<SupportingDocument>> ProcessFiles(List<IFormFile> files)
         {
-            var documents = new List<SupportingDocument>();
+            dynamic documents = new List<SupportingDocument>();
 
             foreach (var formFile in files)
             {
@@ -265,10 +352,63 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                         FileContent = fileContent,
                         FileType = fileType
                     });
+
                 }
             }
 
             return documents;
         }
+
+        private async Task<List<RegistrationDocument>> ProcessFile(List<IFormFile> files)
+        {
+            dynamic documents = new List<RegistrationDocument>();
+
+            foreach (var formFile in files)
+            {
+                if (formFile.Length == 0)
+                {
+                    continue;
+                }
+
+                using (var memoryStream = new MemoryStream())
+                {
+                    await formFile.CopyToAsync(memoryStream);
+                    var fileContent = memoryStream.ToArray();
+
+                    var fileType = Path.GetExtension(formFile.FileName).ToLower();
+
+                    documents.Add(new RegistrationDocument
+                    {
+                        FileName = formFile.FileName,
+                        FileContent = fileContent,
+                        FileType = fileType
+                    });
+
+                }
+            }
+
+            return documents;
+        }
+        private async Task NotifyClient(Guid userId, Domain.Entities.Notification.Notification notification)
+        {
+            //send notification to client
+            await _notificationService.SendNotificationToUser(userId, notification);
+        }
+        private LegalRequest MapRequestToLegalRequest(LegalSearchRequest request)
+        {
+            return new LegalRequest
+            {
+                StaffId = request.StaffId,
+                RequestType = request.RequestType,
+                BusinessLocation = request.BusinessLocation,
+                RegistrationDate = request.RegistrationDate,
+                RegistrationLocation = request.RegistrationLocation,
+                RegistrationNumber = request.RegistrationNumber,
+                CustomerAccountName = request.CustomerAccountName,
+                CustomerAccountNumber = request.CustomerAccountNumber,
+                Status = nameof(RequestStatusType.Initiated),
+            };
+        }
+
     }
 }

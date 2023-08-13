@@ -1,6 +1,7 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
@@ -19,7 +20,7 @@ namespace LegalSearch.Api.Controllers
     public class SolicitorsController : BaseController
     {
         private readonly ILegalSearchRequestService _legalSearchRequestService;
-        private readonly ISolicitorRetrievalService _solicitorRetrievalService;
+        private readonly ISolicitorService _solicitorService;
 
         /// <summary>
         /// Constructs the service needed upon instantiation of the SolicitorsController class.
@@ -27,10 +28,10 @@ namespace LegalSearch.Api.Controllers
         /// <param name="solicitorRetrievalService"></param>
         /// <param name="legalSearchRequestService"></param>
         public SolicitorsController(ILegalSearchRequestService legalSearchRequestService,
-            ISolicitorRetrievalService solicitorRetrievalService)
+            ISolicitorService solicitorRetrievalService)
         {
             _legalSearchRequestService = legalSearchRequestService;
-            _solicitorRetrievalService = solicitorRetrievalService;
+            _solicitorService = solicitorRetrievalService;
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace LegalSearch.Api.Controllers
         public async Task<ActionResult<StatusResponse>> AcceptRequest([FromBody] Application.Models.Requests.Solicitor.AcceptRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
-            request.SolicitorId = Guid.Parse(userId);
+            request.SolicitorId = Guid.Parse(userId!);
             var response = await _legalSearchRequestService.AcceptLegalSearchRequest(request);
             return HandleResponse(response);
         }
@@ -93,6 +94,25 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
+        /// This endpoint allows a solicitor submits the report of the request he/she has been assigned to
+        /// </summary>
+        /// <remarks>
+        /// The Initiating CSO receives a notification when the solicitor has successfully handled the request.
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("Solicitor/SubmitRequestReport")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> SubmitRequestReport([FromForm] Application.Models.Requests.Solicitor.SubmitLegalSearchReport request)
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
+            var response = await _legalSearchRequestService.SubmitRequestReport(request, Guid.Parse(userId));
+            return HandleResponse(response);
+        }
+
+        /// <summary>
         /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
         /// </summary>
         /// <remarks>
@@ -106,13 +126,13 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<ObjectResponse<SolicitorProfileDto>>> ViewProfile()
         {
-            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
-            var response = await _solicitorRetrievalService.ViewSolicitorProfile(Guid.Parse(userId!));
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
+            var response = await _solicitorService.ViewSolicitorProfile(Guid.Parse(userId));
             return HandleResponse(response);
         }
 
         /// <summary>
-        /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
+        /// Endpoint to update solicitor's profile
         /// </summary>
         /// <remarks>
         /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
@@ -123,10 +143,10 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> EditProfile([FromForm] Application.Models.Requests.Solicitor.ReturnRequest request)
+        public async Task<ActionResult<StatusResponse>> EditProfile([FromBody]EditSolicitoProfileRequest request)
         {
-            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
-            var response = await _legalSearchRequestService.PushBackLegalSearchRequestForMoreInfo(request, Guid.Parse(userId!));
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
+            var response = await _solicitorService.EditSolicitorProfile(request, Guid.Parse(userId));
             return HandleResponse(response);
         }
     }

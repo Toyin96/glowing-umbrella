@@ -25,7 +25,8 @@ namespace LegalSearch.Infrastructure.Managers
         public async Task<LegalRequest?> GetLegalSearchRequest(Guid requestId)
         {
             return await _appDbContext.LegalSearchRequests
-                                      .Include(x => x.SupportingDocuments)
+                                      .Include(x => x.Discussions.OrderBy(y => y.CreatedAt))
+                                      .Include(x => x.SupportingDocuments.OrderBy(y => y.CreatedAt))
                                       .FirstOrDefaultAsync(x => x.Id == requestId);
         }
 

@@ -212,7 +212,7 @@ namespace LegalSearch.Infrastructure.Services.User
             claims.Add(new Claim("UserId", user.Id.ToString()));
             claims.Add(new Claim(ClaimTypes.Role, roles.First()));
             claims.Add(new Claim(ClaimTypes.Name, user.FirstName));
-            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+            claims.Add(new Claim(ClaimTypes.Email, user.Email!));
 
             var identity = new ClaimsIdentity(claims, "JWT");
 
@@ -230,7 +230,7 @@ namespace LegalSearch.Infrastructure.Services.User
             claims.Add(new Claim(nameof(ClaimType.UserId), user.Id.ToString()));
             claims.Add(new Claim(ClaimTypes.Role, roles.First()));
             claims.Add(new Claim(ClaimTypes.Name, user.FirstName));
-            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+            claims.Add(new Claim(ClaimTypes.Email, user.Email!));
 
             var identity = new ClaimsIdentity(claims, "JWT");
 
@@ -325,7 +325,7 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 var user = await GetUserByEmailAsync(request.Email);
 
-                var identity = await GetClaimsIdentityForSolicitor(user);
+                var identity = await GetClaimsIdentityForSolicitor(user!);
                 var jwtToken = _jwtTokenHelper.GenerateJwtToken(identity);
 
                 // Return the JWT token to the client

@@ -69,7 +69,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             var userId = Context.UserIdentifier;
 
             // Retrieve the user's role
-            var userRole = Context.User.Claims.SingleOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+            var userRole = Context.User!.Claims.SingleOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
             if (!string.IsNullOrEmpty(userRole))
             {

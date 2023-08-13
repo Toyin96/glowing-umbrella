@@ -4,8 +4,16 @@ using System.Linq;
 
 namespace LegalSearch.Api.Middlewares
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class SwaggerFileUploadFilter : IOperationFilter
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="operation"></param>
+        /// <param name="context"></param>
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             foreach (var parameter in operation.Parameters)

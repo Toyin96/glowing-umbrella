@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegalSearch.Domain.Entities.LegalRequest
 {
-    public class SupportingDocument : BaseEntity
+    public class RegistrationDocument : BaseEntity
     {
         public required string FileName { get; set; }
         public required string FileType { get; set; }

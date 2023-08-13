@@ -8,5 +8,6 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
         Task<StatusResponse> AcceptLegalSearchRequest(Models.Requests.Solicitor.AcceptRequest acceptRequest);
         Task<StatusResponse> RejectLegalSearchRequest(Models.Requests.Solicitor.RejectRequest rejectRequest);
         Task<StatusResponse> PushBackLegalSearchRequestForMoreInfo(Models.Requests.Solicitor.ReturnRequest returnRequest, Guid solicitorId);
+        Task<StatusResponse> SubmitRequestReport(Models.Requests.Solicitor.SubmitLegalSearchReport submiteLegalSearchReport, Guid solicitorId);
     }
 }

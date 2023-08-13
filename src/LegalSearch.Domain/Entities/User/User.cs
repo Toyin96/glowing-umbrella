@@ -27,10 +27,11 @@ namespace LegalSearch.Domain.Entities.User
         public string? StaffId { get; init; }
         public string? BranchId { get; set; }
         public string? SolId { get; set; }
+        public string FullName => $"{FirstName} {LastName}";
 
-        // Role properties
-        [ForeignKey("Firm")]
-        public Guid? FirmId { get; set; }
+
+        // configuring relationships
+
         public Firm? Firm { get; set; }
         [ForeignKey("State")]
         public Guid? StateId { get; set; }
@@ -38,7 +39,5 @@ namespace LegalSearch.Domain.Entities.User
         public Guid? RoleId { get; set; }
         public Role.Role Role { get; set; }
         public ICollection<LegalRequest.LegalRequest>? LegalRequests { get; set; } = new List<LegalRequest.LegalRequest>();
-
-        public string FullName => $"{FirstName} {LastName}";
     }
 }
