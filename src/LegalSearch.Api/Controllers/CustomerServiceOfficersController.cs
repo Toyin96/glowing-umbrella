@@ -31,12 +31,26 @@ namespace LegalSearch.Api.Controllers
         /// 
         /// </summary>
         /// <returns></returns>
-        [HttpPost("Add-New-Request")]
+        [HttpPost("AddNewRequest")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<StatusResponse>> CreateNewRequest([FromForm] LegalSearchRequest request)
+        {
+            //get userId 
+            string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+
+            var result = await _legalSearchRequestService.CreateNewRequest(request, userId);
+            return HandleResponse(result);
+        }
+
+        [HttpPost("UpdateRequest")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> UpdateRequest([FromForm] LegalSearchRequest request)
         {
             //get userId 
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;

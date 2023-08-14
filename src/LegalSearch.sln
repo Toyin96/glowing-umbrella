@@ -1,12 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Api", "LegalSearch.Api\LegalSearch.Api.csproj", "{B57B4620-D88B-4C07-84BE-897885836B6C}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33815.320
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Api", "LegalSearch.Api\LegalSearch.Api.csproj", "{B57B4620-D88B-4C07-84BE-897885836B6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Domain", "LegalSearch.Domain\LegalSearch.Domain.csproj", "{2EA63FC9-C470-43B2-B6E0-D3990889E7EA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Domain", "LegalSearch.Domain\LegalSearch.Domain.csproj", "{2EA63FC9-C470-43B2-B6E0-D3990889E7EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Infrastructure", "LegalSearch.Infrastructure\LegalSearch.Infrastructure.csproj", "{44D98D0C-63A4-43C7-8C6E-E6D034D1ED36}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Infrastructure", "LegalSearch.Infrastructure\LegalSearch.Infrastructure.csproj", "{44D98D0C-63A4-43C7-8C6E-E6D034D1ED36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Application", "LegalSearch.Application\LegalSearch.Application.csproj", "{5EA94AB2-E992-423E-9447-D802AADF2233}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Application", "LegalSearch.Application\LegalSearch.Application.csproj", "{5EA94AB2-E992-423E-9447-D802AADF2233}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Tests", "LegalSearch.Tests\LegalSearch.Tests.csproj", "{268EA12C-226E-4BC6-B2EE-7DA61946F247}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +35,15 @@ Global
 		{5EA94AB2-E992-423E-9447-D802AADF2233}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5EA94AB2-E992-423E-9447-D802AADF2233}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5EA94AB2-E992-423E-9447-D802AADF2233}.Release|Any CPU.Build.0 = Release|Any CPU
+		{268EA12C-226E-4BC6-B2EE-7DA61946F247}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{268EA12C-226E-4BC6-B2EE-7DA61946F247}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{268EA12C-226E-4BC6-B2EE-7DA61946F247}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{268EA12C-226E-4BC6-B2EE-7DA61946F247}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D460DD1E-5204-4626-AE76-6C967D437EEA}
 	EndGlobalSection
 EndGlobal
