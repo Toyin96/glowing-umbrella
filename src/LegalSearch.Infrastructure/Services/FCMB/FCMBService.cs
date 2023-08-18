@@ -1,19 +1,142 @@
 ﻿using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
+using System.Text;
+using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.FCMB
 {
-    internal class FCMBService : IFCMBService
+    public class FCMBService : IFCMBService
     {
-        public Task<GetAccountInquiryResponse> GetAccountInquiry(string accountNumber)
+        private readonly HttpClient _client;
+        private readonly FCMBServiceAppConfig _fCMBServiceAppConfig;
+        private string _currentDate;
+
+        public FCMBService(HttpClient client, IOptions<FCMBServiceAppConfig> fCMBServiceAppConfig)
         {
-            throw new NotImplementedException();
+            _client = client;
+            _fCMBServiceAppConfig = fCMBServiceAppConfig.Value;
+        }
+        public async Task<GetAccountInquiryResponse> MakeAccountInquiry(string accountNumber)
+        {
+
+            // Set up the request headers
+            _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
+            _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken());
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+
+            // Build the URL for the API call
+            string baseUrl = _fCMBServiceAppConfig.BaseUrl;
+            string endpoint = "/accountinquiry-clone/api/AccountInquiry/customerAccountInfoByAccountNo";
+            string encodedAccountNumber = Uri.EscapeDataString(accountNumber);
+
+            Uri actionUri = new Uri($"{baseUrl}/{endpoint}?accountNo={encodedAccountNumber}");
+
+            // Send the GET request
+            HttpResponseMessage httpResponse = await _client.GetAsync(actionUri);
+
+            // Read the response content as a string
+            string response = await httpResponse.Content.ReadAsStringAsync();
+
+            // Deserialize the JSON response into a C# object
+            return JsonSerializer.Deserialize<GetAccountInquiryResponse>(response, 
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true});
         }
 
-        public Task<AccountNameInquiryResponse> GetAccountNameInquiry(NameInquiryRequest nameInquiryRequest)
+        public async Task<AddLienToAccountResponse> AddLien(AddLienToAccountRequest addLienToAccountRequest)
         {
-            throw new NotImplementedException();
+            // Set up the request headers
+            _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
+            _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken());
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+
+            var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/AddLien";
+
+            // Send the GET request
+            var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(addLienToAccountRequest).ToString(), 
+                Encoding.UTF8, "application/json"));
+
+            // Read the response content as a string
+            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            // Deserialize the JSON response into a C# object
+            return JsonSerializer.Deserialize<AddLienToAccountResponse>(response,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<RemoveLienFromAccountResponse> RemoveLien(RemoveLienFromAccountRequest removeLienFromAccountRequest)
+        {
+            // Set up the request headers
+            _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
+            _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken());
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+
+            var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/RemoveLien";
+
+            // Send the GET request
+            var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(removeLienFromAccountRequest).ToString(),
+                Encoding.UTF8, "application/json"));
+
+            // Read the response content as a string
+            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            // Deserialize the JSON response into a C# object
+            return JsonSerializer.Deserialize<RemoveLienFromAccountResponse>(response,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<IntrabankTransferResponse> InitiateTransfer(IntrabankTransferRequest intrabankTransferRequest)
+        {
+            // Set up the request headers
+            _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
+            _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken());
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+
+            var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/cpmtransfer-api/api/cpm/doTransfer";
+
+            // Send the GET request
+            var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(intrabankTransferRequest).ToString(),
+                Encoding.UTF8, "application/json"));
+
+            // Read the response content as a string
+            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            // Deserialize the JSON response into a C# object
+            return JsonSerializer.Deserialize<IntrabankTransferResponse>(response,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        private string GetToken()
+        {
+            var currentime = DateTime.UtcNow;
+            _currentDate = currentime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+
+            var date = currentime.ToString("yyyy-MM-ddHHmmss");
+            var data = date + _fCMBServiceAppConfig.ClientId + _fCMBServiceAppConfig.Password;
+            return SHA512(data);
+        }
+
+        private string SHA512(string input)
+        {
+            var bytes = Encoding.UTF8.GetBytes(input);
+            using (var hash = System.Security.Cryptography.SHA512.Create())
+            {
+                var hashedInputBytes = hash.ComputeHash(bytes);
+
+                // Convert to text
+                // StringBuilder Capacity is 128, because 512 bits / 8 bits in byte * 2 symbols for byte
+                var hashedInputStringBuilder = new System.Text.StringBuilder(128);
+                foreach (var b in hashedInputBytes)
+                    hashedInputStringBuilder.Append(b.ToString("x2"));
+                return hashedInputStringBuilder.ToString();
+
+            }
         }
     }
 }

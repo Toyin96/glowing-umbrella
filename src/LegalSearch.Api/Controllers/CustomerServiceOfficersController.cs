@@ -1,6 +1,7 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -56,6 +57,24 @@ namespace LegalSearch.Api.Controllers
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
             var result = await _legalSearchRequestService.CreateNewRequest(request, userId);
+            return HandleResponse(result);
+        }
+
+        /// <summary>
+        /// This endpoint performs a name inquiry on a FCMB account number
+        /// </summary>
+        /// <param name="accountNumber"></param>
+        /// <returns>
+        /// It returns the name associated with the account, the account status as well as the account balance
+        /// </returns>
+        [HttpGet("PerformNameInquiryOnAccount/{accountNumber}")]
+        [AllowAnonymous]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<GetAccountInquiryResponse>>> PerformNameInquiryOnAccount(string accountNumber)
+        {
+            var result = await _legalSearchRequestService.PerformNameInquiryOnAccount(accountNumber);
             return HandleResponse(result);
         }
     }

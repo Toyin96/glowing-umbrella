@@ -11,6 +11,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public Guid AssignedSolicitorId { get; set; }
         public required string RequestType { get; set; }
         public Guid BusinessLocation { get; set; }
+        public string? LienId { get; set; }
         public Guid RegistrationLocation { get; set; }
         public required string Status { get; set; }
         public required string CustomerAccountName { get; set; }
