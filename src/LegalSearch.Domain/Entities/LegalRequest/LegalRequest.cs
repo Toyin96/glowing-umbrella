@@ -5,7 +5,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
     public class LegalRequest : BaseEntity
     {
         public Guid InitiatorId { get; set; } // ID of staff on application.
-        public required string StaffId { get; set; } // Staff's ID from bank
+        public string StaffId { get; set; } // Staff's ID from bank
         public string RequestInitiator { get; set; } // staff's name
         public string Branch { get; set; }
         public Guid AssignedSolicitorId { get; set; }

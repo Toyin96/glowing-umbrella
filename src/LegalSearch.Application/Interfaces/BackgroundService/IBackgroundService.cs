@@ -4,6 +4,7 @@
     {
         Task AssignRequestToSolicitorsJob(Guid requestId);
         Task PushBackRequestToCSOJob(Guid requestId);
+        Task InitiatePaymentToSolicitorJob(Guid requestId);
         Task CheckAndRerouteRequestsJob();
         Task NotificationReminderForUnAttendedRequestsJob();
         Task PushRequestToNextSolicitorInOrder(Guid requestId, int currentAssignedSolicitorOrder = 0);

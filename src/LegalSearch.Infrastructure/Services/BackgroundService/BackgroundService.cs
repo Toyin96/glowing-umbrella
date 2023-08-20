@@ -87,7 +87,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 // Get the legalRequest entity and check its status
                 var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
 
-                if (legalSearchRequest.Status == nameof(RequestStatusType.UnAssigned))
+                if (legalSearchRequest.Status == RequestStatusType.UnAssigned.ToString())
                 {
                     /*
                      This request has been routed to legalPerfection team either due to:
@@ -123,7 +123,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
 
             // Update the request status and assigned solicitor(s)
-            request!.Status = nameof(RequestStatusType.AssignedToLawyer);
+            request!.Status = RequestStatusType.AssignedToLawyer.ToString();
             request.DateAssignedToSolicitor = nextSolicitor.AssignedAt;
             request.DateDue = TimeUtils.CalculateDateDueForRequest(); // 3 days from present time
             request.AssignedSolicitorId = nextSolicitor.SolicitorId; // Assuming you have a property to track assigned solicitor
@@ -203,9 +203,9 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             // Notify LegalPerfectionTeam of new request was unassigned
             await _notificationService.SendNotificationToRole(nameof(RoleType.LegalPerfectionTeam), notification);
 
-            // update legalsearch request here
+            // update legalSearch request here
             request.AssignedSolicitorId = default;
-            request.Status = nameof(RequestStatusType.UnAssigned);
+            request.Status = RequestStatusType.UnAssigned.ToString();
             await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
         }
 
@@ -300,6 +300,15 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             // get staff id
             await _notificationService.SendNotificationToUser(request.InitiatorId, notification);
+        }
+
+        public Task InitiatePaymentToSolicitorJob(Guid requestId)
+        {
+            // remove ID from client account
+
+            // process credit to solicitor's account
+
+            // persist payment record
         }
     }
 }

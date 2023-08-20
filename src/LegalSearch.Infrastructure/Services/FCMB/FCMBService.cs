@@ -13,13 +13,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
         private readonly HttpClient _client;
         private readonly FCMBServiceAppConfig _fCMBServiceAppConfig;
         private string _currentDate;
+        private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         public FCMBService(HttpClient client, IOptions<FCMBServiceAppConfig> fCMBServiceAppConfig)
         {
             _client = client;
             _fCMBServiceAppConfig = fCMBServiceAppConfig.Value;
         }
-        public async Task<GetAccountInquiryResponse> MakeAccountInquiry(string accountNumber)
+        public async Task<GetAccountInquiryResponse?> MakeAccountInquiry(string accountNumber)
         {
 
             // Set up the request headers
@@ -42,11 +43,10 @@ namespace LegalSearch.Infrastructure.Services.FCMB
             string response = await httpResponse.Content.ReadAsStringAsync();
 
             // Deserialize the JSON response into a C# object
-            return JsonSerializer.Deserialize<GetAccountInquiryResponse>(response, 
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true});
+            return JsonSerializer.Deserialize<GetAccountInquiryResponse>(response, _jsonSerializerOptions);
         }
 
-        public async Task<AddLienToAccountResponse> AddLien(AddLienToAccountRequest addLienToAccountRequest)
+        public async Task<AddLienToAccountResponse?> AddLien(AddLienToAccountRequest addLienToAccountRequest)
         {
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
@@ -56,19 +56,23 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/AddLien";
 
+            //add common fields
+            addLienToAccountRequest.CurrencyCode = _fCMBServiceAppConfig.CurrencyCode;
+            addLienToAccountRequest.Rmks = _fCMBServiceAppConfig.LegalSearchRemarks;
+            addLienToAccountRequest.ReasonCode = _fCMBServiceAppConfig.LegalSearchReasonCode;
+
             // Send the GET request
             var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(addLienToAccountRequest).ToString(), 
                 Encoding.UTF8, "application/json"));
 
             // Read the response content as a string
-            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await httpResponse.Content.ReadAsStringAsync();
 
             // Deserialize the JSON response into a C# object
-            return JsonSerializer.Deserialize<AddLienToAccountResponse>(response,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return JsonSerializer.Deserialize<AddLienToAccountResponse>(response, _jsonSerializerOptions);
         }
 
-        public async Task<RemoveLienFromAccountResponse> RemoveLien(RemoveLienFromAccountRequest removeLienFromAccountRequest)
+        public async Task<RemoveLienFromAccountResponse?> RemoveLien(RemoveLienFromAccountRequest removeLienFromAccountRequest)
         {
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
@@ -78,19 +82,23 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/RemoveLien";
 
+            //add common fields
+            removeLienFromAccountRequest.CurrencyCode = _fCMBServiceAppConfig.CurrencyCode;
+            removeLienFromAccountRequest.Rmks = _fCMBServiceAppConfig.LegalSearchRemarks;
+            removeLienFromAccountRequest.ReasonCode = _fCMBServiceAppConfig.LegalSearchReasonCode;
+
             // Send the GET request
             var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(removeLienFromAccountRequest).ToString(),
                 Encoding.UTF8, "application/json"));
 
             // Read the response content as a string
-            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await httpResponse.Content.ReadAsStringAsync();
 
             // Deserialize the JSON response into a C# object
-            return JsonSerializer.Deserialize<RemoveLienFromAccountResponse>(response,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return JsonSerializer.Deserialize<RemoveLienFromAccountResponse>(response, _jsonSerializerOptions);
         }
 
-        public async Task<IntrabankTransferResponse> InitiateTransfer(IntrabankTransferRequest intrabankTransferRequest)
+        public async Task<IntrabankTransferResponse?> InitiateTransfer(IntrabankTransferRequest intrabankTransferRequest)
         {
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
@@ -105,11 +113,10 @@ namespace LegalSearch.Infrastructure.Services.FCMB
                 Encoding.UTF8, "application/json"));
 
             // Read the response content as a string
-            var response = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await httpResponse.Content.ReadAsStringAsync();
 
             // Deserialize the JSON response into a C# object
-            return JsonSerializer.Deserialize<IntrabankTransferResponse>(response,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return JsonSerializer.Deserialize<IntrabankTransferResponse>(response, _jsonSerializerOptions);
         }
 
         private string GetToken()

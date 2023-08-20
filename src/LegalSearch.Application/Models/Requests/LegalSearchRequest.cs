@@ -5,8 +5,6 @@ namespace LegalSearch.Application.Models.Requests
 {
     public class LegalSearchRequest
     {
-        [JsonIgnore]
-        public string? StaffId { get; set; }
         public required string RequestType { get; set; }
         public Guid BusinessLocation { get; set; }
         public Guid RegistrationLocation { get; set; }
@@ -16,5 +14,6 @@ namespace LegalSearch.Application.Models.Requests
         public DateTime RegistrationDate { get; set; }
         public string? AdditionalInformation { get; set; }
         public required List<IFormFile> RegistrationDocuments { get; set; }
+        public required List<IFormFile> SupportingDocuments { get; set; }
     }
 }

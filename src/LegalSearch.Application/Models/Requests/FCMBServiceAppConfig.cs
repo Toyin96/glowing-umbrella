@@ -13,6 +13,7 @@ namespace LegalSearch.Application.Models.Requests
         [Required]
         public string SubscriptionKey { get; set; }
         public string SLAPeriod { get; set; }
+        public required String CurrencyCode { get; set; }
         public string LegalSearchAmount { get; set; }
         public string LegalSearchRemarks { get; set; }
         public string LegalSearchReasonCode { get; set; }

@@ -100,11 +100,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(legalSearchRequest.CustomerAccountNumber);
 
                 // process name inquiry response to see if the account has enough balance for this action
-                (bool isSuccess, string errorMessage) nameInquiryVeificationResponse = ProcessAccountInquiryResponse(accountInquiryResponse);
+                (bool isSuccess, string errorMessage) = ProcessAccountInquiryResponse(accountInquiryResponse!);
 
                 // Detailed error response is being returned here if the validation checks were not met
-                if (!nameInquiryVeificationResponse.isSuccess)
-                    return new StatusResponse(nameInquiryVeificationResponse.errorMessage, ResponseCodes.ServiceError);
+                if (!isSuccess)
+                    return new StatusResponse(errorMessage, ResponseCodes.ServiceError);
 
                 // place lien on account in question to cover the cost of the legal search
                 AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayload(legalSearchRequest);
@@ -113,11 +113,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var addLienResponse = await _fCMBService.AddLien(lienRequest);
 
                 // process name inquiry response to see if the account has enough balance for this action
-                (bool isSuccess, string errorMessage) lienVeificationResponse = ProcessLienResponse(addLienResponse);
+                (bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
                 
                 // Detailed error response is being returned here if the validation checks were not met
-                if (!lienVeificationResponse.isSuccess)
-                    return new StatusResponse(lienVeificationResponse.errorMessage, ResponseCodes.ServiceError);
+                if (!lienVerificationResponse.isSuccess)
+                    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
 
                 // get the CSO account
                 var user = await _userManager.FindByIdAsync(userId);
@@ -130,7 +130,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
 
                 // assign lien ID to request
-                newLegalSearchRequest.LienId = addLienResponse.Data.LienId;
+                newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
+
+                //update request payload
+                newLegalSearchRequest.Branch = branch;
+                newLegalSearchRequest.StaffId = user.StaffId;
+                newLegalSearchRequest.InitiatorId = user!.Id;
+                newLegalSearchRequest.RequestInitiator = user.FirstName;
 
                 // add registration documents and other information here
                 await AddAdditionalInfoAndDocuments(legalSearchRequest, user, branch, newLegalSearchRequest);
@@ -148,7 +154,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occured inside CreateNewRequest. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside CreateNewRequest. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
@@ -206,7 +212,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (accountInquiryResponse != null && accountInquiryResponse.Code == _successStatusCode
                 && accountInquiryResponse.Data.AvailableBalance >= legalSearchAmount)
             {
-                return (true, "Name & balance inquiry was successsful");
+                return (true, "Name & balance inquiry was successful");
             }
 
             return (false, "Please try again");
@@ -219,17 +225,22 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 newLegalSearchRequest.Discussions.Add(new Discussion { Conversation = legalSearchRequest.AdditionalInformation });
             }
 
-            newLegalSearchRequest.Branch = branch;
-            newLegalSearchRequest.InitiatorId = user!.Id;
-            newLegalSearchRequest.RequestInitiator = user.FirstName;
-
-            // add the files
-            if (legalSearchRequest.AdditionalInformation != null)
+            // add the registration document
+            if (legalSearchRequest.RegistrationDocuments != null)
             {
-                List<RegistrationDocument> documents = await ProcessFile(legalSearchRequest.RegistrationDocuments);
+                List<RegistrationDocument> documents = await ProcessRegistrationDocument(legalSearchRequest.RegistrationDocuments);
 
                 // attach document to request object
                 documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
+            }
+
+            // add the supporting documents
+            if (legalSearchRequest.SupportingDocuments != null)
+            {
+                List<SupportingDocument> documents = await ProcessSupportingDocuments(legalSearchRequest.SupportingDocuments);
+
+                // attach document to request object
+                documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
             }
         }
 
@@ -247,7 +258,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // add the files & feedback if any
                 if (returnRequest.SupportingDocuments.Any())
                 {
-                    var supportingDocuments = await ProcessFiles(returnRequest.SupportingDocuments);
+                    var supportingDocuments = await ProcessSupportingDocuments(returnRequest.SupportingDocuments);
 
                     supportingDocuments.ForEach(x =>
                     {
@@ -265,7 +276,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
                 if (isRequestUpdated == false)
-                    return new StatusResponse("An error occured while sending request. Please try again later.", result.errorCode);
+                    return new StatusResponse("An error occurred while sending request. Please try again later.", result.errorCode);
 
                 // Enqueue the request for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.PushBackRequestToCSOJob(request!.Id));
@@ -275,7 +286,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occured inside PushBackLegalSearchRequestForMoreInfo. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside PushBackLegalSearchRequestForMoreInfo. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
@@ -334,7 +345,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // add the files & feedback if any
                 if (submitLegalSearchReport.RegistrationDocuments.Any())
                 {
-                    var supportingDocuments = await ProcessFiles(submitLegalSearchReport.RegistrationDocuments);
+                    var supportingDocuments = await ProcessSupportingDocuments(submitLegalSearchReport.RegistrationDocuments);
 
                     supportingDocuments.ForEach(x =>
                     {
@@ -352,7 +363,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
                 if (isRequestUpdated == false)
-                    return new StatusResponse("An error occured while sending report. Please try again later.", result.errorCode);
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
 
                 // Notify of the request update
                 var notification = new Domain.Entities.Notification.Notification
@@ -363,7 +374,8 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     MetaData = JsonSerializer.Serialize(request)
                 };
 
-                // TODO: credit solicitor's account
+                // TODO: Push request to credit solicitor's account upon completion of request
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
                 await NotifyClient(request.InitiatorId, notification);
@@ -373,7 +385,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occured inside SubmitRequestReport. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside SubmitRequestReport. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
@@ -415,7 +427,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return (request, null, ResponseCodes.Success);
         }
 
-        private async Task<List<SupportingDocument>> ProcessFiles(List<IFormFile> files)
+        private async Task<List<SupportingDocument>> ProcessSupportingDocuments(List<IFormFile> files)
         {
             dynamic documents = new List<SupportingDocument>();
 
@@ -446,7 +458,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return documents;
         }
 
-        private async Task<List<RegistrationDocument>> ProcessFile(List<IFormFile> files)
+        private async Task<List<RegistrationDocument>> ProcessRegistrationDocument(List<IFormFile> files)
         {
             dynamic documents = new List<RegistrationDocument>();
 
@@ -485,7 +497,6 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             return new LegalRequest
             {
-                StaffId = request.StaffId,
                 RequestType = request.RequestType,
                 BusinessLocation = request.BusinessLocation,
                 RegistrationDate = request.RegistrationDate,
@@ -493,7 +504,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 RegistrationNumber = request.RegistrationNumber,
                 CustomerAccountName = request.CustomerAccountName,
                 CustomerAccountNumber = request.CustomerAccountNumber,
-                Status = nameof(RequestStatusType.Initiated),
+                Status = RequestStatusType.Initiated.ToString(),
             };
         }
 
@@ -518,6 +529,16 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 return new ObjectResponse<GetAccountInquiryResponse>("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
+        }
+
+        public async Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(ViewRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId)
+        {
+            var response = await _legalSearchRequestManager.GetLegalRequestsForSolicitor(viewRequestAnalyticsPayload, solicitorId);
+
+            return new ObjectResponse<LegalSearchRootResponsePayload>("Successfully Retrieved Legal Search Requests")
+            {
+                Data = response,
+            };
         }
     }
 }
