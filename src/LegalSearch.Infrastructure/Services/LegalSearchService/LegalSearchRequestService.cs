@@ -8,8 +8,10 @@ using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
@@ -342,6 +344,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var request = result.request;
 
+                // verify that customer request have a lien ID
+                if (request!.LienId == null)
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
+
                 // add the files & feedback if any
                 if (submitLegalSearchReport.RegistrationDocuments.Any())
                 {
@@ -374,7 +380,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     MetaData = JsonSerializer.Serialize(request)
                 };
 
-                // TODO: Push request to credit solicitor's account upon completion of request
+                // Push request to credit solicitor's account upon completion of request
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
@@ -531,11 +537,21 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        public async Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(ViewRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId)
+        public async Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId)
         {
             var response = await _legalSearchRequestManager.GetLegalRequestsForSolicitor(viewRequestAnalyticsPayload, solicitorId);
 
             return new ObjectResponse<LegalSearchRootResponsePayload>("Successfully Retrieved Legal Search Requests")
+            {
+                Data = response,
+            };
+        }
+
+        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForCso(CsoDashboardAnalyticsRequest request, Guid csoId)
+        {
+            var response = await _legalSearchRequestManager.GetLegalRequestsForCso(request, csoId);
+
+            return new ObjectResponse<CsoRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
                 Data = response,
             };

@@ -154,7 +154,7 @@ namespace LegalSearch.Api
             services.AddDbContext<AppDbContext>(options =>
             {
                 //options.UseInMemoryDatabase("LegalSearchDb");
-                options.UseSqlServer(AppConstants.DbConnectionString + ";TrustServerCertificate=True", sqlOptions =>
+                options.UseSqlServer(AppConstants.DbConnectionString, sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
                     sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.

@@ -1,12 +1,15 @@
 ﻿using Fcmb.Shared.Models.Responses;
-using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.CSO;
+using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.CSO;
 
 namespace LegalSearch.Application.Interfaces.LegalSearchRequest
 {
     public interface ILegalSearchRequestService
     {
-        Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(ViewRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
+        Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForCso(CsoDashboardAnalyticsRequest request, Guid csoId);
+        Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
         Task<ObjectResponse<GetAccountInquiryResponse>> PerformNameInquiryOnAccount(string accountNumber);
         Task<StatusResponse> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
         Task<StatusResponse> AcceptLegalSearchRequest(Models.Requests.Solicitor.AcceptRequest acceptRequest);

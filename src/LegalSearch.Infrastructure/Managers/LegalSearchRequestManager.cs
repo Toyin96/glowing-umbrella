@@ -1,7 +1,10 @@
-﻿using Fcmb.Shared.Utilities;
+﻿using Azure.Core;
+using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
-using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.CSO;
+using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
@@ -26,7 +29,7 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(ViewRequestAnalyticsPayload request, Guid solicitorId)
+        public async Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload request, Guid solicitorId)
         {
             // Step 1: Create the query to fetch legal requests
             IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests;
@@ -72,11 +75,11 @@ namespace LegalSearch.Infrastructure.Managers
                 query = FilterQueryBasedOnRequestStatus(request, solicitorId, query, assignedRequestIds);
             }
 
-            // Step 6: Apply pagination to the query as per the request 
-            query.Paginate(request);
-
-            // Step 7: Apply filtering to fetch only assigned requests
+            // Step 6: Apply filtering to fetch only assigned requests
             query = query.Where(x => assignedRequestIds.Contains(x.Id));
+
+            // Step 7: Apply pagination to the query as per the request 
+            query.Paginate(request);
 
             // Step 8: Fetch the requested data
             var response = await query
@@ -136,7 +139,7 @@ namespace LegalSearch.Infrastructure.Managers
             return summary;
         }
 
-        private static IQueryable<LegalRequest> FilterQueryBasedOnRequestStatus(ViewRequestAnalyticsPayload request, Guid solicitorId, IQueryable<LegalRequest> query, List<Guid> assignedRequestIds)
+        private static IQueryable<LegalRequest> FilterQueryBasedOnRequestStatus(SolicitorRequestAnalyticsPayload request, Guid solicitorId, IQueryable<LegalRequest> query, List<Guid> assignedRequestIds)
         {
             switch (request.RequestStatus)
             {
@@ -160,6 +163,31 @@ namespace LegalSearch.Infrastructure.Managers
             return query;
         }
 
+        private static IQueryable<LegalRequest> FilterQueryBasedOnCsoRequestStatus(CsoDashboardAnalyticsRequest request, Guid csoId, IQueryable<LegalRequest> query)
+        {
+            switch (request.CsoRequestStatusType)
+            {
+                case CsoRequestStatusType.PendingWithCso:
+                    query = query.Where(x => x.Status == RequestStatusType.LawyerRejected.ToString()
+                    && x.InitiatorId == csoId);
+                    break;
+                case CsoRequestStatusType.PendingWithSolicitor:
+                    query = query.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString()
+                    && x.InitiatorId == csoId);
+                    break;
+                case CsoRequestStatusType.RequestsWithSolicitorFeedback:
+                    query = query.Where(x => x.Status == RequestStatusType.BackToCso.ToString()
+                    && x.InitiatorId == csoId);
+                    break;
+                case CsoRequestStatusType.Completed:
+                    query = query.Where(x => x.Status == RequestStatusType.Completed.ToString() &&
+                    x.InitiatorId != csoId);
+                    break;
+            }
+
+            return query;
+        }
+
         public async Task<LegalRequest?> GetLegalSearchRequest(Guid requestId)
         {
             return await _appDbContext.LegalSearchRequests
@@ -174,6 +202,94 @@ namespace LegalSearch.Infrastructure.Managers
             _appDbContext.LegalSearchRequests.Update(legalRequest);
 
             return await _appDbContext.SaveChangesAsync() > 0;
+        }
+
+        public async Task<CsoRootResponsePayload> GetLegalRequestsForCso(CsoDashboardAnalyticsRequest request, Guid csoId)
+        {
+            // Step 1: Create the query to fetch legal requests
+            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests;
+
+            // Step 5: Apply filtering to the query from the request payload
+            if (request.StartPeriod.HasValue && request.EndPeriod.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt >= request.StartPeriod && x.CreatedAt <= request.EndPeriod);
+            }
+            else if (request.StartPeriod.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt >= request.StartPeriod);
+            }
+            else if (request.EndPeriod.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt <= request.EndPeriod);
+            }
+
+            if (request.CsoRequestStatusType.HasValue)
+            {
+                query = FilterQueryBasedOnCsoRequestStatus(request, csoId, query);
+            }
+
+            // Step 6: Apply pagination to the query as per the request 
+            query.Paginate(request);
+
+            // Step 8: Fetch the requested data
+            var response = await query
+                .Select(x => new
+                {
+                    x.Id,
+                    x.RequestInitiator,
+                    x.RequestType,
+                    x.RegistrationDate,
+                    x.Status,
+                    x.CustomerAccountName,
+                    x.CustomerAccountNumber,
+                    x.BusinessLocation,
+                    x.RegistrationLocation,
+                    x.CreatedAt,
+                    x.DateDue,
+                })
+                .ToListAsync();
+
+            // Step 9: Fetch state names in a single query
+            var stateIds = response.SelectMany(x => new[] { x.BusinessLocation, x.RegistrationLocation })
+                                   .Distinct()
+                                   .ToList();
+
+            var stateNames = _appDbContext.States
+                .Where(state => stateIds.Contains(state.Id))
+                .ToDictionary(state => state.Id, state => state.Name);
+
+            // Step 10: Get the current time in the application's local time zone
+            var currentTime = TimeUtils.GetCurrentLocalTime();
+
+            // Step 11: Map the response data to the response payload
+            var mappedResponse = response.Select(x => new LegalSearchResponsePayload
+            {
+                RequestInitiator = x.RequestInitiator,
+                RequestType = x.RequestType,
+                RegistrationDate = x.RegistrationDate,
+                RequestStatus = x.Status,
+                CustomerAccountName = x.CustomerAccountName,
+                CustomerAccountNumber = x.CustomerAccountNumber,
+                BusinessLocation = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation] : string.Empty,
+                RegistrationLocation = stateNames.ContainsKey(x.RegistrationLocation) ? stateNames[x.RegistrationLocation] : string.Empty,
+                DateCreated = x.CreatedAt,
+                DateDue = x.DateDue.HasValue ? x.DateDue : DateTime.MinValue,
+            }).ToList();
+
+            var requestsWithLawyersFeedbackQuery = query.Where(x => x.InitiatorId == csoId && x.Status == RequestStatusType.BackToCso.ToString());
+
+            // Step 12: Calculate the counts for the three categories
+            var summary = new CsoRootResponsePayload
+            {
+                LegalSearchRequests = mappedResponse,
+                TotalRequests = mappedResponse.Count,
+                WithinSLACount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateCreated && currentTime < x.DateDue?.AddHours(-3)),
+                ElapsedSLACount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue),
+                Within3HoursToDueCount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue?.AddHours(-3) && currentTime <= x.DateDue),
+                RequestsWithLawyersFeedbackCount = await requestsWithLawyersFeedbackQuery.CountAsync()
+            };
+
+            return summary;
         }
     }
 }

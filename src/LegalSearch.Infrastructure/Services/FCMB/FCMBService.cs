@@ -56,11 +56,6 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/AddLien";
 
-            //add common fields
-            addLienToAccountRequest.CurrencyCode = _fCMBServiceAppConfig.CurrencyCode;
-            addLienToAccountRequest.Rmks = _fCMBServiceAppConfig.LegalSearchRemarks;
-            addLienToAccountRequest.ReasonCode = _fCMBServiceAppConfig.LegalSearchReasonCode;
-
             // Send the GET request
             var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(addLienToAccountRequest).ToString(), 
                 Encoding.UTF8, "application/json"));
@@ -81,11 +76,6 @@ namespace LegalSearch.Infrastructure.Services.FCMB
             _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/RemoveLien";
-
-            //add common fields
-            removeLienFromAccountRequest.CurrencyCode = _fCMBServiceAppConfig.CurrencyCode;
-            removeLienFromAccountRequest.Rmks = _fCMBServiceAppConfig.LegalSearchRemarks;
-            removeLienFromAccountRequest.ReasonCode = _fCMBServiceAppConfig.LegalSearchReasonCode;
 
             // Send the GET request
             var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(removeLienFromAccountRequest).ToString(),

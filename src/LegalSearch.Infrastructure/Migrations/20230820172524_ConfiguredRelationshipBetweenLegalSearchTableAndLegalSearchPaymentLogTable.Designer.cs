@@ -4,6 +4,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSearch.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230820172524_ConfiguredRelationshipBetweenLegalSearchTableAndLegalSearchPaymentLogTable")]
+    partial class ConfiguredRelationshipBetweenLegalSearchTableAndLegalSearchPaymentLogTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -233,12 +236,6 @@ namespace LegalSearch.Infrastructure.Migrations
 
                     b.Property<string>("SourceAccountNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TranId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TransactionStan")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TransferAmount")

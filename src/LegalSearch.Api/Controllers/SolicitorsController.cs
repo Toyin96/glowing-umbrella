@@ -1,7 +1,6 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
-using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.Solicitor;
@@ -162,7 +161,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<LegalSearchRootResponsePayload>>> ViewRequestAnalytics([FromBody] ViewRequestAnalyticsPayload request)
+        public async Task<ActionResult<ObjectResponse<LegalSearchRootResponsePayload>>> ViewRequestAnalytics([FromBody] SolicitorRequestAnalyticsPayload request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _legalSearchRequestService.GetLegalRequestsForSolicitor(request, Guid.Parse(userId));
