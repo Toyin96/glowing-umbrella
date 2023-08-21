@@ -78,7 +78,6 @@ namespace LegalSearch.Api.Controllers
         /// <param name="csoDashboardAnalyticsRequest"></param>
         /// <returns></returns>
         [HttpPost("ViewRequestAnalytics")]
-        [AllowAnonymous]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
