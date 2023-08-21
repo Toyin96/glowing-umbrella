@@ -4,6 +4,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSearch.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20230820094954_UpdatedSomeLegalRequestColumns")]
+    partial class UpdatedSomeLegalRequestColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -181,81 +184,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("LegalSearchRequests");
-                });
-
-            modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.LegalSearchRequestPaymentLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DestinationAccountName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DestinationAccountNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("LegalSearchRequestId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("LienAmount")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LienId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentResponseMetadata")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PaymentStatus")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourceAccountName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SourceAccountNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TranId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TransactionStan")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TransferAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("TransferNarration")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TransferRequestId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LegalSearchRequestPaymentLogs");
                 });
 
             modelBuilder.Entity("LegalSearch.Domain.Entities.LegalRequest.RegistrationDocument", b =>

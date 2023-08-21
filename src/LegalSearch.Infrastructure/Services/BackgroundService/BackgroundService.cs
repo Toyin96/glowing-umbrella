@@ -1,8 +1,10 @@
 ﻿using LegalSearch.Application.Interfaces.BackgroundService;
+using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
@@ -12,6 +14,8 @@ using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.BackgroundService
@@ -23,18 +27,28 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly ISolicitorManager _solicitorManager;
         private readonly IStateRetrieveService _stateRetrieveService;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
+        private readonly IFCMBService _fCMBService;
+        private readonly ILegalSearchRequestPaymentLogManager _legalSearchRequestPaymentLogManager;
+        private readonly FCMBServiceAppConfig _options;
+        private readonly string _successStatusCode = "00";
+        private readonly string _successStatusDescription = "SUCCESS";
 
         public BackgroundService(AppDbContext appDbContext,
             INotificationService notificationService,
             ISolicitorManager solicitorManager,
             IStateRetrieveService stateRetrieveService, 
-            ILegalSearchRequestManager legalSearchRequestManager)
+            ILegalSearchRequestManager legalSearchRequestManager,
+            IFCMBService fCMBService, IOptions<FCMBServiceAppConfig> options,
+            ILegalSearchRequestPaymentLogManager legalSearchRequestPaymentLogManager)
         {
             _appDbContext = appDbContext;
             _notificationService = notificationService;
             _solicitorManager = solicitorManager;
             _stateRetrieveService = stateRetrieveService;
             _legalSearchRequestManager = legalSearchRequestManager;
+            _fCMBService = fCMBService;
+            _legalSearchRequestPaymentLogManager = legalSearchRequestPaymentLogManager;
+            _options = options.Value;
         }
         public async Task AssignRequestToSolicitorsJob(Guid requestId)
         {
@@ -87,7 +101,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 // Get the legalRequest entity and check its status
                 var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
 
-                if (legalSearchRequest.Status == nameof(RequestStatusType.UnAssigned))
+                if (legalSearchRequest.Status == RequestStatusType.UnAssigned.ToString())
                 {
                     /*
                      This request has been routed to legalPerfection team either due to:
@@ -123,7 +137,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
 
             // Update the request status and assigned solicitor(s)
-            request!.Status = nameof(RequestStatusType.AssignedToLawyer);
+            request!.Status = RequestStatusType.AssignedToLawyer.ToString();
             request.DateAssignedToSolicitor = nextSolicitor.AssignedAt;
             request.DateDue = TimeUtils.CalculateDateDueForRequest(); // 3 days from present time
             request.AssignedSolicitorId = nextSolicitor.SolicitorId; // Assuming you have a property to track assigned solicitor
@@ -203,9 +217,9 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             // Notify LegalPerfectionTeam of new request was unassigned
             await _notificationService.SendNotificationToRole(nameof(RoleType.LegalPerfectionTeam), notification);
 
-            // update legalsearch request here
+            // update legalSearch request here
             request.AssignedSolicitorId = default;
-            request.Status = nameof(RequestStatusType.UnAssigned);
+            request.Status = RequestStatusType.UnAssigned.ToString();
             await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
         }
 
@@ -300,6 +314,128 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             // get staff id
             await _notificationService.SendNotificationToUser(request.InitiatorId, notification);
+        }
+
+        public async Task InitiatePaymentToSolicitorJob(Guid requestId)
+        {
+            // step 1: Get request
+            var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+            var solicitor = await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == request!.AssignedSolicitorId);
+
+            // step 2: Generate remove lien request payload
+            RemoveLienFromAccountRequest removeLienRequest = GenerateRemoveLienRequest(request!.CustomerAccountNumber, request.LienId!);
+
+            // step 3: Push request to remove lien from customer's account
+            var response = await _fCMBService.RemoveLien(removeLienRequest);
+
+            // step 4: Validate remove lien endpoint response
+            var lienValidationResponse = ValidateRemoveLien(response);
+
+            // step 5: Make decision on the outcome of response validation
+            var paymentLogRequest = new LegalSearchRequestPaymentLog
+            {
+                SourceAccountName = request.CustomerAccountName,
+                SourceAccountNumber = request.CustomerAccountNumber,
+                DestinationAccountName = solicitor?.FirstName ?? solicitor!.FullName,
+                DestinationAccountNumber = solicitor?.BankAccount!,
+                LienAmount = removeLienRequest.LienId,
+                PaymentStatus = PaymentStatusType.RemoveLien,
+                LienId = removeLienRequest.LienId,
+                CurrencyCode = removeLienRequest.CurrencyCode
+            };
+
+            if (lienValidationResponse.isSuccessful == false)
+            {
+                paymentLogRequest.PaymentResponseMetadata = lienValidationResponse.errorMessage;
+            }
+            else
+            {
+                // generate payment request
+                IntrabankTransferRequest paymentRequest = GeneratePaymentRequest(paymentLogRequest, requestId);
+
+                // process credit to solicitor's account
+                var paymentResponse = await _fCMBService.InitiateTransfer(paymentRequest);
+
+                // validate payment response
+                var paymentResponseValidation = ValidatePaymentResponse(paymentResponse);
+
+                if (paymentResponseValidation.isSuccessful == false)
+                {
+                    // update record
+                    paymentLogRequest.PaymentStatus = PaymentStatusType.MakePayment;
+                    paymentLogRequest.PaymentResponseMetadata = paymentResponseValidation.errorMessage;
+                }
+                else
+                {
+                    paymentLogRequest.PaymentStatus = PaymentStatusType.PaymentMade;
+                    paymentLogRequest.PaymentResponseMetadata = JsonSerializer.Serialize(paymentResponse);
+                    paymentLogRequest.TransactionStan = paymentResponse!.Data.Stan;
+                    paymentLogRequest.TranId = paymentResponse!.Data.TranId;
+                    paymentLogRequest.TransferNarration = paymentRequest.Narration;
+                    paymentLogRequest.TransferRequestId = paymentRequest.CustomerReference;
+                    paymentLogRequest.TransferAmount = paymentRequest.Amount;
+                }
+            }
+
+            // log payment record
+            await _legalSearchRequestPaymentLogManager.AddLegalSearchRequestPaymentLog(paymentLogRequest);
+        }
+
+        private IntrabankTransferRequest GeneratePaymentRequest(LegalSearchRequestPaymentLog paymentLogRequest, Guid requestId)
+        {
+            return new IntrabankTransferRequest
+            {
+                DebitAccountNo = paymentLogRequest.SourceAccountNumber,
+                CreditAccountNo = paymentLogRequest.DestinationAccountNumber,
+                IsFees = false,
+                Charges = new List<Charge>(),
+                Amount = Convert.ToDecimal(_options.LegalSearchAmount),
+                Currency = _options.CurrencyCode,
+                Narration = $"{_options.LegalSearchReasonCode} Payment for {requestId}",
+                Remark = _options.LegalSearchPaymentRemarks,
+                CustomerReference = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}"
+            };
+        }
+
+        private (bool isSuccessful, string? errorMessage) ValidateRemoveLien(RemoveLienFromAccountResponse? response)
+        {
+            if (response == null)
+                return (false, "Lien endpoint returned null when trying to remove lien placed on client's account");
+
+            if (response?.Code != _successStatusCode)
+                return (false, "Request was not successful when trying to remove lien placed on client's account");
+
+            if (response?.Code == _successStatusCode && response?.Description == _successStatusDescription)
+                return (true, null);
+
+            return (false, null);
+        }
+
+        private (bool isSuccessful, string? errorMessage) ValidatePaymentResponse(IntrabankTransferResponse? response)
+        {
+            if (response == null)
+                return (false, "Lien endpoint returned null when trying to initiate transfer on client's account");
+
+            if (response?.Code != _successStatusCode)
+                return (false, "Request was not successful when trying to initiate transfer on client's account");
+
+            if (response?.Code == _successStatusCode && response?.Data != null && response?.Data?.TranId != null)
+                return (true, null);
+
+            return (false, null);
+        }
+
+        private RemoveLienFromAccountRequest GenerateRemoveLienRequest(string customerAccountNumber, string lienId)
+        {
+            return new RemoveLienFromAccountRequest
+            {
+                RequestID = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}",
+                AccountNo = customerAccountNumber,
+                LienId = lienId,
+                CurrencyCode = _options.CurrencyCode,
+                Rmks = _options.LegalSearchRemarks,
+                ReasonCode = _options.LegalSearchReasonCode,
+            };
         }
     }
 }

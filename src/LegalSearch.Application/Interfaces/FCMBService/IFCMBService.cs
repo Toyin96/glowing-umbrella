@@ -5,7 +5,9 @@ namespace LegalSearch.Application.Interfaces.FCMBService
 {
     public interface IFCMBService
     {
-        Task<GetAccountInquiryResponse> GetAccountInquiry(string accountNumber);
-        Task<AccountNameInquiryResponse> GetAccountNameInquiry(NameInquiryRequest nameInquiryRequest);
+        Task<GetAccountInquiryResponse?> MakeAccountInquiry(string accountNumber);
+        Task<AddLienToAccountResponse?> AddLien(AddLienToAccountRequest addLienToAccountRequest);
+        Task<RemoveLienFromAccountResponse?> RemoveLien(RemoveLienFromAccountRequest removeLienFromAccountRequest);
+        Task<IntrabankTransferResponse?> InitiateTransfer(IntrabankTransferRequest intrabankTransferRequest);
     }
 }

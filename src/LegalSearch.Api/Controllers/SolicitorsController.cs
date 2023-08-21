@@ -2,6 +2,7 @@
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Requests.Solicitor;
+using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
@@ -38,7 +39,7 @@ namespace LegalSearch.Api.Controllers
         /// This endpoint allows a solicitor accepts a legal search request that has been assigned to him/her
         /// </summary>
         /// <remarks>
-        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -58,7 +59,7 @@ namespace LegalSearch.Api.Controllers
         /// This endpoint allows a solicitor rejects a legal search request that has been assigned to him/her
         /// </summary>
         /// <remarks>
-        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -78,7 +79,7 @@ namespace LegalSearch.Api.Controllers
         /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
         /// </summary>
         /// <remarks>
-        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -116,7 +117,7 @@ namespace LegalSearch.Api.Controllers
         /// This endpoint allows a solicitor push back for request to the CSO for additional information and/or clarification
         /// </summary>
         /// <remarks>
-        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -135,7 +136,7 @@ namespace LegalSearch.Api.Controllers
         /// Endpoint to update solicitor's profile
         /// </summary>
         /// <remarks>
-        /// The solicitor receives a message notifying the solicitor if the request was succcessful or not
+        /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
@@ -147,6 +148,23 @@ namespace LegalSearch.Api.Controllers
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _solicitorService.EditSolicitorProfile(request, Guid.Parse(userId));
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Endpoint to get legal search request summaries for solicitor
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("Solicitor/ViewRequestAnalytics")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<LegalSearchRootResponsePayload>>> ViewRequestAnalytics([FromBody] SolicitorRequestAnalyticsPayload request)
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
+            var response = await _legalSearchRequestService.GetLegalRequestsForSolicitor(request, Guid.Parse(userId));
             return HandleResponse(response);
         }
     }

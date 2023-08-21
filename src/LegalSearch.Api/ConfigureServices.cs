@@ -1,12 +1,16 @@
 ﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using LegalSearch.Api.Middlewares;
+using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Models.Constants;
+using LegalSearch.Application.Models.Requests;
 using LegalSearch.Infrastructure.Persistence;
+using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -39,6 +43,9 @@ namespace LegalSearch.Api
             services.AddSignalR(); // added signalR capability
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
+
+            services.AddHttpClient<IFCMBService, FCMBService>();
+            services.AddOptions<FCMBServiceAppConfig>().BindConfiguration(nameof(FCMBServiceAppConfig)).ValidateDataAnnotations();
 
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
 
@@ -146,12 +153,12 @@ namespace LegalSearch.Api
             // Add database context
             services.AddDbContext<AppDbContext>(options =>
             {
-                options.UseInMemoryDatabase("LegalSearchDb");
-                //options.UseSqlServer(AppConstants.DbConnectionString + ";TrustServerCertificate=True", sqlOptions =>
-                //{
-                //    sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
-                //    sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.
-                //});
+                //options.UseInMemoryDatabase("LegalSearchDb");
+                options.UseSqlServer(AppConstants.DbConnectionString, sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
+                    sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.
+                });
             });
         }
 

@@ -3,6 +3,6 @@
     public static class AppConstants
     {
         public static readonly string DbConnectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
-            ?? "Data Source=WEMA-WDB-L9396;Initial Catalog=LegalSearch;Trusted_Connection=True;TrustServerCertificate=True;Integrated Security=True;Encrypt=False;";
+            ?? "Data source=52.247.216.167,1433; Initial Catalog=legal-search-be; integrated security=false;MultipleActiveResultSets=true;Trusted_Connection=false;User Id=sa;Password=microsoft_;";
     }
 }

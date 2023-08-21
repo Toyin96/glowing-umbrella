@@ -1,6 +1,5 @@
 ﻿using LegalSearch.Domain.Entities.User.Solicitor;
 using Microsoft.AspNetCore.Identity;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LegalSearch.Domain.Entities.User
