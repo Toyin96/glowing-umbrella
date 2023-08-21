@@ -50,7 +50,7 @@ namespace LegalSearch.Api
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
 
             //configure database
-            services.ConfigureDatabase();
+            services.ConfigureDatabase(configuration);
 
             //configure hangfire
             services.ConfigureHangFire();
@@ -148,13 +148,13 @@ namespace LegalSearch.Api
             services.AddHangfireServer();
         }
 
-        private static void ConfigureDatabase(this IServiceCollection services)
+        private static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration)
         {
             // Add database context
             services.AddDbContext<AppDbContext>(options =>
             {
                 //options.UseInMemoryDatabase("LegalSearchDb");
-                options.UseSqlServer(AppConstants.DbConnectionString, sqlOptions =>
+                options.UseSqlServer(configuration.GetConnectionString("legal_search_db"), sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
                     sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.
