@@ -2,7 +2,8 @@
 {
     public enum RequestType
     {
-        BusinessName = 1,
-        Corporate = 2
+        Unassigned = 1,
+        BusinessName = 2,
+        Corporate = 3
     }
 }

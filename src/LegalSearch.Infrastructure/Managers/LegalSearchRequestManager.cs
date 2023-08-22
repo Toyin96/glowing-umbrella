@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
+using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
@@ -209,7 +210,7 @@ namespace LegalSearch.Infrastructure.Managers
             // Step 1: Create the query to fetch legal requests
             IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests;
 
-            // Step 5: Apply filtering to the query from the request payload
+            // Step 2: Apply filtering to the query from the request payload
             if (request.StartPeriod.HasValue && request.EndPeriod.HasValue)
             {
                 query = query.Where(x => x.CreatedAt >= request.StartPeriod && x.CreatedAt <= request.EndPeriod);
@@ -228,10 +229,10 @@ namespace LegalSearch.Infrastructure.Managers
                 query = FilterQueryBasedOnCsoRequestStatus(request, csoId, query);
             }
 
-            // Step 6: Apply pagination to the query as per the request 
+            // Step 3: Apply pagination to the query as per the request 
             query.Paginate(request);
 
-            // Step 8: Fetch the requested data
+            // Step 4: Fetch the requested data
             var response = await query
                 .Select(x => new
                 {
@@ -249,7 +250,7 @@ namespace LegalSearch.Infrastructure.Managers
                 })
                 .ToListAsync();
 
-            // Step 9: Fetch state names in a single query
+            // Step 5: Fetch state names in a single query
             var stateIds = response.SelectMany(x => new[] { x.BusinessLocation, x.RegistrationLocation })
                                    .Distinct()
                                    .ToList();
@@ -258,10 +259,10 @@ namespace LegalSearch.Infrastructure.Managers
                 .Where(state => stateIds.Contains(state.Id))
                 .ToDictionary(state => state.Id, state => state.Name);
 
-            // Step 10: Get the current time in the application's local time zone
+            // Step 6: Get the current time in the application's local time zone
             var currentTime = TimeUtils.GetCurrentLocalTime();
 
-            // Step 11: Map the response data to the response payload
+            // Step 7: Map the response data to the response payload
             var mappedResponse = response.Select(x => new LegalSearchResponsePayload
             {
                 RequestInitiator = x.RequestInitiator,
@@ -278,7 +279,7 @@ namespace LegalSearch.Infrastructure.Managers
 
             var requestsWithLawyersFeedbackQuery = query.Where(x => x.InitiatorId == csoId && x.Status == RequestStatusType.BackToCso.ToString());
 
-            // Step 12: Calculate the counts for the three categories
+            // Step 8: Calculate the counts for the three categories
             var summary = new CsoRootResponsePayload
             {
                 LegalSearchRequests = mappedResponse,
@@ -290,6 +291,52 @@ namespace LegalSearch.Infrastructure.Managers
             };
 
             return summary;
+        }
+
+        public async Task<List<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId)
+        {
+            // step 1: Make request queryable
+            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests;
+
+            // step 2: filter based on request
+            query = FilterRequestQuery(request, solId, query);
+
+            // step 3: paginate query
+            query = query.Paginate(request);
+
+            // step 4: get distinct branch names
+            var branch = await _appDbContext.Branches
+                                            .FirstAsync(x => x.SolId == solId);
+
+            // step 5: convert query to list
+            var response = await query.Select(x => new FinacleLegalSearchResponsePayload
+            {
+                RequestId = x.Id,
+                CustomerAccountName = x.CustomerAccountName,
+                CustomerAccountNumber = x.CustomerAccountNumber,
+                AccountBranchName = branch.Address,
+                DateCreated = x.CreatedAt,
+                RequestStatus = x.Status,
+            }).ToListAsync();
+
+            return response ?? new List<FinacleLegalSearchResponsePayload>();
+        }
+
+        private static IQueryable<LegalRequest> FilterRequestQuery(GetFinacleRequest request, string solId, IQueryable<LegalRequest> query)
+        {
+            query = query.Where(x => x.BranchId == solId && x.Status == RequestStatusType.UnAssigned.ToString());
+
+            if (request.StartPeriod.HasValue && request.EndPeriod.HasValue)
+                query = query.Where(x =>
+                    x.CreatedAt >= request.StartPeriod.Value && x.CreatedAt <= request.EndPeriod.Value);
+
+            else if (request.StartPeriod.HasValue)
+                query = query.Where(x => x.CreatedAt >= request.StartPeriod.Value);
+
+            else if (request.EndPeriod.HasValue)
+                query = query.Where(x => x.CreatedAt <= request.EndPeriod.Value);
+            
+            return query;
         }
     }
 }

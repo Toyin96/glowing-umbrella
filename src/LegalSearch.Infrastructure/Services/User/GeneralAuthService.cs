@@ -185,8 +185,7 @@ namespace LegalSearch.Infrastructure.Services.User
             var role = await _roleManager.FindByNameAsync(roleName);
 
             // get branch name
-            var branchId = Convert.ToInt32(staff.BranchId);
-            var branch = await _branchRetrieveService.GetBranchById(branchId);
+            var branch = await _branchRetrieveService.GetBranchBySolId(staff.SolId!);
 
             return new ObjectResponse<StaffLoginResponse>("Successfully Logged In Staff")
             {
@@ -198,7 +197,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     LastLoginDate = staff.LastLogin.HasValue ? staff.LastLogin.Value : null,
                     Branch = branch?.Address ?? staff.BranchId,
                     Permissions = role.Permissions.Select(x => x.Permission).ToList(),
-                    SolId = staff.SolId
+                    SolId = staff.SolId!
                 }
             };
         }

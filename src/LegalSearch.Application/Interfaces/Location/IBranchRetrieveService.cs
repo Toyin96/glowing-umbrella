@@ -4,6 +4,6 @@ namespace LegalSearch.Application.Interfaces.Location
 {
     public interface IBranchRetrieveService
     {
-        Task<Branch> GetBranchById(int id);
+        Task<Branch> GetBranchBySolId(string id);
     }
 }
