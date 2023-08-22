@@ -14,8 +14,10 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
+using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;
+using LegalSearch.Infrastructure.Migrations;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -123,10 +125,6 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 // get the CSO account
                 var user = await _userManager.FindByIdAsync(userId);
-                var branch = _appDbContext.Branches.First(x => x.SolId == user!.SolId)?.Address;
-
-                if (branch == null)
-                    return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
 
                 // create new legal search request 
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
@@ -135,13 +133,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
 
                 //update request payload
-                newLegalSearchRequest.Branch = branch;
-                newLegalSearchRequest.StaffId = user.StaffId;
+                newLegalSearchRequest.BranchId = user.SolId ?? user!.BranchId!;
+                newLegalSearchRequest.StaffId = user!.StaffId!;
                 newLegalSearchRequest.InitiatorId = user!.Id;
                 newLegalSearchRequest.RequestInitiator = user.FirstName;
 
                 // add registration documents and other information here
-                await AddAdditionalInfoAndDocuments(legalSearchRequest, user, branch, newLegalSearchRequest);
+                await AddAdditionalInfoAndDocuments(legalSearchRequest, newLegalSearchRequest);
 
                 // persist request
                 var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
@@ -192,6 +190,19 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
+        private AddLienToAccountRequest GenerateLegalSearchLienRequestPayload(UpdateFinacleLegalRequest legalSearchRequest)
+        {
+            return new AddLienToAccountRequest
+            {
+                RequestID = TimeUtils.GetCurrentLocalTime().Ticks.ToString(),
+                AccountNo = legalSearchRequest.CustomerAccountNumber,
+                AmountValue = Convert.ToDecimal(_options.LegalSearchAmount),
+                CurrencyCode = nameof(CurrencyType.NGN),
+                Rmks = _options.LegalSearchRemarks,
+                ReasonCode = _options.LegalSearchReasonCode,
+            };
+        }
+
         private (bool isSuccess, string errorMessage) ProcessAccountInquiryResponse(GetAccountInquiryResponse accountInquiryResponse)
         {
             bool isSuccessfullyParsedToDecimal = decimal.TryParse(_options.LegalSearchAmount, out decimal legalSearchAmount);
@@ -220,7 +231,33 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return (false, "Please try again");
         }
 
-        private async Task AddAdditionalInfoAndDocuments(LegalSearchRequest legalSearchRequest, Domain.Entities.User.User? user, string? branch, LegalRequest newLegalSearchRequest)
+        private async Task AddAdditionalInfoAndDocuments(LegalSearchRequest legalSearchRequest,LegalRequest newLegalSearchRequest)
+        {
+            if (legalSearchRequest.AdditionalInformation != null)
+            {
+                newLegalSearchRequest.Discussions.Add(new Discussion { Conversation = legalSearchRequest.AdditionalInformation });
+            }
+
+            // add the registration document
+            if (legalSearchRequest.RegistrationDocuments != null)
+            {
+                List<RegistrationDocument> documents = await ProcessRegistrationDocument(legalSearchRequest.RegistrationDocuments);
+
+                // attach document to request object
+                documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
+            }
+
+            // add the supporting documents
+            if (legalSearchRequest.SupportingDocuments != null)
+            {
+                List<SupportingDocument> documents = await ProcessSupportingDocuments(legalSearchRequest.SupportingDocuments);
+
+                // attach document to request object
+                documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
+            }
+        }
+
+        private async Task AddAdditionalInfoAndDocuments(UpdateFinacleLegalRequest legalSearchRequest, LegalRequest newLegalSearchRequest)
         {
             if (legalSearchRequest.AdditionalInformation != null)
             {
@@ -507,6 +544,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 BusinessLocation = request.BusinessLocation,
                 RegistrationDate = request.RegistrationDate,
                 RegistrationLocation = request.RegistrationLocation,
+                RequestSource = RequestSourceType.Staff,
                 RegistrationNumber = request.RegistrationNumber,
                 CustomerAccountName = request.CustomerAccountName,
                 CustomerAccountNumber = request.CustomerAccountNumber,
@@ -531,7 +569,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occured inside PerformNameInquiryOnAccount. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside PerformNameInquiryOnAccount. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new ObjectResponse<GetAccountInquiryResponse>("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
@@ -555,6 +593,122 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 Data = response,
             };
+        }
+
+        public async Task<StatusResponse> CreateNewRequestFromFinacle(FinacleLegalSearchRequest legalSearchRequest)
+        {
+            var newLegalSearchRequest = MapFinacleRequestToLegalRequest(legalSearchRequest);
+
+            // persist request
+            var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
+
+            if (result == false)
+                return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
+
+            return new StatusResponse("Request created successfully", ResponseCodes.Success);
+        }
+
+        private LegalRequest MapFinacleRequestToLegalRequest(FinacleLegalSearchRequest request)
+        {
+            return new LegalRequest
+            {
+                RequestSource = RequestSourceType.Finacle,
+                BranchId = request.BranchId,
+                CustomerAccountName = request.CustomerAccountName,
+                CustomerAccountNumber = request.CustomerAccountNumber,
+                Status = RequestStatusType.UnAssigned.ToString(),
+            };
+        }
+
+        public async Task<ListResponse<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId)
+        {
+            var response = await _legalSearchRequestManager.GetFinacleLegalRequestsForCso(request, solId);
+
+            return new ListResponse<FinacleLegalSearchResponsePayload>("Successfully Retrieved Finacle legal search requests")
+            {
+                Data = response,
+                Total = response.Count
+            };
+        }
+
+        public async Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest legalSearchRequest, string userId)
+        {
+            try
+            {
+                // fetch legal search request 
+                var legalSearch = await _legalSearchRequestManager.GetLegalSearchRequest(legalSearchRequest.RequestId);
+
+                if (legalSearch == null)
+                    return new StatusResponse("No matching Legal search record found with the ID provided", ResponseCodes.ServiceError);
+
+                // Validate customer's account status and balance
+                var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(legalSearchRequest.CustomerAccountNumber);
+
+                // process name inquiry response to see if the account has enough balance for this action
+                (bool isSuccess, string errorMessage) = ProcessAccountInquiryResponse(accountInquiryResponse!);
+
+                // Detailed error response is being returned here if the validation checks were not met
+                if (!isSuccess)
+                    return new StatusResponse(errorMessage, ResponseCodes.ServiceError);
+
+                // place lien on account in question to cover the cost of the legal search
+                AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayload(legalSearchRequest);
+
+                // System attempts to place lien on customer's account
+                var addLienResponse = await _fCMBService.AddLien(lienRequest);
+
+                // process name inquiry response to see if the account has enough balance for this action
+                (bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
+
+                // Detailed error response is being returned here if the validation checks were not met
+                if (!lienVerificationResponse.isSuccess)
+                    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
+
+                // get the CSO account
+                var user = await _userManager.FindByIdAsync(userId);
+
+                // update legal search record 
+                legalSearch = await UpdateLegalSearchRecord(legalSearch, legalSearchRequest);
+
+                // assign lien ID, staff ID to request
+                legalSearch.LienId = addLienResponse!.Data.LienId;
+                legalSearch.InitiatorId = user!.Id;
+                legalSearch.StaffId = user.StaffId;
+                legalSearch.UpdatedAt = TimeUtils.GetCurrentLocalTime();
+                legalSearch.Status = RequestStatusType.Initiated.ToString();
+
+                var result = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearch);
+
+                if (result == false)
+                    return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
+
+                // Enqueue the request for background processing
+                BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitorsJob(legalSearch.Id));
+
+                return new StatusResponse("Request updated successfully, and queued for processing", ResponseCodes.Success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An exception occurred inside CreateNewRequest. See reason: {JsonSerializer.Serialize(ex)}");
+
+                return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+            }
+        }
+
+        private async Task<LegalRequest> UpdateLegalSearchRecord(LegalRequest legalSearch, UpdateFinacleLegalRequest legalSearchRequest)
+        {
+            legalSearch.RequestType = legalSearchRequest.RequestType;
+            legalSearch.CustomerAccountName = legalSearchRequest.CustomerAccountName;
+            legalSearch.CustomerAccountNumber = legalSearchRequest.CustomerAccountNumber;
+            legalSearch.BusinessLocation = legalSearchRequest.BusinessLocation;
+            legalSearch.RegistrationLocation = legalSearchRequest.RegistrationLocation;
+            legalSearch.RegistrationNumber = legalSearchRequest.RegistrationNumber;
+            legalSearch.RegistrationDate = legalSearchRequest.RegistrationDate;
+
+            // add additional information, registration & supporting documents
+            await AddAdditionalInfoAndDocuments(legalSearchRequest, legalSearch);
+
+            return legalSearch;
         }
     }
 }

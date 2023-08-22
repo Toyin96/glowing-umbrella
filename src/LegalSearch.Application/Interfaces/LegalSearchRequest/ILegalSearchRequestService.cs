@@ -8,13 +8,16 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
 {
     public interface ILegalSearchRequestService
     {
+        Task<ListResponse<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId);
         Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForCso(CsoDashboardAnalyticsRequest request, Guid csoId);
         Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
         Task<ObjectResponse<GetAccountInquiryResponse>> PerformNameInquiryOnAccount(string accountNumber);
+        Task<StatusResponse> CreateNewRequestFromFinacle(Models.Requests.FinacleLegalSearchRequest legalSearchRequest);
         Task<StatusResponse> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
-        Task<StatusResponse> AcceptLegalSearchRequest(Models.Requests.Solicitor.AcceptRequest acceptRequest);
-        Task<StatusResponse> RejectLegalSearchRequest(Models.Requests.Solicitor.RejectRequest rejectRequest);
-        Task<StatusResponse> PushBackLegalSearchRequestForMoreInfo(Models.Requests.Solicitor.ReturnRequest returnRequest, Guid solicitorId);
-        Task<StatusResponse> SubmitRequestReport(Models.Requests.Solicitor.SubmitLegalSearchReport submitLegalSearchReport, Guid solicitorId);
+        Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest updateFinacleLegalRequest, string userId);
+        Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest);
+        Task<StatusResponse> RejectLegalSearchRequest(RejectRequest rejectRequest);
+        Task<StatusResponse> PushBackLegalSearchRequestForMoreInfo(ReturnRequest returnRequest, Guid solicitorId);
+        Task<StatusResponse> SubmitRequestReport(SubmitLegalSearchReport submitLegalSearchReport, Guid solicitorId);
     }
 }

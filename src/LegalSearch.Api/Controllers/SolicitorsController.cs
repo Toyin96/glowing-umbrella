@@ -156,12 +156,11 @@ namespace LegalSearch.Api.Controllers
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-        [AllowAnonymous]
-        [HttpPost("Solicitor/ViewRequestAnalytics")]
+        [HttpGet("Solicitor/ViewRequestAnalytics")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<LegalSearchRootResponsePayload>>> ViewRequestAnalytics([FromBody] SolicitorRequestAnalyticsPayload request)
+        public async Task<ActionResult<ObjectResponse<LegalSearchRootResponsePayload>>> ViewRequestAnalytics([FromQuery] SolicitorRequestAnalyticsPayload request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _legalSearchRequestService.GetLegalRequestsForSolicitor(request, Guid.Parse(userId));

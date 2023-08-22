@@ -40,19 +40,19 @@ namespace LegalSearch.Api.Controllers
             return HandleResponse(result);
         }
 
-        //[HttpPost("UpdateRequest")]
-        //[Consumes("multipart/form-data")]
-        //[ProducesResponseType((int)HttpStatusCode.OK)]
-        //[ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        //[ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        //public async Task<ActionResult<StatusResponse>> UpdateRequest([FromForm] LegalSearchRequest request)
-        //{
-        //    //get userId 
-        //    string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+        [HttpPost("UpdateFinacleRequest")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> UpdateFinacleRequest([FromForm] UpdateFinacleLegalRequest request)
+        {
+            //get userId 
+            string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
-        //    var result = await _legalSearchRequestService.update(request, userId);
-        //    return HandleResponse(result);
-        //}
+            var result = await _legalSearchRequestService.UpdateFinacleRequestByCso(request, userId);
+            return HandleResponse(result);
+        }
 
         /// <summary>
         /// This endpoint performs a name inquiry on a FCMB account number
@@ -73,15 +73,33 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
+        /// This endpoint gets legal search requests created from Finacle under CSO branch
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns>
+        /// It returns legal search requests created from Finacle under CSO branch
+        /// </returns>
+        [HttpGet("GetFinacleRequests")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ListResponse<FinacleLegalSearchResponsePayload>>> GetFinacleRequests([FromQuery] GetFinacleRequest request)
+        {
+            string? solId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.SolId))?.Value;
+            var result = await _legalSearchRequestService.GetFinacleLegalRequestsForCso(request, solId!);
+            return HandleResponse(result);
+        }
+
+        /// <summary>
         /// Endpoint to get legal search request analytics for CSO
         /// </summary>
         /// <param name="csoDashboardAnalyticsRequest"></param>
         /// <returns></returns>
-        [HttpPost("ViewRequestAnalytics")]
+        [HttpGet("ViewRequestAnalytics")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics(CsoDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] CsoDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var result = await _legalSearchRequestService.GetLegalRequestsForCso(csoDashboardAnalyticsRequest, Guid.Parse(userId));
