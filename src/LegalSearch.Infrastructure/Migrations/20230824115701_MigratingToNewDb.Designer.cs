@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LegalSearch.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20230820172524_ConfiguredRelationshipBetweenLegalSearchTableAndLegalSearchPaymentLogTable")]
-    partial class ConfiguredRelationshipBetweenLegalSearchTableAndLegalSearchPaymentLogTable
+    [Migration("20230824115701_MigratingToNewDb")]
+    partial class MigratingToNewDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -108,7 +108,7 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<Guid>("AssignedSolicitorId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Branch")
+                    b.Property<string>("BranchId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -154,19 +154,18 @@ namespace LegalSearch.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RegistrationNumber")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RequestInitiator")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("RequestSource")
+                        .HasColumnType("int");
+
                     b.Property<string>("RequestType")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StaffId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
@@ -236,6 +235,12 @@ namespace LegalSearch.Infrastructure.Migrations
 
                     b.Property<string>("SourceAccountNumber")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TranId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionStan")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("TransferAmount")
@@ -344,9 +349,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("BranchId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -660,9 +662,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<Guid?>("FirmId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("FirmId1")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -674,7 +673,6 @@ namespace LegalSearch.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
@@ -696,6 +694,9 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("OnboardingStatus")
+                        .HasColumnType("int");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
@@ -724,6 +725,12 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 
+                    b.Property<string>("UnlockCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UnlockCodeExpiration")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -734,8 +741,6 @@ namespace LegalSearch.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FirmId");
-
-                    b.HasIndex("FirmId1");
 
                     b.HasIndex("Id");
 
@@ -925,13 +930,9 @@ namespace LegalSearch.Infrastructure.Migrations
             modelBuilder.Entity("LegalSearch.Domain.Entities.User.User", b =>
                 {
                     b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Firm", "Firm")
-                        .WithMany()
+                        .WithMany("Users")
                         .HasForeignKey("FirmId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("LegalSearch.Domain.Entities.User.Solicitor.Firm", null)
-                        .WithMany("Users")
-                        .HasForeignKey("FirmId1");
 
                     b.HasOne("LegalSearch.Domain.Entities.Role.Role", "Role")
                         .WithMany()
