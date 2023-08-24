@@ -1,66 +1,106 @@
 ﻿using Fcmb.Shared.Auth.Models.Requests;
 using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.Auth;
+using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.User;
-using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
-    /// <summary>
-    /// 
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous]
     [Consumes("application/json")]
     [Produces("application/json")]
     public class AuthController : BaseController
     {
-        private readonly IGeneralAuthService<Domain.Entities.User.User> _solicitorAuthService;
-        private readonly IUserAuthService<User> _userAuthService;
+        private readonly IGeneralAuthService<User> _solicitorAuthService;
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="solicitorAuthService"></param>
+        /// <param name="generalAuthService"></param>
         /// <param name="userAuthService"></param>
-        public AuthController(IGeneralAuthService<Domain.Entities.User.User> solicitorAuthService,
-            IUserAuthService<User> userAuthService)
+        public AuthController(IGeneralAuthService<User> generalAuthService)
         {
-            _solicitorAuthService = solicitorAuthService;
-            _userAuthService = userAuthService;
+            _solicitorAuthService = generalAuthService;
         }
 
-        [HttpPost("Solicitor/login")]
+        [HttpPost("User/login")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<ObjectResponse<LoginResponse>>> SolicitorLogin([FromBody] LoginRequest request)
+        public async Task<ActionResult<ObjectResponse<LoginResponse>>> UserLogin([FromBody] LoginRequest request)
         {
-            var response = await _solicitorAuthService.SolicitorLogin(request);
+            var response = await _solicitorAuthService.UserLogin(request);
             return HandleResponse(response);
         }
 
-
-        [HttpPost("CSO/login")]
+        [HttpPost("User/request-unlock-code")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<ObjectResponse<StaffLoginResponse>>> CSOLogin([FromBody] LoginRequest request)
+        public async Task<ActionResult<StatusResponse>> RequestUnlockCode([FromBody] RequestUnlockCodeRequest request)
         {
-            var response = await _userAuthService.FCMBLoginAsync(request, true);
+            var response = await _solicitorAuthService.RequestUnlockCode(request);
             return HandleResponse(response);
         }
 
-
-        [HttpPost("LegalPerfectionTeam/login")]
+        [HttpPost("User/UnlockAccount")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<ObjectResponse<StaffLoginResponse>>> LegalPerfectionTeamLogin([FromBody] LoginRequest request)
+        public async Task<ActionResult<StatusResponse>> UnlockAccount([FromBody] UnlockAccountRequest request)
         {
-            var response = await _userAuthService.FCMBLoginAsync(request);
+            var response = await _solicitorAuthService.UnlockCode(request);
+            return HandleResponse(response);
+        }
+
+        [HttpPost("Solicitor/VerifyTwoFactor")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<ObjectResponse<LoginResponse>>> VerifyTwoFactor([FromBody] TwoFactorVerificationRequest request)
+        {
+            var response = await _solicitorAuthService.Verify2fa(request);
+            return HandleResponse(response);
+        }
+
+        [HttpPost("Solicitor/ResetPassword")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<StatusResponse>> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            var response = await _solicitorAuthService.ResetPassword(request);
+            return HandleResponse(response);
+        }
+
+        [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.Admin))]
+        [HttpPost("Admin/OnboardNewUser")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<StatusResponse>> OnboardNewUser([FromBody] OnboardNewUserRequest request)
+        {
+            var response = await _solicitorAuthService.OnboardNewUser(request);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// This endpoint onboards a solicitor with a default password, based on the details in the payload
+        /// </summary>
+        /// <remarks>
+        /// The solicitor receives an email to complete the onboarding process and to change their default password
+        /// </remarks>
+        /// <param name="request"></param>
+        /// <returns></returns>
+       // [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
+        [HttpPost("LegalSearchTeam/OnboardSolicitor")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<SolicitorOnboardResponse>>> OnboardSolicitor([FromBody] SolicitorOnboardRequest request)
+        {
+            var response = await _solicitorAuthService.OnboardSolicitorAsync(request);
             return HandleResponse(response);
         }
     }

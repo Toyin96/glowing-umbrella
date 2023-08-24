@@ -11,8 +11,7 @@ namespace LegalSearch.Application.Interfaces.Auth
         Task<bool> AssignRoleAsync(Domain.Entities.User.User user, string roleName);
         Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims);
         Task<Domain.Entities.User.User> GetUserByEmailAsync(string email);
-        Task<ClaimsIdentity> GetClaimsIdentityForSolicitor(Domain.Entities.User.User user);
+        Task<ClaimsIdentity> GetClaimsIdentityForUser(Domain.Entities.User.User user);
         Task<IList<string>> GetRolesForUserAsync(Domain.Entities.User.User user);
-        Task<ObjectResponse<StaffLoginResponse>> FCMBLoginAsync(LoginRequest model, bool isCso = false);
     }
 }
