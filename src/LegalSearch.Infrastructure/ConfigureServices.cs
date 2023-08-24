@@ -2,9 +2,11 @@
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
 using LegalSearch.Infrastructure.Persistence;
+using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System.Reflection;
 
 namespace LegalSearch.Infrastructure
@@ -42,18 +44,27 @@ namespace LegalSearch.Infrastructure
                 // x.User./
                 x.User.RequireUniqueEmail = true;
 
-                // Password settings.
+                // NewPassword settings.
                 x.Password.RequiredLength = 8;
 
                 // Lockout settings.
                 x.Lockout.MaxFailedAccessAttempts = 3;
                 x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                x.Lockout.AllowedForNewUsers = true;
+
+                // Enable Two-Factor Authentication
+                x.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
+                x.Tokens.ChangePhoneNumberTokenProvider = TokenOptions.DefaultPhoneProvider;
+                x.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+                x.Tokens.PasswordResetTokenProvider = "NumericTokenProvider"; // Set the name of your NumericTokenProvider
             }
 
             services.AddIdentity<User, Role>(SetupIdentityOptions)
                     .AddEntityFrameworkStores<AppDbContext>()
                     .AddRoleManager<RoleManager<Role>>()
-                    .AddSignInManager<SignInManager<User>>();
+                    .AddSignInManager<SignInManager<User>>()
+                    .AddDefaultTokenProviders()
+                    .AddTokenProvider<NumericTokenProvider<User>>("NumericTokenProvider"); // default token provider for 2fa
         }
 
         private static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)

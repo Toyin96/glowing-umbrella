@@ -2,15 +2,17 @@
 using HangfireBasicAuthenticationFilter;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
-using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
@@ -53,7 +55,7 @@ namespace LegalSearch.Api
             services.ConfigureDatabase(configuration);
 
             //configure hangfire
-            services.ConfigureHangFire();
+            services.ConfigureHangFire(configuration);
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
@@ -75,6 +77,8 @@ namespace LegalSearch.Api
             app.UseRouting();
 
             app.UseHttpsRedirection();
+
+            UpdateDatabase(app, configuration); // ensure migration upon startup
 
             app.UseGlobalExceptionHandler();
 
@@ -136,13 +140,13 @@ namespace LegalSearch.Api
             });
         }
 
-        private static void ConfigureHangFire(this IServiceCollection services)
+        private static void ConfigureHangFire(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHangfire(config =>
             {
                 config.UseSimpleAssemblyNameTypeSerializer();
                 config.UseRecommendedSerializerSettings();
-                config.UseSqlServerStorage(AppConstants.DbConnectionString + ";TrustServerCertificate=True");
+                config.UseSqlServerStorage(configuration.GetConnectionString("legal_search_db"));
             });
 
             services.AddHangfireServer();
@@ -207,6 +211,73 @@ namespace LegalSearch.Api
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 c.IncludeXmlComments(xmlPath);
+            });
+        }
+
+        private static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
+        {
+            using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
+                var userManager = serviceScope.ServiceProvider.GetService<UserManager<User>>();
+                var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<Role>>();
+
+                context!.Database.Migrate(); // apply migration on startup
+                context.Database.EnsureCreated();
+
+                // seed default admin
+                SeedAdmin(configuration, userManager!, roleManager!).Wait();
+            }
+        }
+
+        /// <summary>
+        /// This method seeds a default admin into the application db if not exists
+        /// </summary>
+        /// <param name="configuration"></param>
+        /// <param name="userManager"></param>
+        /// <param name="roleManager"></param>
+        /// <returns></returns>
+        public static async Task SeedAdmin(IConfiguration configuration, UserManager<User> userManager, RoleManager<Role> roleManager)
+        {
+            // seed all roles in application on startup
+            foreach (RoleType roleType in Enum.GetValues(typeof(RoleType)))
+            {
+                var roleName = roleType.ToString();
+
+                if (!await roleManager.RoleExistsAsync(roleName))
+                {
+                    await roleManager.CreateAsync(new Role { Name = roleName });
+                }
+            }
+
+
+            if (!await roleManager.RoleExistsAsync(RoleType.Admin.ToString()))
+            {
+                await roleManager.CreateAsync(new Role { Name = nameof(RoleType.Admin) });
+            }
+
+            var adminUser = await userManager.FindByNameAsync(configuration["AdminSettings:Email"]);
+            if (adminUser == null)
+            {
+                adminUser = new User { FirstName = configuration["AdminSettings:FirstName"], UserName = configuration["AdminSettings:Email"], Email = configuration["AdminSettings:Email"] };
+                await userManager.CreateAsync(adminUser, configuration["AdminSettings:Password"]);
+            }
+
+            if (!await userManager.IsInRoleAsync(adminUser, nameof(RoleType.Admin)))
+            {
+                await userManager.AddToRoleAsync(adminUser, nameof(RoleType.Admin));
+            }
+        }
+
+        public static void RegisterHttpRequiredServices(this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            services.AddHttpClient("notificationClient", client =>
+            {
+                client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("client_id", configuration["FCMBServiceAppConfig:ClientId"]);
+                client.DefaultRequestHeaders.Add("Content-Type", "multipart/form-data");
             });
         }
     }

@@ -47,7 +47,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> AcceptRequest([FromBody] Application.Models.Requests.Solicitor.AcceptRequest request)
+        public async Task<ActionResult<StatusResponse>> AcceptRequest([FromBody] AcceptRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
             request.SolicitorId = Guid.Parse(userId!);
@@ -67,7 +67,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> RejectRequest([FromBody] Application.Models.Requests.Solicitor.RejectRequest request)
+        public async Task<ActionResult<StatusResponse>> RejectRequest([FromBody] RejectRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
             request.SolicitorId = Guid.Parse(userId);
@@ -87,7 +87,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> RequestAdditionalInformation([FromForm] Application.Models.Requests.Solicitor.ReturnRequest request)
+        public async Task<ActionResult<StatusResponse>> RequestAdditionalInformation([FromForm] ReturnRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
             var response = await _legalSearchRequestService.PushBackLegalSearchRequestForMoreInfo(request, Guid.Parse(userId!));
@@ -106,7 +106,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> SubmitRequestReport([FromForm] Application.Models.Requests.Solicitor.SubmitLegalSearchReport request)
+        public async Task<ActionResult<StatusResponse>> SubmitRequestReport([FromForm] SubmitLegalSearchReport request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _legalSearchRequestService.SubmitRequestReport(request, Guid.Parse(userId));

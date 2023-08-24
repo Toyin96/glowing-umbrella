@@ -2,9 +2,10 @@
 {
     public enum RoleType
     {
-        None,
         Solicitor,
         Cso,
-        LegalPerfectionTeam
+        LegalPerfectionTeam,
+        Admin,
+        ITSupport
     }
 }
