@@ -46,6 +46,17 @@ namespace LegalSearch.Api
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
 
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder
+                        .AllowAnyOrigin()
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+            });
+
             services.AddHttpClient<IFCMBService, FCMBService>();
             services.AddOptions<FCMBServiceAppConfig>().BindConfiguration(nameof(FCMBServiceAppConfig)).ValidateDataAnnotations();
 
@@ -77,6 +88,8 @@ namespace LegalSearch.Api
             app.UseRouting();
 
             app.UseHttpsRedirection();
+
+            app.UseCors();
 
             UpdateDatabase(app, configuration); // ensure migration upon startup
 
