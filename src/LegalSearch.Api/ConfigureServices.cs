@@ -263,6 +263,8 @@ namespace LegalSearch.Api
                 await userManager.CreateAsync(adminUser, configuration["AdminSettings:Password"]);
             }
 
+            var test = configuration["AdminSettings:Password"];
+
             if (!await userManager.IsInRoleAsync(adminUser, nameof(RoleType.Admin)))
             {
                 await userManager.AddToRoleAsync(adminUser, nameof(RoleType.Admin));
