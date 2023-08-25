@@ -199,7 +199,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 await _userManager.SetAuthenticationTokenAsync(newSolicitor, "NumericTokenProvider", "ResetToken", resetToken);
 
                 // TODO: Send the password reset token to the user's email
-                string emailBody = EmailTemplates.GetEmailTemplateForNewlyOnboardedUser();
+                string emailBody = EmailTemplates.GetEmailTemplateForNewlyOnboardedSolicitor();
 
                 List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
                 {

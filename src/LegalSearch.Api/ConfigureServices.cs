@@ -43,6 +43,7 @@ namespace LegalSearch.Api
             services.AddHttpContextAccessor();
             services.AddHttpClient();
             services.AddSignalR(); // added signalR capability
+            services.RegisterHttpRequiredServices(configuration);
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
 
@@ -287,10 +288,9 @@ namespace LegalSearch.Api
         {
             services.AddHttpClient("notificationClient", client =>
             {
-                client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
+                //client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("client_id", configuration["FCMBServiceAppConfig:ClientId"]);
-                client.DefaultRequestHeaders.Add("Content-Type", "multipart/form-data");
             });
         }
     }
