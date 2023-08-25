@@ -19,6 +19,7 @@ using LegalSearch.Domain.Enums.User;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
@@ -370,6 +371,9 @@ namespace LegalSearch.Infrastructure.Services.User
             // check if user require 2fa
             var roles = await _userManager.GetRolesAsync(user);
 
+            if (roles.First() == RoleType.Solicitor.ToString() && user.OnboardingStatus == OnboardingStatusType.Initial)
+                return new ObjectResponse<LoginResponse>("Please reset your password before using the application.", ResponseCodes.ServiceError);
+
             if (roles.First() == RoleType.Solicitor.ToString())
             {
                 // Generate and save the 2FA token
@@ -633,6 +637,10 @@ namespace LegalSearch.Infrastructure.Services.User
 
             // Reset the password
             var resetPasswordResult = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+
+            // update user's onboarding status
+            user.OnboardingStatus = OnboardingStatusType.Completed; //solicitor has successfully completed the onboarding process
+            await _userManager.UpdateAsync(user);
 
             if (!resetPasswordResult.Succeeded)
                 return new StatusResponse("Password reset failed.", ResponseCodes.ServiceError);
