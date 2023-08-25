@@ -25,12 +25,30 @@ namespace LegalSearch.Infrastructure.Services.Notification
         {
             var client = _httpClientFactory.CreateClient("notificationClient");
 
-            using var response = await client.PostAsync("/Mail/SendMail",
-                new StringContent(JsonSerializer.Serialize(sendEmailRequest), Encoding.UTF8));
+            var requestContent = new MultipartFormDataContent();
+            requestContent.Add(new StringContent(sendEmailRequest.From), "From");
+            requestContent.Add(new StringContent(sendEmailRequest.To), "To");
+            requestContent.Add(new StringContent(sendEmailRequest.Subject), "Subject");
+            requestContent.Add(new StringContent(sendEmailRequest.Body), "Body");
+
+            if (sendEmailRequest.Bcc != null)
+            {
+                sendEmailRequest.Bcc.ForEach(x => requestContent.Add(new StringContent(x), "Bcc"));
+            }
+            if (sendEmailRequest.Cc != null)
+            {
+                sendEmailRequest.Cc.ForEach(x => requestContent.Add(new StringContent(x), "Cc"));
+            }
+
+            using var response = await client.PostAsync("https://emailnotificationmcsvc.fcmb-azr-msase.p.azurewebsites.net/fcmb/api/Mail/SendMail",
+                requestContent);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
 
             if (response.IsSuccessStatusCode)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
+                //var responseContent = await response.Content.ReadAsStringAsync();
 
                 _logger.LogInformation($"Response from calling send email endpoint::::{responseContent}");
 

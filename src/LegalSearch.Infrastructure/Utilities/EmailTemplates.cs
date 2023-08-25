@@ -6,9 +6,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Welcome to LegalSearch</title>
-            </head>
             <body>
               <h1>Welcome to LegalSearch</h1>
               <p>Hello {{Username}},</p>
@@ -26,9 +23,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Welcome to LegalSearch</title>
-            </head>
             <body>
               <h1>Welcome to LegalSearch</h1>
               <p>Hello {{Username}},</p>
@@ -46,9 +40,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Complete Your Login with 2FA</title>
-            </head>
             <body>
               <h1>Complete Your Login with 2FA</h1>
               <p>Hello {{Username}},</p>
@@ -66,9 +57,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Unlock Your Account</title>
-            </head>
             <body>
               <h1>Unlock Your Account</h1>
               <p>Hi {{Username}},</p>
@@ -86,9 +74,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Unlock Your Account</title>
-            </head>
             <body>
               <h1>Unlock Your Account</h1>
               <p>Hi {{Username}},</p>
@@ -106,9 +91,6 @@
         {
             var text = @"
             <html>
-            <head>
-              <title>Change Your Password</title>
-            </head>
             <body>
               <h1>Change Your Password</h1>
               <p>Hi {{Username}},</p>
