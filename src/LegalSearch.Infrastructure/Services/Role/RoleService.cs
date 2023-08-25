@@ -5,6 +5,7 @@ using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,11 +17,14 @@ namespace LegalSearch.Infrastructure.Services.Roles
     {
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<RoleService> _logger;
+        private readonly AppDbContext _appDbContext;
 
-        public RoleService(RoleManager<Role> roleManager, ILogger<RoleService> logger)
+        public RoleService(RoleManager<Role> roleManager, 
+            ILogger<RoleService> logger, AppDbContext appDbContext)
         {
             _roleManager = roleManager;
             _logger = logger;
+            _appDbContext = appDbContext;
         }
         public async Task<ObjectResponse<RoleResponse>> CreateRoleAsync(RoleRequest roleRequest)
         {
@@ -71,6 +75,27 @@ namespace LegalSearch.Infrastructure.Services.Roles
             };
         }
 
+        public async Task<ObjectResponse<RoleResponse>> GetRoleByIdAsync(Guid Id)
+        {
+            var role = await _appDbContext.Roles.FindAsync(Id);
+
+            if (role is null)
+            {
+                _logger.LogInformation("Role with Id {Id} not found", Id);
+
+                return new ObjectResponse<RoleResponse>("Role Not Found", ResponseCodes.DataNotFound);
+            }
+
+            return new ObjectResponse<RoleResponse>("Successfully Retrieved Role")
+            {
+                Data = new RoleResponse
+                {
+                    Permissions = role.Permissions.Select(p => p.Permission).ToList(), // Extract the permissions from RolePermission entities
+                    RoleId = role.Id,
+                    RoleName = role.Name!
+                }
+            };
+        }
 
         public async Task<ObjectResponse<RoleResponse>> GetRoleByNameAsync(string roleName)
         {

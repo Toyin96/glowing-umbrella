@@ -10,6 +10,7 @@ namespace LegalSearch.Application.Interfaces.Auth
     {
         Task<ObjectResponse<SolicitorOnboardResponse>> OnboardSolicitorAsync(SolicitorOnboardRequest request);
         Task<ObjectResponse<LoginResponse>> UserLogin(LoginRequest request);
+        Task<ObjectResponse<ReIssueTokenResponse>> ReIssueToken(string userId);
         Task<StatusResponse> RequestUnlockCode(RequestUnlockCodeRequest request);
         Task<StatusResponse> UnlockCode(UnlockAccountRequest request);
         Task<ObjectResponse<LoginResponse>> Verify2fa(TwoFactorVerificationRequest request);

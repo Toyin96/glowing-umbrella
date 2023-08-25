@@ -1,12 +1,13 @@
-﻿using Azure.Core;
-using Fcmb.Shared.Auth.Models.Requests;
+﻿using Fcmb.Shared.Auth.Models.Requests;
 using Fcmb.Shared.Auth.Models.Responses;
 using Fcmb.Shared.Models.Responses;
 using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Location;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Requests.Notification;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.Role;
@@ -18,7 +19,6 @@ using LegalSearch.Domain.Enums.User;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
@@ -33,12 +33,15 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly ILogger<GeneralAuthService> _logger;
         private readonly IBranchRetrieveService _branchRetrieveService;
         private readonly SignInManager<Domain.Entities.User.User> _signInManager;
+        private readonly IRoleService _roleService;
+        private readonly IEmailService _emailService;
 
         public GeneralAuthService(UserManager<Domain.Entities.User.User> userManager,
             RoleManager<Role> roleManager, IJwtTokenService jwtTokenHelper,
             IStateRetrieveService stateRetrieveService, IAuthService authService,
             ILogger<GeneralAuthService> logger, IBranchRetrieveService branchRetrieveService,
-            SignInManager<Domain.Entities.User.User> signInManager)
+            SignInManager<Domain.Entities.User.User> signInManager,
+            IRoleService roleService, IEmailService emailService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -48,6 +51,8 @@ namespace LegalSearch.Infrastructure.Services.User
             _logger = logger;
             _branchRetrieveService = branchRetrieveService;
             _signInManager = signInManager;
+            _roleService = roleService;
+            _emailService = emailService;
         }
         public async Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims)
         {
@@ -88,7 +93,7 @@ namespace LegalSearch.Infrastructure.Services.User
             user.PhoneNumber = adLoginResponse.MobileNo;
             user.OnboardingStatus = OnboardingStatusType.Completed;
             user.LastLogin = TimeUtils.GetCurrentLocalTime();
-            
+
             return user;
         }
 
@@ -132,7 +137,7 @@ namespace LegalSearch.Infrastructure.Services.User
         {
             return await _userManager.GetRolesAsync(user);
         }
-        
+
         public async Task<Domain.Entities.User.User?> GetUserByEmailAsync(string email)
         {
             return await _userManager.FindByEmailAsync(email);
@@ -176,14 +181,14 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (result.Succeeded)
             {
-                // Onboarding succeeded, now assign the role to the solicitor
+                // Onboarding succeeded, now assign the roles to the solicitor
                 var roleName = RoleType.Solicitor.ToString();
                 var role = await _roleManager.FindByNameAsync(roleName);
 
                 if (role == null)
                     return new ObjectResponse<SolicitorOnboardResponse>("Solicitor onboarding failed; role must be added first", ResponseCodes.ServiceError);
 
-                // Assign the role to the solicitor
+                // Assign the roles to the solicitor
                 await _userManager.AddToRoleAsync(newSolicitor, roleName);
 
                 // Enable 2FA for the solicitor
@@ -194,17 +199,25 @@ namespace LegalSearch.Infrastructure.Services.User
                 await _userManager.SetAuthenticationTokenAsync(newSolicitor, "NumericTokenProvider", "ResetToken", resetToken);
 
                 // TODO: Send the password reset token to the user's email
-                // Construct the confirmation link using the token
-                //var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = newSolicitor.Id, token = emailConfirmationToken }, Request.Scheme);
+                string emailBody = EmailTemplates.GetEmailTemplateForNewlyOnboardedUser();
 
-                //// Send the email with the confirmation link
-                //var emailBody = $"Click the link to confirm your email: {confirmationLink}";
-                //await _emailService.SendEmailAsync(newSolicitor.Email, "Confirm Your Email", emailBody);
+                List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("{{Username}}", newSolicitor.FirstName),
+                    new KeyValuePair<string, string>("{{email}}", newSolicitor.Email!),
+                    new KeyValuePair<string, string>("{{role}}", role.Name!),
+                    new KeyValuePair<string, string>("{{password}}", defaultPassword)
+                };
+
+                emailBody = await emailBody.UpdatePlaceHolders(keys);
+                string title = "Welcome to LegalSearch";
+
+                await SendEmail(newSolicitor, emailBody, title);
 
                 // update last login
                 await UpdateUserLastLoginTime(newSolicitor);
 
-                // Onboarding and role assignment succeeded
+                // Onboarding and roles assignment succeeded
                 return new ObjectResponse<SolicitorOnboardResponse>("Solicitor onboarding and role assignment succeeded", ResponseCodes.Success)
                 {
                     Data = new SolicitorOnboardResponse
@@ -232,7 +245,7 @@ namespace LegalSearch.Infrastructure.Services.User
             if (user == null)
                 return new ObjectResponse<LoginResponse>("The email is invalid, please try again!", ResponseCodes.InvalidCredentials);
 
-            // determine role so as to know login route
+            // determine roles so as to know login route
             var role = await _userManager.GetRolesAsync(user);
 
             return role.First() switch
@@ -304,7 +317,7 @@ namespace LegalSearch.Infrastructure.Services.User
             return new ObjectResponse<LoginResponse>("Staff login failed", result.Code);
         }
 
-        private LoginResponse GenerateLoginResponseForStaff(Domain.Entities.User.User user, 
+        private LoginResponse GenerateLoginResponseForStaff(Domain.Entities.User.User user,
             string staffJwtToken, string role, string branch)
         {
             return new LoginResponse
@@ -330,6 +343,19 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 // User is currently locked out
                 // You can also check user.LockoutEnd for the date when the lockout will be lifted.
+
+                string emailBody = EmailTemplates.GetEmailTemplateForUnlockingAccountAwareness();
+
+                List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("{{Username}}", user.FirstName),
+                };
+
+                emailBody = await emailBody.UpdatePlaceHolders(keys);
+                string title = "Unlock Your Account";
+
+                await SendEmail(user, emailBody, title);
+
                 return new ObjectResponse<LoginResponse>("User Is Locked Out For Multiple Wrong Password Attempts", ResponseCodes.LockedOutUser);
             }
 
@@ -342,9 +368,9 @@ namespace LegalSearch.Infrastructure.Services.User
             }
 
             // check if user require 2fa
-            var role = await _userManager.GetRolesAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
 
-            if (role.First() == RoleType.Solicitor.ToString())
+            if (roles.First() == RoleType.Solicitor.ToString())
             {
                 // Generate and save the 2FA token
                 var tokenProvider = TokenOptions.DefaultPhoneProvider; // You can use the appropriate token provider
@@ -352,6 +378,18 @@ namespace LegalSearch.Infrastructure.Services.User
                 await _userManager.SetAuthenticationTokenAsync(user, tokenProvider, "2fa", twoFactorToken);
 
                 //TODO: send 2fa token to user's email
+                string emailBody = EmailTemplates.GetEmailTemplateForAuthenticating2FaCode();
+
+                List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("{{Username}}", user.FirstName),
+                    new KeyValuePair<string, string>("{{token}}", twoFactorToken)
+                };
+
+                emailBody = await emailBody.UpdatePlaceHolders(keys);
+                string title = "Complete Your Login with 2FA";
+
+                await SendEmail(user, emailBody, title);
 
                 // Login successful but requires 2fa
                 return new ObjectResponse<LoginResponse>("Enter the code sent to your email to complete the login process", ResponseCodes.Success)
@@ -371,16 +409,36 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful
             return new ObjectResponse<LoginResponse>("Successfully authenticated user", ResponseCodes.Success)
             {
-                Data = new LoginResponse { Token = token }
+                Data = new LoginResponse { Token = token, Role = roles.First() }
             };
+        }
+
+        private async Task SendEmail(Domain.Entities.User.User user, string emailBody, string title)
+        {
+            var emailPayload = new SendEmailRequest
+            {
+                From = "ebusiness@fcmb.com",
+                To = user.Email!,
+                Subject = title,
+                Body = emailBody
+            };
+
+            await _emailService.SendEmail(emailPayload);
         }
 
         public async Task<StatusResponse> OnboardNewUser(OnboardNewUserRequest request)
         {
             Domain.Entities.User.User user = CreateNewUserObject(request);
 
+            // get roles
+            var role = await _roleService.GetRoleByIdAsync(request.RoleId);
+
+            // check if roles is null
+            if (role == null)
+                return new StatusResponse("You did not provide a valid role Id", ResponseCodes.ServiceError);
+
             // block out attempts to onboard solicitors via this route
-            if (request.UserRole == RoleType.Solicitor)
+            if (role.Data.RoleName == RoleType.Solicitor.ToString())
                 return new StatusResponse("Sorry, you cannot onboard a solicitor via this route", ResponseCodes.ServiceError);
 
             // generate default password
@@ -395,14 +453,25 @@ namespace LegalSearch.Infrastructure.Services.User
                 return new StatusResponse(errMessage, ResponseCodes.ServiceError);
             }
 
-            // assign role to user
-            IdentityResult result = await _userManager.AddToRoleAsync(user, request.UserRole.ToString());
+            // assign roles to user
+            IdentityResult result = await _userManager.AddToRoleAsync(user, request.RoleId.ToString());
 
             if (!result.Succeeded)
                 return new StatusResponse($"Error creating user with email: {request.Email}", ResponseCodes.ServiceError);
 
-            // push to notification queue to notify user to sign in and/or change password if role is solicitor and also 2fa token & code
-            //BackgroundJob.Enqueue<IBackgroundService>(x => x.n);
+            // push to notification queue to notify user to sign in and/or change password
+            string emailBody = EmailTemplates.GetEmailTemplateForNewlyOnboardedUser();
+
+            List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
+                {
+                    new KeyValuePair<string, string>("{{Username}}", user.FirstName),
+                    new KeyValuePair<string, string>("{{role}}", role.Data.RoleName!),
+                };
+
+            emailBody = await emailBody.UpdatePlaceHolders(keys);
+            string title = "Welcome to LegalSearch";
+
+            await SendEmail(user, emailBody, title);
 
             return new StatusResponse("User onboarded successfully.", ResponseCodes.Success);
         }
@@ -428,7 +497,7 @@ namespace LegalSearch.Infrastructure.Services.User
             if (user == null)
                 return new ObjectResponse<LoginResponse>("The email provided is not valid", ResponseCodes.InvalidCredentials);
 
-            // get user role
+            // get user roles
             var roles = await _userManager.GetRolesAsync(user);
 
             if (roles == null)
@@ -472,7 +541,18 @@ namespace LegalSearch.Infrastructure.Services.User
             await SaveUnlockCodeInDatabase(user, unlockCode);
 
             // TODO: Send an email to the user with the unlock code
-           // await SendUnlockCodeEmail(user.Email, unlockCode);
+            string emailBody = EmailTemplates.GetEmailTemplateForUnlockingAccount();
+
+            List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("{{Username}}", user.FirstName),
+                new KeyValuePair<string, string>("{{token}}", unlockCode)
+            };
+
+            emailBody = await emailBody.UpdatePlaceHolders(keys);
+            string title = "Unlock Your Account";
+
+            await SendEmail(user, emailBody, title);
 
             return new StatusResponse("Unlock code sent to your email.", ResponseCodes.Success);
         }
@@ -558,6 +638,41 @@ namespace LegalSearch.Infrastructure.Services.User
                 return new StatusResponse("Password reset failed.", ResponseCodes.ServiceError);
 
             return new StatusResponse("Password reset successful.", ResponseCodes.Success);
+        }
+
+        public async Task<ObjectResponse<ReIssueTokenResponse>> ReIssueToken(string userId)
+        {
+            // get logged-in user
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return new ObjectResponse<ReIssueTokenResponse>("User not found, please try again.", ResponseCodes.InactiveUser);
+
+            // get user roles
+            var roles = await _userManager.GetRolesAsync(user);
+
+            if (roles == null)
+                return new ObjectResponse<ReIssueTokenResponse>("User not authenticated", ResponseCodes.ServiceError);
+
+            var role = roles.First();
+            ClaimsIdentity claims;
+            if (role == nameof(RoleType.Admin) || role == nameof(RoleType.Solicitor))
+            {
+                claims = await GetClaimsIdentityForUser(user);
+            }
+            else if (role == nameof(RoleType.Cso) || role == nameof(RoleType.LegalPerfectionTeam) || role == nameof(RoleType.ITSupport))
+            {
+                claims = await GetClaimsIdentityForStaff(user);
+            }
+            else
+            {
+                return new ObjectResponse<ReIssueTokenResponse>("Something went wrong, please try again.", ResponseCodes.ServiceError);
+            }
+
+            // Generate token
+            var token = _jwtTokenHelper.GenerateJwtToken(claims);
+
+            return new ObjectResponse<ReIssueTokenResponse>("Token generated successfully", ResponseCodes.Success) { Data = new ReIssueTokenResponse { Token = token } };
         }
     }
 }
