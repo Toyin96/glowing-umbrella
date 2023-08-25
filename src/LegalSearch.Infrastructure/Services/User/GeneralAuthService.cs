@@ -432,6 +432,14 @@ namespace LegalSearch.Infrastructure.Services.User
 
         public async Task<StatusResponse> OnboardNewUser(OnboardNewUserRequest request)
         {
+            var existingUser = await _userManager.FindByEmailAsync(request.Email);
+
+            if (existingUser != null)
+            {
+                // the given email already exists
+                return new ObjectResponse<SolicitorOnboardResponse>("Email already registered.", ResponseCodes.ServiceError);
+            }
+
             Domain.Entities.User.User user = CreateNewUserObject(request);
 
             // get roles
