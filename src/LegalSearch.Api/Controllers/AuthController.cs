@@ -5,6 +5,7 @@ using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,17 @@ namespace LegalSearch.Api.Controllers
         public async Task<ActionResult<ObjectResponse<LoginResponse>>> UserLogin([FromBody] LoginRequest request)
         {
             var response = await _solicitorAuthService.UserLogin(request);
+            return HandleResponse(response);
+        }
+
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        [HttpGet("User/ReIssueToken")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<ObjectResponse<ReIssueTokenResponse>>> ReIssueToken()
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+            var response = await _solicitorAuthService.ReIssueToken(userId);
             return HandleResponse(response);
         }
 

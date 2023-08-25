@@ -4,6 +4,6 @@ namespace LegalSearch.Application.Models.Requests.User
 {
     public record OnboardNewUserRequest : BaseUserRequest
     {
-        public RoleType UserRole { get; set; }
+        public Guid RoleId { get; set; }
     }
 }
