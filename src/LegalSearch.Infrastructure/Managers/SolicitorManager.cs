@@ -4,6 +4,7 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
+using LegalSearch.Domain.Enums.User;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +57,8 @@ namespace LegalSearch.Infrastructure.Managers
 
             // get solicitors
             List<SolicitorRetrievalResponse> solicitorIds = await _appDbContext.Users.Include(x => x.Firm)
-                                                                     .Where(x => firms.Contains(x.Firm.Id))
+                                                                     .Where(x => firms.Contains(x.Firm.Id) 
+                                                                     && x.ProfileStatus == ProfileStatusType.Active.ToString())
                                                                      .Select(x => new SolicitorRetrievalResponse
                                                                      {
                                                                          SolicitorId = x.Id,
@@ -68,7 +70,7 @@ namespace LegalSearch.Infrastructure.Managers
             return solicitorIds;
         }
 
-        public async Task<bool> EditSolicitorProfile(EditSolicitoProfileRequest editSolicitoProfileRequest, Guid userId)
+        public async Task<bool> EditSolicitorProfile(EditSolicitorProfileRequest request, Guid userId)
         {
             // get solicitor profile
             var solicitor = await _appDbContext.Users
@@ -79,15 +81,15 @@ namespace LegalSearch.Infrastructure.Managers
 
             if (solicitor == null) return false;
 
-            solicitor.FirstName = editSolicitoProfileRequest.FirstName;
-            solicitor.LastName = editSolicitoProfileRequest.LastName;
-            solicitor.Firm!.Name = editSolicitoProfileRequest.FirmName;
-            solicitor.Email = editSolicitoProfileRequest.Email;
-            solicitor.PhoneNumber = editSolicitoProfileRequest.PhoneNumber; 
-            solicitor.StateId = editSolicitoProfileRequest.State;
-            solicitor.State!.RegionId = editSolicitoProfileRequest.Region;
-            solicitor.Firm.Address = editSolicitoProfileRequest.Address;
-            solicitor.BankAccount = editSolicitoProfileRequest.AccountNumber;
+            solicitor.FirstName = request.FirstName;
+            solicitor.LastName = request.LastName;
+            solicitor.Firm!.Name = request.FirmName;
+            solicitor.Email = request.Email;
+            solicitor.PhoneNumber = request.PhoneNumber; 
+            solicitor.StateId = request.State;
+            solicitor.State!.RegionId = request.Region;
+            solicitor.Firm.Address = request.Address;
+            solicitor.BankAccount = request.AccountNumber;
 
             // persist changes
             return await _appDbContext.SaveChangesAsync() > 0;
@@ -100,7 +102,8 @@ namespace LegalSearch.Infrastructure.Managers
                                         .Include(x => x.Firm)
                                         .Include(x => x.Firm.State)
                                             .ThenInclude(x => x.Region)
-                                        .Where(u => u.Firm.Id != default && u.Firm.StateId != null && u.Firm.State.RegionId == regionId)
+                                        .Where(u => u.Firm.Id != default && u.Firm.StateId != null 
+                                        && u.Firm.State.RegionId == regionId && u.ProfileStatus == ProfileStatusType.Active.ToString())
                                         .Select(u => new SolicitorRetrievalResponse
                                         {
                                             SolicitorId = u.Id,

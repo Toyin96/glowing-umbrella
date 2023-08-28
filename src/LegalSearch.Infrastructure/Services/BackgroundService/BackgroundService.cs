@@ -1,9 +1,12 @@
-﻿using LegalSearch.Application.Interfaces.BackgroundService;
+﻿using Azure.Core;
+using Fcmb.Shared.Models.Responses;
+using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.ApplicationMessages;
@@ -14,6 +17,8 @@ using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
+using MediatR;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -70,6 +75,11 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                 if (solicitorsList == null || solicitorsList?.Count == 0)
                 {
+                    // update legalSearch request here
+                    request.AssignedSolicitorId = default;
+                    request.Status = RequestStatusType.UnAssigned.ToString();
+                    await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
+
                     // Route to Legal Perfection Team
                     await NotifyLegalPerfectionTeam(request);
                     return;
@@ -101,7 +111,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 // Get the legalRequest entity and check its status
                 var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
 
-                if (legalSearchRequest.Status == RequestStatusType.UnAssigned.ToString())
+                if (legalSearchRequest!.Status == RequestStatusType.UnAssigned.ToString())
                 {
                     /*
                      This request has been routed to legalPerfection team either due to:
@@ -128,6 +138,11 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             if (nextSolicitor == null)
             {
+                //mark request as 'UnAssigned'
+                request.AssignedSolicitorId = default;
+                request.Status = RequestStatusType.UnAssigned.ToString();
+                await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
+
                 // Route to Legal Perfection Team
                 await NotifyLegalPerfectionTeam(request!);
                 return;
@@ -137,15 +152,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
 
             // Update the request status and assigned solicitor(s)
-            request!.Status = RequestStatusType.AssignedToLawyer.ToString();
-            request.DateAssignedToSolicitor = nextSolicitor.AssignedAt;
-            request.DateDue = TimeUtils.CalculateDateDueForRequest(); // 3 days from present time
-            request.AssignedSolicitorId = nextSolicitor.SolicitorId; // Assuming you have a property to track assigned solicitor
+            request = UpdateLegalSearchRecordAfterBeingAssignedToSolicitor(request, nextSolicitor);
 
             // Send notification to the solicitor
             var notification = new Domain.Entities.Notification.Notification
             {
-                Title = "New Request",
+                Title = ConstantTitle.NewRequestAssignmentTitle,
                 NotificationType = NotificationType.AssignedToSolicitor,
                 RecipientUserId = nextSolicitor.SolicitorId.ToString(),
                 Message = ConstantMessage.NewRequestAssignmentMessage,
@@ -156,6 +168,16 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             await _notificationService.SendNotificationToUser(nextSolicitor.SolicitorId, notification);
 
             await _appDbContext.SaveChangesAsync();
+        }
+
+        private static LegalRequest UpdateLegalSearchRecordAfterBeingAssignedToSolicitor(LegalRequest? request, SolicitorAssignment nextSolicitor)
+        {
+            request!.Status = RequestStatusType.AssignedToLawyer.ToString();
+            request.DateAssignedToSolicitor = nextSolicitor.AssignedAt;
+            request.DateDue = TimeUtils.CalculateDateDueForRequest(); // 3 days from present time
+            request.AssignedSolicitorId = nextSolicitor.SolicitorId; // Assuming you have a property to track assigned solicitor
+
+            return request;
         }
 
         private async Task AssignOrdersAsync(Guid requestId, List<SolicitorRetrievalResponse> solicitors, int batchSize = 100)
@@ -190,7 +212,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     {
                         SolicitorId = solicitorId,
                         RequestId = requestId,
-                        Order = batchIndex * batchSize + i + 1, // Start order from 1
+                        Order = (batchIndex * batchSize) + i + 1, // Start order from 1
                         AssignedAt = TimeUtils.GetCurrentLocalTime(),
                         IsAccepted = false
                     };
@@ -207,7 +229,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             // form notification request
             var notification = new Domain.Entities.Notification.Notification
             {
-                Title = "UnAssigned Request",
+                Title = ConstantTitle.UnAssignedRequestTitle,
                 IsBroadcast = true,
                 NotificationType = NotificationType.UnAssignedRequest,
                 Message = ConstantMessage.UnAssignedRequestMessage,
@@ -216,11 +238,6 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             // Notify LegalPerfectionTeam of new request was unassigned
             await _notificationService.SendNotificationToRole(nameof(RoleType.LegalPerfectionTeam), notification);
-
-            // update legalSearch request here
-            request.AssignedSolicitorId = default;
-            request.Status = RequestStatusType.UnAssigned.ToString();
-            await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
         }
 
         public async Task NotificationReminderForUnAttendedRequestsJob()
@@ -228,7 +245,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             #region Send a reminder notification after 24hours that a request has been assigned
 
             // resolves time to 24 hours ago
-            var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyHoursElapsedTime());
+            var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyFourHoursElapsedTime());
 
             if (requestsAcceptedTwentyFoursAgo != null && requestsAcceptedTwentyFoursAgo.Any())
             {
@@ -251,8 +268,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     // Send notification to the solicitor
                     var notification = new Domain.Entities.Notification.Notification
                     {
-                        Title = "Reminder Notification on Pending Request",
-                        NotificationType = NotificationType.AssignedToSolicitor,
+                        Title = ConstantTitle.PendingAssignedRequestTitle,
+                        NotificationType = NotificationType.OutstandingRequestAfter24Hours,
                         Message = ConstantMessage.RequestPendingWithSolicitorMessage,
                         MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value)
                     };
@@ -306,7 +323,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             var notification = new Domain.Entities.Notification.Notification
             {
-                Title = "Request Needs Additional Information",
+                Title = ConstantTitle.AdditionalInformationNeededOnAssignedRequestTitle,
                 NotificationType = NotificationType.RequestReturnedToCso,
                 Message = ConstantMessage.RequestRoutedBackToCSOMessage,
                 MetaData = JsonSerializer.Serialize(request)
@@ -435,6 +452,51 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 CurrencyCode = _options.CurrencyCode,
                 Rmks = _options.LegalSearchRemarks,
                 ReasonCode = _options.LegalSearchReasonCode,
+            };
+        }
+
+        public async Task ManuallyAssignRequestToSolicitorJob(Guid requestId, Guid solicitorId)
+        {
+            // get request
+            var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+
+            if (legalSearchRequest == null)
+                return;
+
+            // create solicitor assignment
+            SolicitorAssignment assignment = GenerateSolicitorAssignmentRecord(requestId, solicitorId);
+
+            _appDbContext.SolicitorAssignments.Add(assignment);
+
+            // Update the request status and assigned solicitor(s)
+            legalSearchRequest = UpdateLegalSearchRecordAfterBeingAssignedToSolicitor(legalSearchRequest, assignment);
+
+            legalSearchRequest.AssignedSolicitorId = solicitorId;
+
+            // persist changes
+            await _appDbContext.SaveChangesAsync();
+
+            // notify solicitor of new request assignment
+            var notification = new Domain.Entities.Notification.Notification
+            {
+                Title = ConstantTitle.NewRequestAssignmentTitle,
+                NotificationType = NotificationType.AssignedToSolicitor,
+                Message = ConstantMessage.NewRequestAssignmentMessage,
+                MetaData = JsonSerializer.Serialize(legalSearchRequest)
+            };
+
+            await _notificationService.SendNotificationToUser(solicitorId, notification);
+        }
+
+        private static SolicitorAssignment GenerateSolicitorAssignmentRecord(Guid requestId, Guid solicitorId)
+        {
+            return new SolicitorAssignment
+            {
+                SolicitorId = solicitorId,
+                RequestId = requestId,
+                Order = 1, // Start order from 1
+                AssignedAt = TimeUtils.GetCurrentLocalTime(),
+                IsAccepted = false
             };
         }
     }

@@ -1,6 +1,6 @@
 ﻿namespace LegalSearch.Application.Models.Requests.Solicitor
 {
-    public class EditSolicitoProfileRequest
+    public class EditSolicitorProfileRequest
     {
         public required string FirstName { get; set; }
         public required string LastName { get; set; }

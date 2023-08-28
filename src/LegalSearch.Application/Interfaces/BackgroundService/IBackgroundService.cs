@@ -3,6 +3,8 @@
     public interface IBackgroundService
     {
         Task AssignRequestToSolicitorsJob(Guid requestId);
+        Task ManuallyAssignRequestToSolicitorJob(Guid requestId, Guid solicitorId);
+
         Task PushBackRequestToCSOJob(Guid requestId);
         Task InitiatePaymentToSolicitorJob(Guid requestId);
         Task CheckAndRerouteRequestsJob();

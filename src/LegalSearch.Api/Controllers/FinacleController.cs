@@ -6,6 +6,7 @@ using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
+    [ValidateAntiForgeryToken]
     [ApiController]
     [Route("api/[controller]")]
     [Consumes("application/json")]

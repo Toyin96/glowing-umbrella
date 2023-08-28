@@ -49,7 +49,7 @@ namespace LegalSearch.Infrastructure
 
                 // Lockout settings.
                 x.Lockout.MaxFailedAccessAttempts = 3;
-                x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
                 x.Lockout.AllowedForNewUsers = true;
 
                 // Enable Two-Factor Authentication

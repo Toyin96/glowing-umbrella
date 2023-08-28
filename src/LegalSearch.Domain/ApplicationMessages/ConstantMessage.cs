@@ -8,4 +8,12 @@
         public const string RequestRoutedBackToCSOMessage = "The solicitor assigned to this request needs additional information. Please find attached the details of the request below and treat as urgent";
         public const string CompletedRequestMessage = "The solicitor assigned to this request has successfully completed the request. Please find attached the details of the request below";
     }
+
+    public static class ConstantTitle
+    {
+        public const string NewRequestAssignmentTitle = "New Request";
+        public const string UnAssignedRequestTitle = "UnAssigned Request";
+        public const string PendingAssignedRequestTitle = "Reminder Notification on Pending Request";
+        public const string AdditionalInformationNeededOnAssignedRequestTitle = "Request Needs Additional Information";
+    }
 }

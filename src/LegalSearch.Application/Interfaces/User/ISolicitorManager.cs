@@ -7,7 +7,7 @@ namespace LegalSearch.Application.Interfaces.User
 {
     public interface ISolicitorManager
     {
-        Task<bool> EditSolicitorProfile(EditSolicitoProfileRequest editSolicitoProfileRequest, Guid userId);
+        Task<bool> EditSolicitorProfile(EditSolicitorProfileRequest editSolicitoProfileRequest, Guid userId);
         Task<IEnumerable<SolicitorRetrievalResponse>> DetermineSolicitors(LegalRequest request);
         Task<SolicitorAssignment> GetNextSolicitorInLine(Guid requestId, int currentOrder = 0);
         Task<SolicitorAssignment> GetCurrentSolicitorMappedToRequest(Guid requestId, Guid solicitorId);
