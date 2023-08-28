@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace LegalSearch.Api.Controllers
 {
     [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
-    [ValidateAntiForgeryToken]
     [Consumes("application/json")]
     [Produces("application/json")]
     [Route("api/[controller]")]

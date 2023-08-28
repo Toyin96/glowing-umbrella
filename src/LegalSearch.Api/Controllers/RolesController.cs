@@ -11,7 +11,6 @@ namespace LegalSearch.Api.Controllers
     /// 
     /// </summary>
     [Route("api/[controller]")]
-    [ValidateAntiForgeryToken]
     [ApiController]
     public class RolesController : BaseController
     {

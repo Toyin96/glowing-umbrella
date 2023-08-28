@@ -11,6 +11,8 @@ namespace LegalSearch.Api.Controllers
             return result.Code switch
             {
                 ResponseCodes.Success => Ok(result),
+                ResponseCodes.NotFound => NotFound(result),
+                ResponseCodes.Forbidden => Unauthorized(result),
                 ResponseCodes.Unauthenticated => Unauthorized(result),
                 ResponseCodes.ServiceError => StatusCode(500, result),
                 ResponseCodes.DataNotFound => NotFound(result),

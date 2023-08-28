@@ -14,7 +14,6 @@ namespace LegalSearch.Api.Controllers
 {
     [ApiController]
     [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.Cso))]
-    [ValidateAntiForgeryToken]
     [Route("api/[controller]")]
     [Consumes("application/json")]
     [Produces("application/json")]
