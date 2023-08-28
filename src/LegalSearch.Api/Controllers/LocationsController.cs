@@ -11,6 +11,7 @@ namespace LegalSearch.Api.Controllers
     /// </summary>
     //[Authorize(AuthenticationSchemes = "Bearer")]
     [Route("api/[controller]")]
+    [ValidateAntiForgeryToken]
     //[Consumes("application/json")]
     //[Produces("application/json")]
     [ApiController]

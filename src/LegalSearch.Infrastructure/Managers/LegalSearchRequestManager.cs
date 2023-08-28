@@ -1,7 +1,5 @@
-﻿using Azure.Core;
-using Fcmb.Shared.Utilities;
+﻿using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
-using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
@@ -115,8 +113,8 @@ namespace LegalSearch.Infrastructure.Managers
             // Step 11: Map the response data to the response payload
             var mappedResponse = response.Select(x => new LegalSearchResponsePayload
             {
-                RequestInitiator = x.RequestInitiator,
-                RequestType = x.RequestType,
+                RequestInitiator = x.RequestInitiator!,
+                RequestType = x.RequestType!,
                 RegistrationDate = x.RegistrationDate,
                 RequestStatus = x.Status,
                 CustomerAccountName = x.CustomerAccountName,
@@ -280,7 +278,7 @@ namespace LegalSearch.Infrastructure.Managers
             var requestsWithLawyersFeedbackQuery = query.Where(x => x.InitiatorId == csoId && x.Status == RequestStatusType.BackToCso.ToString());
 
             // Step 8: Calculate the counts for the three categories
-            var summary = new CsoRootResponsePayload
+            return new CsoRootResponsePayload
             {
                 LegalSearchRequests = mappedResponse,
                 TotalRequests = mappedResponse.Count,
@@ -289,8 +287,6 @@ namespace LegalSearch.Infrastructure.Managers
                 Within3HoursToDueCount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue?.AddHours(-3) && currentTime <= x.DateDue),
                 RequestsWithLawyersFeedbackCount = await requestsWithLawyersFeedbackQuery.CountAsync()
             };
-
-            return summary;
         }
 
         public async Task<List<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId)

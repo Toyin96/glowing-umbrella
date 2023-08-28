@@ -4,10 +4,11 @@
     {
         NewRequest = 1,
         AssignedToSolicitor = 2,
-        RequestWithElapsedSLA = 3,
-        RequestReturnedToCso = 4,
-        ManualSolicitorAssignment = 5,
-        CompletedRequest = 6,
-        UnAssignedRequest = 7
+        OutstandingRequestAfter24Hours = 3,
+        RequestWithElapsedSLA = 4,
+        RequestReturnedToCso = 5,
+        ManualSolicitorAssignment = 6,
+        CompletedRequest = 7,
+        UnAssignedRequest = 8
     }
 }

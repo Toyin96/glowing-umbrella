@@ -37,7 +37,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             var principal = _jwtTokenService.ValidateJwtToken(jwtToken);
 
-            string id = principal.FindFirst(nameof(ClaimType.UserId))?.Value?.ToString();
+            string? id = principal.FindFirst(nameof(ClaimType.UserId))?.Value?.ToString();
 
             if (userId.ToString() != id)
             {

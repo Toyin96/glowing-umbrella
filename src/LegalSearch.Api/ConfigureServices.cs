@@ -1,5 +1,6 @@
 ﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
+using LegalSearch.Api.Filters;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Models.Requests;
@@ -32,7 +33,7 @@ namespace LegalSearch.Api
         {
             services.AddControllers(options =>
             {
-                // options.Filters.Add<RequestValidationFilter>();
+                options.Filters.Add<RequestValidationFilter>();
             }).AddJsonOptions(x =>
             {
                 x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -86,6 +87,8 @@ namespace LegalSearch.Api
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "LegalSearch.Api v1"));
             }
 
+            app.UseGlobalExceptionHandler();
+
             app.UseRouting();
 
             app.UseHttpsRedirection();
@@ -94,15 +97,11 @@ namespace LegalSearch.Api
 
             UpdateDatabase(app, configuration); // ensure migration upon startup
 
-            app.UseGlobalExceptionHandler();
-
             app.MapHub<NotificationHub>("/notificationHub"); // Map the NotificationHub
 
             app.UseAuthentication();
 
             app.UseAuthorization();
-
-            //app.UseMiddleware<RoleAuthorizationMiddleware>();
 
             app.MapControllers();
 

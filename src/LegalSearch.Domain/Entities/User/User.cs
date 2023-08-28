@@ -31,6 +31,7 @@ namespace LegalSearch.Domain.Entities.User
         public string FullName => $"{FirstName} {LastName}";
         public string? UnlockCode { get; set; }
         public DateTime? UnlockCodeExpiration { get; set; }
+        public string ProfileStatus { get; set; }
 
         // configuring relationships
         [ForeignKey("Firm")]

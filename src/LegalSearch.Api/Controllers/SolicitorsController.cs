@@ -16,6 +16,7 @@ namespace LegalSearch.Api.Controllers
     /// This is the solicitor controller that hoses all solicitor related actions.
     /// </summary>
     [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.Solicitor))]
+    [ValidateAntiForgeryToken]
     [Route("api/[controller]")]
     [ApiController]
     public class SolicitorsController : BaseController
@@ -144,7 +145,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> EditProfile([FromBody]EditSolicitoProfileRequest request)
+        public async Task<ActionResult<StatusResponse>> EditProfile([FromBody]EditSolicitorProfileRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _solicitorService.EditSolicitorProfile(request, Guid.Parse(userId));

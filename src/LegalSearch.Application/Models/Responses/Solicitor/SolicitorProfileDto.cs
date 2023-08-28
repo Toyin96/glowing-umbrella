@@ -4,10 +4,12 @@
     {
         public string SolicitorName { get; set; }
         public string Firm { get; set; }
+        public Guid FirmId { get; set; }
         public string SolicitorEmail { get; set; }
         public string SolicitorPhoneNumber { get; set; }
         public string SolicitorState { get; set; }
         public string SolicitorRegion { get; set; }
         public string SolicitorAddress { get; set; }
+        public string Status { get; set; }
     }
 }
