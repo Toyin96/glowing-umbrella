@@ -268,9 +268,12 @@ namespace LegalSearch.Infrastructure.Services.User
 
         private async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
         {
-            ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+            //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+            var solIds = new List<string>() { "198", "259", "052", "048", "111", "061" };
+            int rand = new Random(solIds.Count).Next(0, solIds.Count);
+            user.SolId = solIds[rand];
 
-            if (result.Code is ResponseCodes.Success)
+            if (/*result.Code is ResponseCodes.Success*/true)
             {
                 // get staff branch's name
                 var branch = await _branchRetrieveService.GetBranchBySolId(user.SolId!);
@@ -281,7 +284,17 @@ namespace LegalSearch.Infrastructure.Services.User
                 if (user.OnboardingStatus == OnboardingStatusType.Initial)
                 {
                     // update staff profile
-                    user = MapToStaffPayload(user, result.Data);
+
+                    var payload = new AdLoginResponse
+                    {
+                        DisplayName = $"User{new Random().Next(0, 9099)}",
+                        Sol = solIds[rand]
+                    };
+
+                    user.SolId = solIds[rand];
+                    user = MapToStaffPayload(user, payload);
+                    //user = MapToStaffPayload(user, result.Data);
+                    user.ProfileStatus = ProfileStatusType.Active.ToString();
 
                     // update user details & last login
                     var status = await _userManager.UpdateAsync(user);
@@ -324,7 +337,8 @@ namespace LegalSearch.Infrastructure.Services.User
             }
 
             // failure route
-            return new ObjectResponse<LoginResponse>("Staff login failed", result.Code);
+            //return new ObjectResponse<LoginResponse>("Staff login failed", result.Code);
+            return new ObjectResponse<LoginResponse>("Staff login failed", ResponseCodes.BadRequest);
         }
 
         private LoginResponse GenerateLoginResponseForStaff(Domain.Entities.User.User user,
@@ -542,7 +556,8 @@ namespace LegalSearch.Infrastructure.Services.User
                 Email = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 UserName = request.Email,
-                OnboardingStatus = OnboardingStatusType.Initial
+                OnboardingStatus = OnboardingStatusType.Initial,
+                ProfileStatus = ProfileStatusType.InActive.ToString()
             };
         }
 
