@@ -105,7 +105,7 @@ namespace LegalSearch.Api.Controllers
         /// </remarks>
         /// <param name="request"></param>
         /// <returns></returns>
-        //[Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
+        [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
         [HttpPost("LegalSearchTeam/OnboardSolicitor")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
