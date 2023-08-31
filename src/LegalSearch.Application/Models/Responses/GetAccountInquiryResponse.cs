@@ -44,5 +44,6 @@ namespace LegalSearch.Application.Models.Responses
         public string BrokerCode { get; set; }
         public object AccountShortName { get; set; }
         public object GlSubHeadCode { get; set; }
+        public decimal LegalSearchAmount { get; set; }
     }
 }
