@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LegalSearch.Api.Controllers
 {
-    //[Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
+    [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
     [Consumes("application/json")]
     [Produces("application/json")]
     [Route("api/[controller]")]

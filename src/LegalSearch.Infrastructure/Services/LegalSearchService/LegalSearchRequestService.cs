@@ -112,14 +112,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayload(legalSearchRequest);
 
                 // System attempts to place lien on customer's account
-                var addLienResponse = await _fCMBService.AddLien(lienRequest);
+                //var addLienResponse = await _fCMBService.AddLien(lienRequest);
 
                 // process name inquiry response to see if the account has enough balance for this action
-                (bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
+                //(bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
                 
                 // Detailed error response is being returned here if the validation checks were not met
-                if (!lienVerificationResponse.isSuccess)
-                    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
+                //if (!lienVerificationResponse.isSuccess)
+                //    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
 
                 // get the CSO account
                 var user = await _userManager.FindByIdAsync(userId);
@@ -128,7 +128,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
 
                 // assign lien ID to request
-                newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
+                //newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
 
                 //update request payload
                 newLegalSearchRequest.BranchId = user.SolId ?? user!.BranchId!;
