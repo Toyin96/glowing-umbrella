@@ -1,4 +1,5 @@
-﻿using Azure.Core;
+﻿using Azure;
+using Azure.Core;
 using Fcmb.Shared.Models.Responses;
 using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
@@ -8,7 +9,10 @@ using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests.LegalPerfectionTeam;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses.Solicitor;
+using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
+using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Domain.Enums.User;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -105,13 +109,24 @@ namespace LegalSearch.Infrastructure.Services.User
 
         public async Task<ObjectResponse<SolicitorProfileDto>?> ViewSolicitorProfile(Guid userId)
         {
-            var solicitor = await _appDbContext.Users.Include(x => x.Firm).ThenInclude(x => x!.State).FirstOrDefaultAsync(x => x.Id == userId);
+            var solicitor = await _appDbContext.Users
+                .Include(x => x.Firm)
+                .ThenInclude(x => x!.State)
+                .FirstOrDefaultAsync(x => x.Id == userId);
 
             if (solicitor == null)
                 return new ObjectResponse<SolicitorProfileDto>("Solicitor not found", ResponseCodes.DataNotFound);
 
+            // get role
+            var roles = await _userManager.GetRolesAsync(solicitor);
+
+            if (roles == null || roles?[0] != nameof(RoleType.Solicitor))
+                return new ObjectResponse<SolicitorProfileDto>("User role not found", ResponseCodes.DataNotFound);
+
+            var solicitorRegion = await _appDbContext.Regions.FindAsync(solicitor.State.RegionId);
+
             return new ObjectResponse<SolicitorProfileDto>("Operation was successful", ResponseCodes.Success)
-            {  
+            {
                 Data = new SolicitorProfileDto
                 {
                     SolicitorName = solicitor.FirstName,
@@ -122,14 +137,64 @@ namespace LegalSearch.Infrastructure.Services.User
                     SolicitorAddress = solicitor.Firm.Address,
                     SolicitorPhoneNumber = solicitor.PhoneNumber!,
                     SolicitorState = solicitor.State!.Name,
-                    SolicitorRegion = _appDbContext.Regions.FindAsync(solicitor.State.RegionId).Result?.Name
+                    SolicitorRegion = solicitorRegion?.Name
                 }
             };
         }
 
-        public Task<ListResponse<SolicitorProfileDto>> ViewSolicitors(ViewSolicitorsRequestFilter viewSolicitorsRequestFilter)
+
+        public async Task<ListResponse<SolicitorProfileDto>> ViewSolicitors(ViewSolicitorsRequestFilter viewSolicitorsRequestFilter)
         {
-            throw new NotImplementedException();
+            var solicitors = await SolicitorFilter(viewSolicitorsRequestFilter);
+
+            return new ListResponse<SolicitorProfileDto>("Operation was successful", ResponseCodes.Success)
+            {
+                Data = solicitors,
+                Total = solicitors.Count
+            };
+        }
+
+        private async Task<List<SolicitorProfileDto>> SolicitorFilter(ViewSolicitorsRequestFilter request)
+        {
+            var usersInRole = await _userManager.GetUsersInRoleAsync(nameof(RoleType.Solicitor));
+
+            var query = _appDbContext.Users
+                .Where(user => usersInRole.Contains(user)); // Filter users by role
+
+            if (request.RegionId != null)
+            {
+                query = query.Where(user => user.State != null && user.State.RegionId == request.RegionId);
+            }
+
+            if (request.FirmId != null)
+            {
+                query = query.Where(user => user.Firm != null && user.Firm.Id == request.FirmId);
+            }
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(user => user.ProfileStatus == request.Status.ToString());
+            }
+
+            var solicitors = await query
+                .Include(user => user.Firm)
+                .Include(user => user.State)
+                    .ThenInclude(state => state.Region)
+                .Select(x => new SolicitorProfileDto
+                {
+                    SolicitorName = x.FirstName,
+                    FirmId = x.Firm.Id,
+                    Firm = x.Firm.Name,
+                    SolicitorEmail = x.Email,
+                    SolicitorPhoneNumber = x.PhoneNumber,
+                    SolicitorState = x.State!.Name,
+                    SolicitorAddress = x.Firm.Address,
+                    SolicitorRegion = x.State!.Region!.Name,
+                    Status = x.ProfileStatus,
+                })
+                .ToListAsync();
+
+            return solicitors ?? new List<SolicitorProfileDto> ();
         }
     }
 }

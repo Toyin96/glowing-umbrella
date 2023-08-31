@@ -158,9 +158,15 @@ namespace LegalSearch.Infrastructure.Services.User
             if (state == null)
                 return new ObjectResponse<SolicitorOnboardResponse>("State Id is not valid", ResponseCodes.BadRequest);
 
+            // get state of coverage
+            var stateOfCoverage = await _stateRetrieveService.GetStateById(request.Firm.StateOfCoverageId);
+
+            if (stateOfCoverage == null)
+                return new ObjectResponse<SolicitorOnboardResponse>("State of coverage Id is not valid", ResponseCodes.BadRequest);
+
             var defaultPassword = Helpers.GenerateDefaultPassword();
 
-            Domain.Entities.User.User newSolicitor = MapNewSolicitor(request, state);
+            Domain.Entities.User.User newSolicitor = MapNewSolicitor(request, state, stateOfCoverage.Id);
 
             var result = await _userManager.CreateAsync(newSolicitor, defaultPassword);
 
@@ -228,23 +234,27 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
-        private static Domain.Entities.User.User MapNewSolicitor(SolicitorOnboardRequest request, State state)
+        private static Domain.Entities.User.User MapNewSolicitor(SolicitorOnboardRequest request, State state, Guid stateOfCoverage)
         {
             return new Domain.Entities.User.User
             {
                 FirstName = request.FirstName,
                 LastName = request.LastName,
+                StateId = state.Id, 
+                State = state,
                 Firm = new Firm
                 {
                     Name = request.Firm.Name,
                     Address = request.Firm.Address,
-                    StateId = state.Id
+                    StateId = state.Id,
+                    StateOfCoverageId = stateOfCoverage
                 },
                 Email = request.Email,
                 UserName = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 BankAccount = request.BankAccount,
-                OnboardingStatus = OnboardingStatusType.Initial
+                OnboardingStatus = OnboardingStatusType.Initial,
+                ProfileStatus = ProfileStatusType.InActive.ToString(),
             };
         }
 

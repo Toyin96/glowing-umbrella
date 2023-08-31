@@ -24,8 +24,11 @@ namespace LegalSearch.Application.Models.Requests
 
     public record SolicitorOnboardRequest : BaseUserRequest
     {
+        [Required]
         public string FirstName { get; set; }
+        [Required]
         public string LastName { get; set; }
+        [Required]
         public FirmRequest Firm { get; set; }
         [Required]
         public string PhoneNumber { get; set; }
@@ -41,5 +44,6 @@ namespace LegalSearch.Application.Models.Requests
         public string Name { get; set; }
         public string Address { get; set; }
         public Guid StateId { get; set; }
+        public Guid StateOfCoverageId { get; set; }
     }
 }

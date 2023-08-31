@@ -12,5 +12,6 @@ namespace LegalSearch.Domain.Entities.User.Solicitor
         [ForeignKey("State")]
         public Guid? StateId { get; set; }
         public State? State { get; set; }
+        public Guid StateOfCoverageId { get; set; }
     }
 }

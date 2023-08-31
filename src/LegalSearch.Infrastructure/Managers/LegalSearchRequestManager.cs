@@ -263,8 +263,8 @@ namespace LegalSearch.Infrastructure.Managers
             // Step 7: Map the response data to the response payload
             var mappedResponse = response.Select(x => new LegalSearchResponsePayload
             {
-                RequestInitiator = x.RequestInitiator,
-                RequestType = x.RequestType,
+                RequestInitiator = x.RequestInitiator!,
+                RequestType = x.RequestType!,
                 RegistrationDate = x.RegistrationDate,
                 RequestStatus = x.Status,
                 CustomerAccountName = x.CustomerAccountName,

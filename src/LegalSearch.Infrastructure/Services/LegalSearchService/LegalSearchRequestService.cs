@@ -560,6 +560,9 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (accountInquiryResponse == null)
                     return new ObjectResponse<GetAccountInquiryResponse>("Something went wrong. Please try again.", ResponseCodes.ServiceError);
 
+                // add legal search amount to response payload
+                accountInquiryResponse.Data.LegalSearchAmount = Convert.ToDecimal(_options.LegalSearchAmount);
+
                 return new ObjectResponse<GetAccountInquiryResponse>("Operation was successful", ResponseCodes.Success)
                 {
                     Data = accountInquiryResponse
