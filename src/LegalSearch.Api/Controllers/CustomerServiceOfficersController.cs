@@ -54,6 +54,16 @@ namespace LegalSearch.Api.Controllers
             return HandleResponse(result);
         }
 
+        [HttpPost("CancelRequest")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> CancelRequest([FromForm] CancelRequest request)
+        {
+            var result = await _legalSearchRequestService.CancelLegalSearchRequest(request);
+            return HandleResponse(result);
+        }
+
         /// <summary>
         /// This endpoint performs a name inquiry on a FCMB account number
         /// </summary>
@@ -62,7 +72,6 @@ namespace LegalSearch.Api.Controllers
         /// It returns the name associated with the account, the account status as well as the account balance
         /// </returns>
         [HttpGet("PerformNameInquiryOnAccount/{accountNumber}")]
-        [AllowAnonymous]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]

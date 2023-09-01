@@ -15,8 +15,9 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
         Task<StatusResponse> CreateNewRequestFromFinacle(Models.Requests.FinacleLegalSearchRequest legalSearchRequest);
         Task<StatusResponse> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
         Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest updateFinacleLegalRequest, string userId);
-        Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest);
-        Task<StatusResponse> RejectLegalSearchRequest(RejectRequest rejectRequest);
+        Task<StatusResponse> CancelLegalSearchRequest(CancelRequest request);
+        Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest request);
+        Task<StatusResponse> RejectLegalSearchRequest(RejectRequest request);
         Task<StatusResponse> PushBackLegalSearchRequestForMoreInfo(ReturnRequest returnRequest, Guid solicitorId);
         Task<StatusResponse> SubmitRequestReport(SubmitLegalSearchReport submitLegalSearchReport, Guid solicitorId);
     }

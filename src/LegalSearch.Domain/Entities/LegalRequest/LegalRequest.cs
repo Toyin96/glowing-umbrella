@@ -21,6 +21,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public string? RegistrationNumber { get; set; }
         public DateTime RegistrationDate { get; set; }
         public string? ReasonForRejection { get; set; }
+        public string? ReasonForCancelling { get; set; }
         public DateTime? DateAssignedToSolicitor { get; set; }
         public DateTime? DateDue { get; set; }
         public ICollection<Discussion> Discussions { get; set; } = new List<Discussion>();
