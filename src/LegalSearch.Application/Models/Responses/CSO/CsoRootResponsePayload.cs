@@ -2,7 +2,7 @@
 {
     public class CsoRootResponsePayload
     {
-        public required List<LegalSearchResponsePayload> LegalSearchRequests { get; set; }
+        public List<LegalSearchResponsePayload> LegalSearchRequests { get; set; }
         public int TotalRequests { get; set; }
         public int WithinSLACount { get; set; }
         public int ElapsedSLACount { get; set; }

@@ -6,6 +6,6 @@
         Completed,
         PendingWithCso, 
         PendingWithSolicitor, //assignedToLawyer
-        RequestsWithSolicitorFeedback // back to Cso
+        CancelledRequest
     }
 }

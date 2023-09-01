@@ -711,5 +711,35 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
             return legalSearch;
         }
+
+        public async Task<StatusResponse> CancelLegalSearchRequest(CancelRequest request)
+        {
+            var response = await ValidateCancelLegalSearchRequest(request);
+
+            return new StatusResponse(response.errorMessage, response.status);
+        }
+
+        private async Task<(string status, string errorMessage)> ValidateCancelLegalSearchRequest(CancelRequest request)
+        {
+            // get request
+            var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
+
+            // validate request
+            if (legalSearchRequest == null)
+                return (ResponseCodes.NotFound, "Request not found");
+
+            legalSearchRequest.Status = RequestStatusType.UnAssigned.ToString();
+            legalSearchRequest.ReasonForRejection = request.Reason;
+
+            // persist changes
+            bool updateStatus = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearchRequest);
+
+            if (!updateStatus)
+            {
+                return (ResponseCodes.Conflict, "Request could not be cancelled at this time. Please try again");
+            }
+
+            return (ResponseCodes.Success, "Request have been cancelled successfully");
+        }
     }
 }
