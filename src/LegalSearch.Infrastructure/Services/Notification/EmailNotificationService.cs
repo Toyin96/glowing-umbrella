@@ -1,5 +1,6 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests.Notification;
+using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Text;
@@ -40,16 +41,13 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 sendEmailRequest.Cc.ForEach(x => requestContent.Add(new StringContent(x), "Cc"));
             }
 
-            using var response = await client.PostAsync("https://emailnotificationmcsvc.fcmb-azr-msase.p.azurewebsites.net/fcmb/api/Mail/SendMail",
+            using var response = await client.PostAsync("/fcmb/api/Mail/SendMail",
                 requestContent);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-
             if (response.IsSuccessStatusCode)
             {
-                //var responseContent = await response.Content.ReadAsStringAsync();
-
                 _logger.LogInformation($"Response from calling send email endpoint::::{responseContent}");
 
                 return true;
@@ -68,13 +66,18 @@ namespace LegalSearch.Infrastructure.Services.Notification
             var client = _httpClientFactory.CreateClient("notificationClient");
 
             // get user
-            var user = _userManager.FindByIdAsync(notification.RecipientUserId);
+            var user = await _userManager.FindByIdAsync(notification.RecipientUserId);
 
-            // make a decision based on the notification type
-            // TODO
+            string emailTemplate = GetNotificationTemplateToSend(notification);
 
-            using var response = await client.PostAsync("/Mail/SendMail", 
-                new StringContent(JsonSerializer.Serialize(notification), Encoding.UTF8));
+            var requestContent = new MultipartFormDataContent();
+            requestContent.Add(new StringContent("ebusiness@fcmb.com"), "From");
+            requestContent.Add(new StringContent(user.Email!), "To");
+            requestContent.Add(new StringContent(notification.Title!), "Subject");
+            requestContent.Add(new StringContent(emailTemplate), "Body");
+
+
+            using var response = await client.PostAsync("/fcmb/api/Mail/SendMail",requestContent);
 
             if (response.IsSuccessStatusCode)
             {
@@ -84,6 +87,22 @@ namespace LegalSearch.Infrastructure.Services.Notification
             }
 
             //TODO: Do something when it fails
+        }
+
+        private static string GetNotificationTemplateToSend(Domain.Entities.Notification.Notification notification)
+        {
+            return notification.NotificationType switch
+            {
+                Domain.Enums.Notification.NotificationType.NewRequest => NotificationTemplates.RequestAssignmentNotification(),
+                Domain.Enums.Notification.NotificationType.AssignedToSolicitor => NotificationTemplates.GenerateNewRequestNotification(),
+                Domain.Enums.Notification.NotificationType.OutstandingRequestAfter24Hours => NotificationTemplates.OutstandingRequestNotification(),
+                Domain.Enums.Notification.NotificationType.RequestWithElapsedSLA => NotificationTemplates.RequestwithElapsedSLANotification(),
+                Domain.Enums.Notification.NotificationType.RequestReturnedToCso => NotificationTemplates.RequestReturnedNotification(),
+                Domain.Enums.Notification.NotificationType.ManualSolicitorAssignment => NotificationTemplates.ManualSolicitorAssignmentNotification(),
+                Domain.Enums.Notification.NotificationType.CompletedRequest => NotificationTemplates.RequestCompletedNotification(),
+                Domain.Enums.Notification.NotificationType.UnAssignedRequest => NotificationTemplates.UnassignedRequestNotification(),
+                _ => string.Empty
+            };
         }
     }
 }

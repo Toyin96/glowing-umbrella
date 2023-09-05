@@ -12,7 +12,7 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
         Task<bool> UpdateLegalSearchRequest(Domain.Entities.LegalRequest.LegalRequest legalRequest);
         Task<bool> AddNewLegalSearchRequest(Domain.Entities.LegalRequest.LegalRequest legalRequest);
         Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
-        Task<CsoRootResponsePayload> GetLegalRequestsForCso(CsoDashboardAnalyticsRequest viewRequestAnalyticsPayload, Guid csoId);
+        Task<CsoRootResponsePayload> GetLegalRequestsForCso(StaffDashboardAnalyticsRequest viewRequestAnalyticsPayload, Guid csoId);
         Task<List<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId);
     }
 }

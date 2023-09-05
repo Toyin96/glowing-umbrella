@@ -1,26 +1,21 @@
-﻿using Fcmb.Shared.Models.Responses;
-using Hangfire;
+﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
-using LegalSearch.Api.Filters;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
-using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Enums.Role;
+using LegalSearch.Infrastructure.BackgroundJobs;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -123,6 +118,9 @@ namespace LegalSearch.Api
                 }
             });
 
+            // Call the static method to register recurring Hangfire jobs
+            HangfireJobs.RegisterRecurringJobs();
+
             app.MapHangfireDashboard();
         }
 
@@ -175,7 +173,6 @@ namespace LegalSearch.Api
             // Add database context
             services.AddDbContext<AppDbContext>(options =>
             {
-                //options.UseInMemoryDatabase("LegalSearchDb");
                 options.UseSqlServer(configuration.GetConnectionString("legal_search_db"), sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
@@ -292,7 +289,7 @@ namespace LegalSearch.Api
         {
             services.AddHttpClient("notificationClient", client =>
             {
-                //client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
+                client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("client_id", configuration["FCMBServiceAppConfig:ClientId"]);
             });

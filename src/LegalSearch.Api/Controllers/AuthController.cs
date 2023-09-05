@@ -1,6 +1,7 @@
 ﻿using Fcmb.Shared.Auth.Models.Requests;
 using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.Auth;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses;

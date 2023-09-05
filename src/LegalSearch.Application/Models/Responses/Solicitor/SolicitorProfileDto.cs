@@ -2,6 +2,7 @@
 {
     public class SolicitorProfileDto
     {
+        public Guid SolicitorId { get; set; }
         public string SolicitorName { get; set; }
         public string Firm { get; set; }
         public Guid FirmId { get; set; }

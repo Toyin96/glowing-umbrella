@@ -96,5 +96,3 @@ namespace LegalSearch.Infrastructure.Services.Notification
         }
     }
 }
-
-
