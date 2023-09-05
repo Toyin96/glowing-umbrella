@@ -58,7 +58,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification)
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask; //Update this code
         }
 
         public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
