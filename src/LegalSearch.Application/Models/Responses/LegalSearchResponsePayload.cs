@@ -1,7 +1,12 @@
-﻿namespace LegalSearch.Application.Models.Responses
+﻿using LegalSearch.Application.Models.Responses.CSO;
+using LegalSearch.Domain.Entities.LegalRequest;
+using Microsoft.AspNetCore.Http;
+
+namespace LegalSearch.Application.Models.Responses
 {
     public class LegalSearchResponsePayload
     {
+        public Guid Id { get; set; }
         public required string RequestInitiator { get; set; }
         public required string RequestType { get; set; }
         public required string CustomerAccountName { get; set; }
@@ -12,6 +17,9 @@
         public DateTime DateCreated { get; set; }
         public DateTime? DateDue { get; set; }
         public DateTime RegistrationDate { get; set; }
+        public ICollection<DiscussionDto> Discussions { get; set; } = new List<DiscussionDto>();
+        public ICollection<RegistrationDocumentDto> RegistrationDocuments { get; set; } = new List<RegistrationDocumentDto>();
+        public ICollection<RegistrationDocumentDto> SupportingDocuments { get; set; } = new List<RegistrationDocumentDto>();
     }
 
     public class LegalSearchRootResponsePayload

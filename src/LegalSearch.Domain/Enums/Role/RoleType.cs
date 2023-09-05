@@ -6,6 +6,13 @@
         Cso,
         LegalPerfectionTeam,
         Admin,
-        ITSupport
+        ITSupport,
+        ZonalServiceManager
+    }
+
+    public enum NotificationRecipientType
+    {
+        Solicitor = 1,
+        LegalPerfectionTeam
     }
 }

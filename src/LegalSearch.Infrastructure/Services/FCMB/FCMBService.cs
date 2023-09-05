@@ -12,7 +12,6 @@ namespace LegalSearch.Infrastructure.Services.FCMB
     {
         private readonly HttpClient _client;
         private readonly FCMBServiceAppConfig _fCMBServiceAppConfig;
-        private string _currentDate;
         private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         public FCMBService(HttpClient client, IOptions<FCMBServiceAppConfig> fCMBServiceAppConfig)
@@ -22,12 +21,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
         }
         public async Task<GetAccountInquiryResponse?> MakeAccountInquiry(string accountNumber)
         {
+            // clear all existing headers
+            _client.DefaultRequestHeaders.Clear();
 
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
             _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
-            _client.DefaultRequestHeaders.Add("x-token", GetToken());
-            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken().token);
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", GetToken().currentime);
 
             // Build the URL for the API call
             string baseUrl = _fCMBServiceAppConfig.BaseUrl;
@@ -48,11 +49,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
         public async Task<AddLienToAccountResponse?> AddLien(AddLienToAccountRequest addLienToAccountRequest)
         {
+            // clear all existing headers
+            _client.DefaultRequestHeaders.Clear();
+
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
             _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
-            _client.DefaultRequestHeaders.Add("x-token", GetToken());
-            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken().token);
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", GetToken().currentime);
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/AddLien";
 
@@ -69,11 +73,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
         public async Task<RemoveLienFromAccountResponse?> RemoveLien(RemoveLienFromAccountRequest removeLienFromAccountRequest)
         {
+            // clear all existing headers
+            _client.DefaultRequestHeaders.Clear();
+
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
             _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
-            _client.DefaultRequestHeaders.Add("x-token", GetToken());
-            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken().token);
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", GetToken().currentime);
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/RemoveLien";
 
@@ -90,11 +97,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
         public async Task<IntrabankTransferResponse?> InitiateTransfer(IntrabankTransferRequest intrabankTransferRequest)
         {
+            // clear all existing headers
+            _client.DefaultRequestHeaders.Clear();
+
             // Set up the request headers
             _client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", _fCMBServiceAppConfig.SubscriptionKey);
             _client.DefaultRequestHeaders.Add("Client_ID", _fCMBServiceAppConfig.ClientId);
-            _client.DefaultRequestHeaders.Add("x-token", GetToken());
-            _client.DefaultRequestHeaders.Add("UTCTimestamp", _currentDate);
+            _client.DefaultRequestHeaders.Add("x-token", GetToken().token);
+            _client.DefaultRequestHeaders.Add("UTCTimestamp", GetToken().currentime);
 
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/cpmtransfer-api/api/cpm/doTransfer";
 
@@ -109,14 +119,14 @@ namespace LegalSearch.Infrastructure.Services.FCMB
             return JsonSerializer.Deserialize<IntrabankTransferResponse>(response, _jsonSerializerOptions);
         }
 
-        private string GetToken()
+        private (string currentime, string token) GetToken()
         {
-            var currentime = DateTime.UtcNow;
-            _currentDate = currentime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
+            var currentTime = DateTime.UtcNow;
+            var _currentDate = currentTime.ToString("yyyy-MM-ddTHH:mm:ss.fff");
 
-            var date = currentime.ToString("yyyy-MM-ddHHmmss");
+            var date = currentTime.ToString("yyyy-MM-ddHHmmss");
             var data = date + _fCMBServiceAppConfig.ClientId + _fCMBServiceAppConfig.Password;
-            return SHA512(data);
+            return (_currentDate, SHA512(data));
         }
 
         private string SHA512(string input)
@@ -128,7 +138,7 @@ namespace LegalSearch.Infrastructure.Services.FCMB
 
                 // Convert to text
                 // StringBuilder Capacity is 128, because 512 bits / 8 bits in byte * 2 symbols for byte
-                var hashedInputStringBuilder = new System.Text.StringBuilder(128);
+                var hashedInputStringBuilder = new StringBuilder(128);
                 foreach (var b in hashedInputBytes)
                     hashedInputStringBuilder.Append(b.ToString("x2"));
                 return hashedInputStringBuilder.ToString();

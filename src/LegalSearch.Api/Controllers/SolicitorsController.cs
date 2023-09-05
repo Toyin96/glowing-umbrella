@@ -144,10 +144,11 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> EditProfile([FromBody]EditSolicitorProfileRequest request)
+        public async Task<ActionResult<StatusResponse>> EditProfile([FromBody] EditSolicitorProfileByLegalTeamRequest request)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
-            var response = await _solicitorService.EditSolicitorProfile(request, Guid.Parse(userId));
+            request.SolicitorId = Guid.Parse(userId);
+            var response = await _solicitorService.EditSolicitorProfile(request);
             return HandleResponse(response);
         }
 

@@ -40,6 +40,17 @@ namespace LegalSearch.Api.Controllers
             return HandleResponse(result);
         }
 
+        [HttpPost("UpdateRequest")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> UpdateRequest([FromForm] UpdateRequest request)
+        {
+            var result = await _legalSearchRequestService.UpdateRequestByCso(request);
+            return HandleResponse(result);
+        }
+
         [HttpPost("UpdateFinacleRequest")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -51,16 +62,6 @@ namespace LegalSearch.Api.Controllers
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
             var result = await _legalSearchRequestService.UpdateFinacleRequestByCso(request, userId);
-            return HandleResponse(result);
-        }
-
-        [HttpPost("CancelRequest")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> CancelRequest([FromForm] CancelRequest request)
-        {
-            var result = await _legalSearchRequestService.CancelLegalSearchRequest(request);
             return HandleResponse(result);
         }
 
@@ -96,23 +97,6 @@ namespace LegalSearch.Api.Controllers
         {
             string? solId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.SolId))?.Value;
             var result = await _legalSearchRequestService.GetFinacleLegalRequestsForCso(request, solId!);
-            return HandleResponse(result);
-        }
-
-        /// <summary>
-        /// Endpoint to get legal search request analytics for CSO
-        /// </summary>
-        /// <param name="csoDashboardAnalyticsRequest"></param>
-        /// <returns></returns>
-        [HttpGet("ViewRequestAnalytics")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] CsoDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
-        {
-            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
-            var result = await _legalSearchRequestService.GetLegalRequestsForCso(csoDashboardAnalyticsRequest, Guid.Parse(userId));
-            
             return HandleResponse(result);
         }
     }

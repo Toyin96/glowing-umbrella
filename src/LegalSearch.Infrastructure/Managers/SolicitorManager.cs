@@ -28,20 +28,20 @@ namespace LegalSearch.Infrastructure.Managers
             switch (request.RequestType)
             {
                 case nameof(RequestType.Corporate):
-                    firms = await _appDbContext.Firms.Where(x => x.StateId == request.BusinessLocation)
+                    firms = await _appDbContext.Firms.Where(x => x.StateOfCoverageId == request.BusinessLocation)
                                                      .Select(x => x.Id)
                                                      .ToListAsync();
                     break;
                 case nameof(RequestType.BusinessName):
                     if (request.BusinessLocation == request.RegistrationLocation)
                     {
-                        firms = await _appDbContext.Firms.Where(x => x.StateId == request.BusinessLocation)
+                        firms = await _appDbContext.Firms.Where(x => x.StateOfCoverageId == request.BusinessLocation)
                                                          .Select(x => x.Id)
                                                          .ToListAsync();
                     }
                     else
                     {
-                        firms = await _appDbContext.Firms.Where(x => x.StateId == request.RegistrationLocation)
+                        firms = await _appDbContext.Firms.Where(x => x.StateOfCoverageId == request.RegistrationLocation)
                                                          .Select(x => x.Id)
                                                          .ToListAsync();
                     }
@@ -58,7 +58,8 @@ namespace LegalSearch.Infrastructure.Managers
             // get solicitors
             List<SolicitorRetrievalResponse> solicitorIds = await _appDbContext.Users.Include(x => x.Firm)
                                                                      .Where(x => firms.Contains(x.Firm.Id) 
-                                                                     && x.ProfileStatus == ProfileStatusType.Active.ToString())
+                                                                     && x.ProfileStatus == ProfileStatusType.Active.ToString()
+                                                                     && x.OnboardingStatus == OnboardingStatusType.Completed)
                                                                      .Select(x => new SolicitorRetrievalResponse
                                                                      {
                                                                          SolicitorId = x.Id,
@@ -70,7 +71,7 @@ namespace LegalSearch.Infrastructure.Managers
             return solicitorIds;
         }
 
-        public async Task<bool> EditSolicitorProfile(EditSolicitorProfileRequest request, Guid userId)
+        public async Task<bool> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest request, Guid userId)
         {
             // get solicitor profile
             var solicitor = await _appDbContext.Users

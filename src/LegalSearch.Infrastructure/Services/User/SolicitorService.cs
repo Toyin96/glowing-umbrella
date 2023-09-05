@@ -64,11 +64,11 @@ namespace LegalSearch.Infrastructure.Services.User
             return new StatusResponse("Solicitor status has been updated successfully", ResponseCodes.Success);
         }
 
-        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileRequest request, Guid userId)
+        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest request)
         {
             try
             {
-                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(request, userId);
+                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(request, request.SolicitorId);
 
                 if (isProfileUpdated)
                 {
@@ -129,6 +129,7 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 Data = new SolicitorProfileDto
                 {
+                    SolicitorId = solicitor.Id,
                     SolicitorName = solicitor.FirstName,
                     Firm = solicitor.Firm!.Name,
                     FirmId = solicitor.Firm.Id,
@@ -182,6 +183,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     .ThenInclude(state => state.Region)
                 .Select(x => new SolicitorProfileDto
                 {
+                    SolicitorId = x.Id, 
                     SolicitorName = x.FirstName,
                     FirmId = x.Firm.Id,
                     Firm = x.Firm.Name,

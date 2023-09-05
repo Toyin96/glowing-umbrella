@@ -202,7 +202,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
                 {
-                    new KeyValuePair<string, string>("{{Username}}", newSolicitor.FirstName),
+                    new KeyValuePair<string, string>("{{username}}", newSolicitor.FirstName),
                     new KeyValuePair<string, string>("{{email}}", newSolicitor.Email!),
                     new KeyValuePair<string, string>("{{role}}", role.Name!),
                     new KeyValuePair<string, string>("{{password}}", defaultPassword)
