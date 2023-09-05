@@ -159,6 +159,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     //mark request as 'UnAssigned'
                     request.AssignedSolicitorId = default;
                     request.Status = RequestStatusType.UnAssigned.ToString();
+                    request.UpdatedAt = TimeUtils.GetCurrentLocalTime();
                     await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
 
                     // Route to Legal Perfection Team
@@ -168,6 +169,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                 // logged time request was assigned to solicitor
                 nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
+                nextSolicitor.UpdatedAt = TimeUtils.GetCurrentLocalTime();
 
                 // Update the request status and assigned solicitor(s)
                 request = UpdateLegalSearchRecordAfterBeingAssignedToSolicitor(request, nextSolicitor);
