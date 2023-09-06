@@ -110,7 +110,7 @@ namespace LegalSearch.Api.Controllers
         public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
-            var result = await _legalSearchRequestService.GetLegalRequestsForCso(csoDashboardAnalyticsRequest, Guid.Parse(userId));
+            var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest, Guid.Parse(userId));
 
             return HandleResponse(result);
         }

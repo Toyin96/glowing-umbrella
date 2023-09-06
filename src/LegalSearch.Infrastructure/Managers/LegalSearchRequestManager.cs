@@ -9,7 +9,6 @@ using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace LegalSearch.Infrastructure.Managers
 {
@@ -100,6 +99,8 @@ namespace LegalSearch.Infrastructure.Managers
                     x.RegistrationLocation,
                     x.CreatedAt,
                     x.DateDue,
+                    x.ReasonForCancelling,
+                    x.DateOfCancellation,
                     x.Discussions,
                     x.RegistrationDocuments,
                     x.SupportingDocuments
@@ -134,6 +135,8 @@ namespace LegalSearch.Infrastructure.Managers
                 BusinessLocationId = x.BusinessLocation,
                 RegistrationLocationId = x.RegistrationLocation,
                 DateCreated = x.CreatedAt,
+                ReasonOfCancellation = x.ReasonForCancelling,
+                DateOfCancellation = x.DateOfCancellation,
                 DateDue = x.DateDue.HasValue ? x.DateDue : DateTime.MinValue,
                 Discussions = x.Discussions.Select(x => new DiscussionDto { Conversation = x.Conversation }).ToList(), 
                 SupportingDocuments = x.SupportingDocuments.Select(x => new RegistrationDocumentDto { FileName = x.FileName, FileContent = x.FileContent, FileType = x.FileType}).ToList(),
@@ -183,18 +186,18 @@ namespace LegalSearch.Infrastructure.Managers
             {
                 case CsoRequestStatusType.PendingWithCso:
                     query = query.Where(x => x.Status == RequestStatusType.BackToCso.ToString()
-                    /*&& x.InitiatorId == csoId*/);
+                    /*&& x.InitiatorId == staffId*/);
                     break;
                 case CsoRequestStatusType.PendingWithSolicitor:
                     query = query.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString()
-                    /*&& x.InitiatorId == csoId*/);
+                    /*&& x.InitiatorId == staffId*/);
                     break;
                 case CsoRequestStatusType.CancelledRequest:
                     query = query.Where(x => x.Status == RequestStatusType.UnAssigned.ToString()
-                    /*&& x.InitiatorId == csoId*/);
+                    /*&& x.InitiatorId == staffId*/);
                     break;
                 case CsoRequestStatusType.Completed:
-                    query = query.Where(x => x.Status == RequestStatusType.Completed.ToString() /*&& x.InitiatorId == csoId*/);
+                    query = query.Where(x => x.Status == RequestStatusType.Completed.ToString() /*&& x.InitiatorId == staffId*/);
                     break;
             }
 
@@ -217,7 +220,7 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<CsoRootResponsePayload> GetLegalRequestsForCso(StaffDashboardAnalyticsRequest request, Guid csoId)
+        public async Task<CsoRootResponsePayload> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid staffId)
         {
             // Step 1: Create the query to fetch legal requests
             IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests
@@ -226,7 +229,7 @@ namespace LegalSearch.Infrastructure.Managers
                                                             .Include(x => x.SupportingDocuments);
 
             // Step 2: Apply filtering based on the request payload
-            query = ApplyFilters(request, csoId, query);
+            query = ApplyFilters(request, staffId, query);
 
             // Step 3: Apply pagination to the query as per the request 
             query = query.Paginate(request);
@@ -260,6 +263,8 @@ namespace LegalSearch.Infrastructure.Managers
                 BusinessLocationId = x.BusinessLocation,
                 RegistrationLocationId = x.RegistrationLocation,
                 DateCreated = x.CreatedAt,
+                ReasonOfCancellation = x.ReasonForCancelling,
+                DateOfCancellation = x.DateOfCancellation,
                 DateDue = x.DateDue,
                 RegistrationDocuments = x.RegistrationDocuments.Select(x => new RegistrationDocumentDto { FileContent = x.FileContent, FileName = x.FileName, FileType = x.FileType}).ToList(),
                 SupportingDocuments = x.SupportingDocuments.Select(x => new RegistrationDocumentDto { FileContent = x.FileContent, FileName = x.FileName, FileType = x.FileType }).ToList(),
@@ -268,7 +273,7 @@ namespace LegalSearch.Infrastructure.Managers
             .ToListAsync();
 
             // Step 7: Calculate counts
-            var counts = await CalculateCounts(response, csoId, query);
+            var counts = await CalculateCounts(response, staffId, query);
 
             // Step 8: Create the final payload
             var finalPayload = new CsoRootResponsePayload

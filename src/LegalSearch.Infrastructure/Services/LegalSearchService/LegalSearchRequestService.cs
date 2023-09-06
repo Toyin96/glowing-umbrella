@@ -617,9 +617,9 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
-        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForCso(StaffDashboardAnalyticsRequest request, Guid csoId)
+        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid csoId)
         {
-            var response = await _legalSearchRequestManager.GetLegalRequestsForCso(request, csoId);
+            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request, csoId);
 
             return new ObjectResponse<CsoRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
@@ -763,7 +763,8 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 return (ResponseCodes.NotFound, "Request not found");
 
             legalSearchRequest.Status = RequestStatusType.UnAssigned.ToString();
-            legalSearchRequest.ReasonForRejection = request.Reason;
+            legalSearchRequest.ReasonForCancelling = request.Reason;
+            legalSearchRequest.DateOfCancellation = TimeUtils.GetCurrentLocalTime();    
 
             // persist changes
             bool updateStatus = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearchRequest);
