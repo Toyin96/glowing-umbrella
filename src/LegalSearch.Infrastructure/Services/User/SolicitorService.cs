@@ -137,8 +137,10 @@ namespace LegalSearch.Infrastructure.Services.User
                     Status = solicitor.ProfileStatus,
                     SolicitorAddress = solicitor.Firm.Address,
                     SolicitorPhoneNumber = solicitor.PhoneNumber!,
-                    SolicitorState = solicitor.State!.Name,
-                    SolicitorRegion = solicitorRegion?.Name
+                    SolicitorState = solicitor.Firm.State!.Name,
+                    SolicitorStateId = solicitor.Firm.StateId.HasValue ? solicitor.Firm.StateId.Value : solicitor.State.Id,
+                    SolicitorStateOfCoverageId = solicitor.Firm.StateOfCoverageId,
+                    SolicitorRegion = solicitorRegion?.Name!
                 }
             };
         }
@@ -190,6 +192,8 @@ namespace LegalSearch.Infrastructure.Services.User
                     SolicitorEmail = x.Email,
                     SolicitorPhoneNumber = x.PhoneNumber,
                     SolicitorState = x.State!.Name,
+                    SolicitorStateId = x.Firm.StateId.HasValue ? x.Firm.StateId.Value : x.State.Id,
+                    SolicitorStateOfCoverageId = x.Firm.StateOfCoverageId,
                     SolicitorAddress = x.Firm.Address,
                     SolicitorRegion = x.State!.Region!.Name,
                     Status = x.ProfileStatus,

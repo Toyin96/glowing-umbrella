@@ -784,7 +784,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 return new StatusResponse("No legal search request was found with the given ID", ResponseCodes.BadRequest);
 
             // push to notification queue
-            BackgroundJob.Enqueue<IBackgroundService>(x => x.RequestEscalationJob(request, legalSearchRequest));
+            BackgroundJob.Enqueue<IBackgroundService>(x => x.RequestEscalationJob(request));
 
             return new StatusResponse("Operation was successful", ResponseCodes.Success);
         }

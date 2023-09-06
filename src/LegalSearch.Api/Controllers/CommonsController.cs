@@ -62,7 +62,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> CancelRequest([FromForm] CancelRequest request)
+        public async Task<ActionResult<StatusResponse>> CancelRequest([FromBody] CancelRequest request)
         {
             var result = await _legalSearchRequestService.CancelLegalSearchRequest(request);
             return HandleResponse(result);

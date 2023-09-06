@@ -550,8 +550,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
         }
 
-        public async Task RequestEscalationJob(EscalateRequest request, LegalRequest legalRequest)
+        public async Task RequestEscalationJob(EscalateRequest request)
         {
+            var legalRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
+
+            if (legalRequest == null) return;
+
             var notification = await GenerateNotificationPayload(request, legalRequest);
 
             if (notification == null) return;

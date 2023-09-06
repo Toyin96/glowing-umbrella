@@ -11,7 +11,7 @@ namespace LegalSearch.Application.Interfaces.BackgroundService
         Task PushBackRequestToCSOJob(Guid requestId);
         Task InitiatePaymentToSolicitorJob(Guid requestId);
         Task CheckAndRerouteRequestsJob();
-        Task RequestEscalationJob(EscalateRequest request, LegalRequest legalRequest);
+        Task RequestEscalationJob(EscalateRequest request);
         Task NotificationReminderForUnAttendedRequestsJob();
         Task PushRequestToNextSolicitorInOrder(Guid requestId, int currentAssignedSolicitorOrder = 0);
     }
