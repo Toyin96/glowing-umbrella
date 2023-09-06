@@ -220,7 +220,10 @@ namespace LegalSearch.Infrastructure.Managers
         public async Task<CsoRootResponsePayload> GetLegalRequestsForCso(StaffDashboardAnalyticsRequest request, Guid csoId)
         {
             // Step 1: Create the query to fetch legal requests
-            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests;
+            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests
+                                                            .Include(x => x.Discussions)
+                                                            .Include(x => x.RegistrationDocuments)
+                                                            .Include(x => x.SupportingDocuments);
 
             // Step 2: Apply filtering based on the request payload
             query = ApplyFilters(request, csoId, query);
@@ -258,6 +261,9 @@ namespace LegalSearch.Infrastructure.Managers
                 RegistrationLocationId = x.RegistrationLocation,
                 DateCreated = x.CreatedAt,
                 DateDue = x.DateDue,
+                RegistrationDocuments = x.RegistrationDocuments.Select(x => new RegistrationDocumentDto { FileContent = x.FileContent, FileName = x.FileName, FileType = x.FileType}).ToList(),
+                SupportingDocuments = x.SupportingDocuments.Select(x => new RegistrationDocumentDto { FileContent = x.FileContent, FileName = x.FileName, FileType = x.FileType }).ToList(),
+                Discussions = x.Discussions.Select(x => new DiscussionDto { Conversation = x.Conversation}).ToList(),
             })
             .ToListAsync();
 
