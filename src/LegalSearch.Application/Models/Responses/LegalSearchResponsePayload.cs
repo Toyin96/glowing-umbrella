@@ -13,7 +13,10 @@ namespace LegalSearch.Application.Models.Responses
         public required string RequestStatus { get; set; }
         public required string CustomerAccountNumber { get; set; }
         public required string BusinessLocation { get; set; }
+        public required Guid BusinessLocationId { get; set; }
         public required string RegistrationLocation { get; set; }
+        public required Guid RegistrationLocationId { get; set; }
+        public required string RegistrationNumber { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateDue { get; set; }
         public DateTime RegistrationDate { get; set; }

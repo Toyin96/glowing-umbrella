@@ -3,14 +3,16 @@
     public class SolicitorProfileDto
     {
         public Guid SolicitorId { get; set; }
-        public string SolicitorName { get; set; }
-        public string Firm { get; set; }
+        public required string SolicitorName { get; set; }
+        public required string Firm { get; set; }
         public Guid FirmId { get; set; }
-        public string SolicitorEmail { get; set; }
-        public string SolicitorPhoneNumber { get; set; }
-        public string SolicitorState { get; set; }
-        public string SolicitorRegion { get; set; }
-        public string SolicitorAddress { get; set; }
-        public string Status { get; set; }
+        public required string SolicitorEmail { get; set; }
+        public required string SolicitorPhoneNumber { get; set; }
+        public required string SolicitorState { get; set; }
+        public Guid SolicitorStateId { get; set; }
+        public Guid SolicitorStateOfCoverageId { get; set; }
+        public required string SolicitorRegion { get; set; }
+        public required string SolicitorAddress { get; set; }
+        public required string Status { get; set; }
     }
 }
