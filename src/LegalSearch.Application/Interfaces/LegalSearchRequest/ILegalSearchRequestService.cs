@@ -9,7 +9,7 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
     public interface ILegalSearchRequestService
     {
         Task<ListResponse<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId);
-        Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForCso(StaffDashboardAnalyticsRequest request, Guid csoId);
+        Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid csoId);
         Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
         Task<ObjectResponse<GetAccountInquiryResponse>> PerformNameInquiryOnAccount(string accountNumber);
         Task<StatusResponse> CreateNewRequestFromFinacle(Models.Requests.FinacleLegalSearchRequest legalSearchRequest);

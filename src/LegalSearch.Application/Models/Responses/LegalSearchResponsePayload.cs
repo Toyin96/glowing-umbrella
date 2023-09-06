@@ -19,6 +19,8 @@ namespace LegalSearch.Application.Models.Responses
         public required string RegistrationNumber { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateDue { get; set; }
+        public required string ReasonOfCancellation { get; set; }
+        public DateTime? DateOfCancellation { get; set; }
         public DateTime RegistrationDate { get; set; }
         public ICollection<DiscussionDto> Discussions { get; set; } = new List<DiscussionDto>();
         public ICollection<RegistrationDocumentDto> RegistrationDocuments { get; set; } = new List<RegistrationDocumentDto>();
