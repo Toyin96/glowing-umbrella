@@ -16,7 +16,7 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
         Task<StatusResponse> EscalateRequest(EscalateRequest request);
         Task<StatusResponse> CreateNewRequest(Models.Requests.LegalSearchRequest legalSearchRequest, string userId);
         Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest updateFinacleLegalRequest, string userId);
-        Task<StatusResponse> UpdateRequestByCso(UpdateRequest request);
+        Task<StatusResponse> UpdateRequestByStaff(UpdateRequest request);
         Task<StatusResponse> CancelLegalSearchRequest(CancelRequest request);
         Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest request);
         Task<StatusResponse> RejectLegalSearchRequest(RejectRequest request);

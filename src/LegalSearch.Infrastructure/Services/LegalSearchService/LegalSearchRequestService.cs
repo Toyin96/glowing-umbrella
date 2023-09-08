@@ -23,7 +23,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Linq;
+using System.Reflection.Metadata;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace LegalSearch.Infrastructure.Services.LegalSearchService
 {
@@ -790,7 +793,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return new StatusResponse("Operation was successful", ResponseCodes.Success);
         }
 
-        public async Task<StatusResponse> UpdateRequestByCso(UpdateRequest request)
+        public async Task<StatusResponse> UpdateRequestByStaff(UpdateRequest request)
         {
             // get request
             var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
@@ -823,9 +826,52 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             legalSearchRequest.RegistrationNumber = request.RegistrationNumber;
             legalSearchRequest.RegistrationDate = request.RegistrationDate;
 
+            UpdateCurrentDocuments(request, legalSearchRequest);
+
             await AddAdditionalInfoAndDocuments(request, legalSearchRequest);
 
             return legalSearchRequest;
+        }
+
+        private void RemoveDocumentsNotInRequest(ICollection<SupportingDocument> documents, HashSet<string> requestFileNames)
+        {
+            var documentsToRemove = documents.Where(x => !requestFileNames.Contains(x.FileName)).ToList();
+
+            foreach (var documentToRemove in documentsToRemove)
+            {
+                documents.Remove(documentToRemove);
+            }
+        }
+
+        private void RemoveDocumentsNotInRequest(ICollection<RegistrationDocument> documents, HashSet<string> requestFileNames)
+        {
+            var documentsToRemove = documents.Where(x => !requestFileNames.Contains(x.FileName)).ToList();
+
+            foreach (var documentToRemove in documentsToRemove)
+            {
+                documents.Remove(documentToRemove);
+            }
+        }
+
+        private void UpdateCurrentDocuments(UpdateRequest request, LegalRequest legalSearchRequest)
+        {
+            if (request.RegistrationDocuments != null && request.RegistrationDocuments.Any())
+            {
+                // Create a set of unique file names from request.RegistrationDocuments
+                var registrationDocumentFileNames = new HashSet<string>(request.RegistrationDocuments.Select(item => item.FileName));
+
+                // Remove documents not in request.RegistrationDocuments
+                RemoveDocumentsNotInRequest(legalSearchRequest.RegistrationDocuments, registrationDocumentFileNames);
+            }
+
+            if (request.SupportingDocuments != null && request.SupportingDocuments.Any())
+            {
+                // Create a set of unique file names from request.SupportingDocuments
+                var SupportingDocumentFileNames = new HashSet<string>(request.SupportingDocuments.Select(item => item.FileName));
+
+                // Remove documents not in request.SupportingDocuments
+                RemoveDocumentsNotInRequest(legalSearchRequest.SupportingDocuments, SupportingDocumentFileNames);
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using LegalSearch.Application.Models.Responses.CSO;
+using Microsoft.AspNetCore.Http;
 
 namespace LegalSearch.Application.Models.Requests.CSO
 {
@@ -15,6 +16,8 @@ namespace LegalSearch.Application.Models.Requests.CSO
         public string? ReasonForRejection { get; set; }
         public string? ReasonForCancelling { get; set; }
         public string? AdditionalInformation { get; set; }
+        public required List<RegistrationDocumentDto> CurrentRegistrationDocuments { get; set; }
+        public required List<RegistrationDocumentDto> CurrentSupportingDocuments { get; set; }
         public required List<IFormFile> RegistrationDocuments { get; set; }
         public required List<IFormFile> SupportingDocuments { get; set; }
     }
