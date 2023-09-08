@@ -36,8 +36,7 @@ namespace LegalSearch.Infrastructure.Services.User
             );
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var encodedToken = tokenHandler.WriteToken(token);
-            return encodedToken;
+            return tokenHandler.WriteToken(token);
         }
 
         public ClaimsPrincipal ValidateJwtToken(string token)
