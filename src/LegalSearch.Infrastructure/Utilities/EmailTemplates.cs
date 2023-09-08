@@ -33,10 +33,8 @@
 
                 <p>Please follow the steps below to update your password:</p>
                 <ol>
-                    <li>Login to the application using your default password: {{password}} and email: {{email}}.</li>
-                    <li>Navigate to the ""Change Password"" section in your account settings.</li>
-                    <li>Enter your current password and choose a new password of your choice.</li>
-                    <li>Save the changes to update your password.</li>
+                    <li><a href=""http://localhost:5173/reset-password?token={{token}}&email={{email}}"">Click text</a> to proceed to the application.</li>
+                    <li>Next, enter your new password to change your password.</li>
                 </ol>
 
                 <p>If you have any questions or need assistance, please feel free to contact our support team at <a href=""mailto:[Support Email]"">[Support Email]</a>.</p>
