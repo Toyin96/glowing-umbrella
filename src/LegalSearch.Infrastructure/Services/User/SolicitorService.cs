@@ -130,13 +130,15 @@ namespace LegalSearch.Infrastructure.Services.User
                 Data = new SolicitorProfileDto
                 {
                     SolicitorId = solicitor.Id,
-                    SolicitorName = solicitor.FirstName,
+                    FirstName = solicitor.FirstName,
+                    LastName = solicitor.LastName,
                     Firm = solicitor.Firm!.Name,
                     FirmId = solicitor.Firm.Id,
                     SolicitorEmail = solicitor.Email!,
                     Status = solicitor.ProfileStatus,
                     SolicitorAddress = solicitor.Firm.Address,
                     SolicitorPhoneNumber = solicitor.PhoneNumber!,
+                    BankAccountNumber = solicitor.BankAccount,
                     SolicitorState = solicitor.Firm.State!.Name,
                     SolicitorStateId = solicitor.Firm.StateId.HasValue ? solicitor.Firm.StateId.Value : solicitor.State.Id,
                     SolicitorStateOfCoverageId = solicitor.Firm.StateOfCoverageId,
@@ -185,13 +187,15 @@ namespace LegalSearch.Infrastructure.Services.User
                     .ThenInclude(state => state.Region)
                 .Select(x => new SolicitorProfileDto
                 {
-                    SolicitorId = x.Id, 
-                    SolicitorName = x.FirstName,
+                    SolicitorId = x.Id,
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
                     FirmId = x.Firm.Id,
                     Firm = x.Firm.Name,
                     SolicitorEmail = x.Email,
                     SolicitorPhoneNumber = x.PhoneNumber,
                     SolicitorState = x.State!.Name,
+                    BankAccountNumber = x.BankAccount,
                     SolicitorStateId = x.Firm.StateId.HasValue ? x.Firm.StateId.Value : x.State.Id,
                     SolicitorStateOfCoverageId = x.Firm.StateOfCoverageId,
                     SolicitorAddress = x.Firm.Address,

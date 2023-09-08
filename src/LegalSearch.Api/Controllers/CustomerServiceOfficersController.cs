@@ -40,17 +40,6 @@ namespace LegalSearch.Api.Controllers
             return HandleResponse(result);
         }
 
-        [HttpPost("UpdateRequest")]
-        [Consumes("multipart/form-data")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<StatusResponse>> UpdateRequest([FromForm] UpdateRequest request)
-        {
-            var result = await _legalSearchRequestService.UpdateRequestByCso(request);
-            return HandleResponse(result);
-        }
-
         [HttpPost("UpdateFinacleRequest")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType((int)HttpStatusCode.OK)]

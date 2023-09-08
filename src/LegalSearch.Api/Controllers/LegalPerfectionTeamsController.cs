@@ -22,13 +22,6 @@ namespace LegalSearch.Api.Controllers
             _solicitorService = solicitorService;
         }
 
-        [HttpPost("ActivateOrDeactivateSolicitor")]
-        public async Task<ActionResult<StatusResponse>> ActivateOrDeactivateSolicitor([FromBody] ActivateOrDeactivateSolicitorRequest request)
-        {
-            var response = await _solicitorService.ActivateOrDeactivateSolicitor(request);
-            return HandleResponse(response);
-        }
-
         [HttpPost("ManuallyAssignRequestToSolicitor")]
         public async Task<ActionResult<StatusResponse>> ManuallyAssignRequestToSolicitor([FromBody] ManuallyAssignRequestToSolicitorRequest request)
         {

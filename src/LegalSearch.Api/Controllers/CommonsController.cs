@@ -54,6 +54,22 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
+        /// This endpoint allows the CSO and Legal Perfection Team to edit/update a legal search request
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        [HttpPost("UpdateRequest")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<StatusResponse>> UpdateRequest([FromForm] UpdateRequest request)
+        {
+            var result = await _legalSearchRequestService.UpdateRequestByStaff(request);
+            return HandleResponse(result);
+        }
+
+        /// <summary>
         /// Endpoint to cancel a legal search request.
         /// </summary>
         /// <param name="request">The request.</param>
@@ -113,6 +129,18 @@ namespace LegalSearch.Api.Controllers
             var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest, Guid.Parse(userId));
 
             return HandleResponse(result);
+        }
+
+        /// <summary>
+        /// This endpoint allows the CSO and Legal Perfection Team to activate/deactivate a solicitor
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        [HttpPost("ActivateOrDeactivateSolicitor")]
+        public async Task<ActionResult<StatusResponse>> ActivateOrDeactivateSolicitor([FromBody] ActivateOrDeactivateSolicitorRequest request)
+        {
+            var response = await _solicitorService.ActivateOrDeactivateSolicitor(request);
+            return HandleResponse(response);
         }
     }
 }
