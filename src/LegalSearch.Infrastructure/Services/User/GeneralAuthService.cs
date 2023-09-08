@@ -205,7 +205,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     new KeyValuePair<string, string>("{{username}}", newSolicitor.FirstName),
                     new KeyValuePair<string, string>("{{email}}", newSolicitor.Email!),
                     new KeyValuePair<string, string>("{{role}}", role.Name!),
-                    new KeyValuePair<string, string>("{{password}}", defaultPassword)
+                    new KeyValuePair<string, string>("{{token}}", resetToken)
                 };
 
             emailBody = await emailBody.UpdatePlaceHolders(keys);
