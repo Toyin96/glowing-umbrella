@@ -123,7 +123,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] CsoDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest, Guid.Parse(userId));

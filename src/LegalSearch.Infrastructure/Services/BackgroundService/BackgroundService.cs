@@ -39,7 +39,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         public BackgroundService(AppDbContext appDbContext,
             INotificationService notificationService,
             ISolicitorManager solicitorManager,
-            IStateRetrieveService stateRetrieveService, 
+            IStateRetrieveService stateRetrieveService,
             ILegalSearchRequestManager legalSearchRequestManager,
             IFCMBService fCMBService, IOptions<FCMBServiceAppConfig> options,
             ILegalSearchRequestPaymentLogManager legalSearchRequestPaymentLogManager)
@@ -80,7 +80,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     if (solicitorsList == null || solicitorsList?.Count == 0)
                     {
                         // update legalSearch request here
-                        request.AssignedSolicitorId = default;
+                        request.AssignedSolicitorId = Guid.Empty;
                         request.Status = RequestStatusType.UnAssigned.ToString();
                         await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
 
@@ -114,7 +114,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         {
             try
             {
-                // Implement logic to query for requests assigned to lawyers for 20 minutes
+                // Implement logic to query for requests with elapsed SLA and re-assign them accordingly
                 var requestsToReroute = await _solicitorManager.GetRequestsToReroute();
 
                 foreach (var request in requestsToReroute)
@@ -122,12 +122,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     // Get the legalRequest entity and check its status
                     var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
 
-                    if (legalSearchRequest!.Status == RequestStatusType.UnAssigned.ToString())
+                    if (legalSearchRequest!.Status == nameof(RequestStatusType.UnAssigned)
+                        || legalSearchRequest.Status != nameof(RequestStatusType.LawyerAccepted))
                     {
                         /*
                          This request has been routed to legalPerfection team either due to:
                             1. No matching solicitor
-                            2. Every single matching solicitor has been assigned to it but no one accepted it on time.
                          */
                         continue;
                     }
@@ -151,19 +151,22 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             {
                 var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
 
+                if (request == null) return;
+
                 // Get the next solicitor in line
                 var nextSolicitor = await _solicitorManager.GetNextSolicitorInLine(requestId, currentAssignedSolicitorOrder);
 
                 if (nextSolicitor == null)
                 {
                     //mark request as 'UnAssigned'
-                    request.AssignedSolicitorId = default;
+                    request.AssignedSolicitorId = Guid.Empty;
                     request.Status = RequestStatusType.UnAssigned.ToString();
                     request.UpdatedAt = TimeUtils.GetCurrentLocalTime();
                     await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
 
                     // Route to Legal Perfection Team
                     await NotifyLegalPerfectionTeam(request!);
+
                     return;
                 }
 
@@ -281,71 +284,23 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 #region Send a reminder notification after 24hours that a request has been assigned
 
                 // resolves time to 24 hours ago
-                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyFourHoursElapsedTime());
+                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyFourHoursElapsedTime(), false);
 
                 if (requestsAcceptedTwentyFoursAgo != null && requestsAcceptedTwentyFoursAgo.Any())
                 {
-                    // get the associated legalRequests
-                    Dictionary<Guid, LegalRequest> solicitorRequestsDictionary = new Dictionary<Guid, LegalRequest>();
-
-                    foreach (var request in requestsAcceptedTwentyFoursAgo.ToList())
-                    {
-                        var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
-
-                        // could not find legal search request
-                        if (legalSearchRequest == null) continue;
-
-                        solicitorRequestsDictionary.Add(legalSearchRequest.AssignedSolicitorId, legalSearchRequest);
-                    }
-
-                    // process notification to solicitor in parallel
-                    Parallel.ForEach(solicitorRequestsDictionary, async individualSolicitorRequestsDictionary =>
-                    {
-                        // Send notification to the solicitor
-                        var notification = new Domain.Entities.Notification.Notification
-                        {
-                            Title = ConstantTitle.PendingAssignedRequestTitle,
-                            NotificationType = NotificationType.OutstandingRequestAfter24Hours,
-                            Message = ConstantMessage.RequestPendingWithSolicitorMessage,
-                            MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value, _serializerOptions)
-                        };
-
-                        await _notificationService.SendNotificationToUser(individualSolicitorRequestsDictionary.Key, notification);
-                    });
+                    await ProcessNotifications(requestsAcceptedTwentyFoursAgo);
                 }
                 #endregion
 
                 #region Re-route request to another solicitor after request SLA have elapsed
 
                 // get assigned requests that have been unattended for the 72 hours (3 days)
-                var requestsWithElapsedSLA = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetSeventyTwoHoursElapsedTime());
+                var requestsWithElapsedSLA = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetSeventyTwoHoursElapsedTime(), true);
 
                 // check if any matching request was returned
                 if (requestsWithElapsedSLA != null && requestsWithElapsedSLA.Any())
                 {
-                    Dictionary<Guid, int> elapsedSLARequestsDictionary = new Dictionary<Guid, int>();
-
-                    foreach (var requestId in requestsWithElapsedSLA.ToList())
-                    {
-                        // get the associated legal search
-                        var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
-
-                        // could not find legal search request
-                        if (legalSearchRequest == null) continue;
-
-                        // get the currently assigned solicitor to know his/her order
-                        var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(requestId,
-                            legalSearchRequest.AssignedSolicitorId);
-
-                        elapsedSLARequestsDictionary.Add(requestId, currentlyAssignedSolicitor.Order);
-                    }
-
-                    // process each request serially
-                    foreach (var request in elapsedSLARequestsDictionary)
-                    {
-                        // pass the request to another solicitor in-line based on the current solicitor's order
-                        await PushRequestToNextSolicitorInOrder(request.Key, request.Value);
-                    }
+                    await PushRequestToTheNextSolicitor(requestsWithElapsedSLA);
                 }
 
                 #endregion
@@ -355,6 +310,64 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                 Console.WriteLine($"An exception was thrown inside NotificationReminderForUnAttendedRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
+        }
+
+        private async Task PushRequestToTheNextSolicitor(IEnumerable<Guid> requestsWithElapsedSLA)
+        {
+            Dictionary<Guid, int> elapsedSLARequestsDictionary = new Dictionary<Guid, int>();
+
+            foreach (var requestId in requestsWithElapsedSLA.ToList())
+            {
+                // get the associated legal search
+                var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
+
+                // could not find legal search request
+                if (legalSearchRequest == null) continue;
+
+                // get the currently assigned solicitor to know his/her order
+                var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(requestId,
+                    legalSearchRequest.AssignedSolicitorId);
+
+                elapsedSLARequestsDictionary.Add(requestId, currentlyAssignedSolicitor.Order);
+            }
+
+            // process each request serially
+            foreach (var request in elapsedSLARequestsDictionary)
+            {
+                // pass the request to another solicitor in-line based on the current solicitor's order
+                await PushRequestToNextSolicitorInOrder(request.Key, request.Value);
+            }
+        }
+
+        private async Task ProcessNotifications(IEnumerable<Guid> requests)
+        {
+            // get the associated legalRequests
+            Dictionary<Guid, LegalRequest> solicitorRequestsDictionary = new Dictionary<Guid, LegalRequest>();
+
+            foreach (var request in requests.ToList())
+            {
+                var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request);
+
+                // could not find legal search request
+                if (legalSearchRequest == null) continue;
+
+                solicitorRequestsDictionary.Add(legalSearchRequest.AssignedSolicitorId, legalSearchRequest);
+            }
+
+            // process notification to solicitor in parallel
+            Parallel.ForEach(solicitorRequestsDictionary, async individualSolicitorRequestsDictionary =>
+            {
+                // Send notification to the solicitor
+                var notification = new Domain.Entities.Notification.Notification
+                {
+                    Title = ConstantTitle.PendingAssignedRequestTitle,
+                    NotificationType = NotificationType.OutstandingRequestAfter24Hours,
+                    Message = ConstantMessage.RequestPendingWithSolicitorMessage,
+                    MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value, _serializerOptions)
+                };
+
+                await _notificationService.SendNotificationToUser(individualSolicitorRequestsDictionary.Key, notification);
+            });
         }
 
         public async Task PushBackRequestToCSOJob(Guid requestId)
@@ -405,7 +418,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     CurrencyCode = removeLienRequest.CurrencyCode
                 };
 
-                if (lienValidationResponse.isSuccessful == false)
+                if (!lienValidationResponse.isSuccessful)
                 {
                     paymentLogRequest.PaymentResponseMetadata = lienValidationResponse.errorMessage;
                 }
@@ -420,7 +433,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     // validate payment response
                     var paymentResponseValidation = ValidatePaymentResponse(paymentResponse);
 
-                    if (paymentResponseValidation.isSuccessful == false)
+                    if (!paymentResponseValidation.isSuccessful)
                     {
                         // update record
                         paymentLogRequest.PaymentStatus = PaymentStatusType.MakePayment;
@@ -481,7 +494,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private (bool isSuccessful, string? errorMessage) ValidatePaymentResponse(IntrabankTransferResponse? response)
         {
             if (response == null)
-                return (false, "Lien endpoint returned null when trying to initiate transfer on client's account");
+                return (false, "Payment endpoint returned null when trying to initiate transfer on client's account");
 
             if (response?.Code != _successStatusCode)
                 return (false, "Request was not successful when trying to initiate transfer on client's account");
@@ -594,5 +607,15 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
         }
 
+        public Task GenerateDailySummaryForZonalServiceManagers()
+        {
+            // get all zonal service managers
+            var query = _appDbContext.Users
+                .Where(user => user.Role.Name == nameof(RoleType.ZonalServiceManager)); // Filter users by role
+
+            // get 
+
+            throw new NotImplementedException();
+        }
     }
 }

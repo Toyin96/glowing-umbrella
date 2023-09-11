@@ -7,7 +7,7 @@ namespace LegalSearch.Application.Interfaces.BackgroundService
     {
         Task AssignRequestToSolicitorsJob(Guid requestId);
         Task ManuallyAssignRequestToSolicitorJob(Guid requestId, Guid solicitorId);
-
+        Task GenerateDailySummaryForZonalServiceManagers();
         Task PushBackRequestToCSOJob(Guid requestId);
         Task InitiatePaymentToSolicitorJob(Guid requestId);
         Task CheckAndRerouteRequestsJob();

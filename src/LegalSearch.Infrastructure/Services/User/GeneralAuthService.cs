@@ -360,6 +360,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 is2FaRequired = false,
                 DisplayName = user.FullName,
                 Branch = branch,
+                BranchId = user.SolId,
                 Role = role,
                 LastLoginDate = user.LastLogin,
                 SolId = user.SolId!
@@ -401,7 +402,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (roles[0] == RoleType.Solicitor.ToString())
             {
-                return await Generate2faTokenForSolicitor(user);
+                return await Generate2faTokenForSolicitor(user, roles[0]);
             }
 
             // update user's last login
@@ -448,7 +449,7 @@ namespace LegalSearch.Infrastructure.Services.User
             return await _userManager.IsLockedOutAsync(user);
         }
 
-        private async Task<ObjectResponse<LoginResponse>> Generate2faTokenForSolicitor(Domain.Entities.User.User user)
+        private async Task<ObjectResponse<LoginResponse>> Generate2faTokenForSolicitor(Domain.Entities.User.User user, string role)
         {
             // Generate and save the 2FA token
             var tokenProvider = TokenOptions.DefaultPhoneProvider; // You can use the appropriate token provider
@@ -472,7 +473,7 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful but requires 2fa
             return new ObjectResponse<LoginResponse>("Enter the code sent to your email to complete the login process", ResponseCodes.Success)
             {
-                Data = new LoginResponse { is2FaRequired = true }
+                Data = new LoginResponse { is2FaRequired = true, Role = role }
             };
         }
 
@@ -716,13 +717,13 @@ namespace LegalSearch.Infrastructure.Services.User
             // Reset the password
             var resetPasswordResult = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
 
+            if (!resetPasswordResult.Succeeded)
+                return new StatusResponse(resetPasswordResult.GetStandardizedError() ?? "Password reset failed.", ResponseCodes.Conflict);
+
             // update user's onboarding status
-            user.OnboardingStatus = OnboardingStatusType.Completed; //solicitor has successfully completed the onboarding process
+            user.OnboardingStatus = OnboardingStatusType.Completed; // solicitor has successfully completed the onboarding process
             user.ProfileStatus = ProfileStatusType.Active.ToString(); // make solicitor profile active
             await _userManager.UpdateAsync(user);
-
-            if (!resetPasswordResult.Succeeded)
-                return new StatusResponse("Password reset failed.", ResponseCodes.Conflict);
 
             return new StatusResponse("Password reset successful.", ResponseCodes.Success);
         }

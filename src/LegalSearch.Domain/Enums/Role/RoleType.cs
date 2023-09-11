@@ -7,7 +7,8 @@
         LegalPerfectionTeam,
         Admin,
         ITSupport,
-        ZonalServiceManager
+        ZonalServiceManager,
+        CustomerServiceManager
     }
 
     public enum NotificationRecipientType
