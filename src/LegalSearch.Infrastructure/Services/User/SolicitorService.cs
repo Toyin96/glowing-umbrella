@@ -107,6 +107,17 @@ namespace LegalSearch.Infrastructure.Services.User
             return new StatusResponse("Request have been pushed to solicitor's tab", ResponseCodes.Success);
         }
 
+        public async Task<ListResponse<SolicitorProfileResponseDto>> ViewMappedSolicitorsProfiles(ViewSolicitorsBasedOnRegionRequestFilter viewSolicitorsBasedOnRegionRequestFilter)
+        {
+            var solicitors = await MappedSolicitorFilter(viewSolicitorsBasedOnRegionRequestFilter);
+
+            return new ListResponse<SolicitorProfileResponseDto>("Operation was successful", ResponseCodes.Success)
+            {
+                Data = solicitors,
+                Total = solicitors.Count
+            };
+        }
+
         public async Task<ObjectResponse<SolicitorProfileDto>?> ViewSolicitorProfile(Guid userId)
         {
             var solicitor = await _appDbContext.Users
@@ -205,6 +216,39 @@ namespace LegalSearch.Infrastructure.Services.User
                 .ToListAsync();
 
             return solicitors ?? new List<SolicitorProfileDto> ();
+        }
+
+        private async Task<List<SolicitorProfileResponseDto>> MappedSolicitorFilter(ViewSolicitorsBasedOnRegionRequestFilter request)
+        {
+            var usersInRole = await _userManager.GetUsersInRoleAsync(nameof(RoleType.Solicitor));
+
+            var query = _appDbContext.Users
+                .Where(user => usersInRole.Contains(user)); // Filter users by role
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(user => user.ProfileStatus == request.Status.ToString());
+            }
+
+            var solicitors = await query
+                .Include(user => user.Firm)
+                .Include(user => user.State)
+                    .ThenInclude(state => state.Region)
+                .Select(x => new SolicitorProfileResponseDto
+                {
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    Firm = x.Firm.Name,
+                    SolicitorEmail = x.Email,
+                    SolicitorPhoneNumber = x.PhoneNumber,
+                    SolicitorState = x.State!.Name,
+                    SolicitorAddress = x.Firm.Address,
+                    SolicitorRegion = x.State!.Region!.Name,
+                    Status = x.ProfileStatus,
+                })
+                .ToListAsync();
+
+            return solicitors ?? new List<SolicitorProfileResponseDto>();
         }
     }
 }

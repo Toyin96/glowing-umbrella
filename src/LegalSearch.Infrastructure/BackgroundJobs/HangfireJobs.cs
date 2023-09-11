@@ -1,5 +1,6 @@
 ﻿using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
+using LegalSearch.Infrastructure.Utilities;
 
 namespace LegalSearch.Infrastructure.BackgroundJobs
 {
@@ -8,8 +9,9 @@ namespace LegalSearch.Infrastructure.BackgroundJobs
     {
         public static void RegisterRecurringJobs()
         {
-             RecurringJob.AddOrUpdate<IBackgroundService>("CheckAndRerouteRequestsJob", x => x.CheckAndRerouteRequestsJob(), Cron.Minutely);
-             RecurringJob.AddOrUpdate<IBackgroundService>("NotificationReminderForUnAttendedRequestsJob", x => x.NotificationReminderForUnAttendedRequestsJob(), Cron.Hourly);
+            RecurringJob.AddOrUpdate<IBackgroundService>("CheckAndRerouteRequestsJob", x => x.CheckAndRerouteRequestsJob(), Cron.Hourly);
+            RecurringJob.AddOrUpdate<IBackgroundService>("NotificationReminderForUnAttendedRequestsJob", x => x.NotificationReminderForUnAttendedRequestsJob(), Cron.Hourly);
+            RecurringJob.AddOrUpdate<IBackgroundService>("GenerateDailySummaryForZonalServiceManagers", x => x.GenerateDailySummaryForZonalServiceManagers(), TimeUtils.GetCronExpressionFor10pmDailyWAT);
         }
     }
 }

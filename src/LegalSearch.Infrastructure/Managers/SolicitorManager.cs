@@ -22,7 +22,6 @@ namespace LegalSearch.Infrastructure.Managers
 
         public async Task<IEnumerable<SolicitorRetrievalResponse>> DetermineSolicitors(LegalRequest request)
         {
-            // Implement logic to determine solicitors based on request criteria
             List<Guid> firms = new List<Guid>();
 
             switch (request.RequestType)
@@ -57,7 +56,7 @@ namespace LegalSearch.Infrastructure.Managers
 
             // get solicitors
             List<SolicitorRetrievalResponse> solicitorIds = await _appDbContext.Users.Include(x => x.Firm)
-                                                                     .Where(x => firms.Contains(x.Firm.Id) 
+                                                                     .Where(x => firms.Contains(x.Firm.Id)
                                                                      && x.ProfileStatus == ProfileStatusType.Active.ToString()
                                                                      && x.OnboardingStatus == OnboardingStatusType.Completed)
                                                                      .Select(x => new SolicitorRetrievalResponse
@@ -82,13 +81,17 @@ namespace LegalSearch.Infrastructure.Managers
 
             if (solicitor == null) return false;
 
+            var state = await _appDbContext.States.FirstOrDefaultAsync(x => x.Id == request.State);
+
+            if (state == null) return false;
+
             solicitor.FirstName = request.FirstName;
             solicitor.LastName = request.LastName;
             solicitor.Firm!.Name = request.FirmName;
             solicitor.Email = request.Email;
-            solicitor.PhoneNumber = request.PhoneNumber; 
-            solicitor.StateId = request.State;
-            solicitor.State!.RegionId = request.Region;
+            solicitor.PhoneNumber = request.PhoneNumber;
+            solicitor.StateId = state.Id;
+            solicitor.State.RegionId = state.RegionId;
             solicitor.Firm.Address = request.Address;
             solicitor.BankAccount = request.AccountNumber;
 
@@ -99,55 +102,29 @@ namespace LegalSearch.Infrastructure.Managers
         public async Task<IEnumerable<SolicitorRetrievalResponse>> FetchSolicitorsInSameRegion(Guid regionId)
         {
 
-            var userIds = _appDbContext.Users
+            var userIds = await _appDbContext.Users
                                         .Include(x => x.Firm)
                                         .Include(x => x.Firm.State)
                                             .ThenInclude(x => x.Region)
-                                        .Where(u => u.Firm.Id != default && u.Firm.StateId != null 
-                                        && u.Firm.State.RegionId == regionId && u.ProfileStatus == ProfileStatusType.Active.ToString())
+                                        .Where(u => u.Firm.Id != Guid.Empty && u.Firm.StateId != null
+                                        && u.Firm.State.RegionId == regionId && u.ProfileStatus == nameof(ProfileStatusType.Active))
                                         .Select(u => new SolicitorRetrievalResponse
                                         {
                                             SolicitorId = u.Id,
                                         })
-                                        .ToList();
+                                        .ToListAsync();
 
             return userIds ?? Enumerable.Empty<SolicitorRetrievalResponse>();
-
-
-            //var states = await _appDbContext.States
-            //                                .Where(x => x.RegionId == regionId)
-            //                                .Select(x => x.Id)
-            //                                .ToListAsync();
-
-            //if (states == null || states?.Count == 0)
-            //{
-            //    return Enumerable.Empty<SolicitorRetrievalResponse>();
-            //}
-
-            //// query firms
-            //List<Guid> firms = await _appDbContext.Firms.Where(x => x.StateId.HasValue && states.Contains(x.StateId.Value))
-            //                                                              .Select(x => x.Id).ToListAsync();
-
-            //// query solicitors
-            //List<SolicitorRetrievalResponse> solicitorsIds = await _appDbContext.Users
-            //                                                                    .Include(x => x.Firm)
-            //                                                                    .Where(x => firms.Contains(x.Firm.Id))
-            //                                                                    .Select(x => new SolicitorRetrievalResponse
-            //                                                                    {
-            //                                                                        SolicitorId = x.Id
-            //                                                                    }).ToListAsync();
-
-            //return solicitorsIds ?? Enumerable.Empty<SolicitorRetrievalResponse>();
         }
 
         public async Task<SolicitorAssignment> GetCurrentSolicitorMappedToRequest(Guid requestId, Guid solicitorId)
         {
-
-            var assignment = await _appDbContext.SolicitorAssignments
-                                                .Where(a => a.RequestId == requestId && !a.IsAccepted && a.SolicitorId == solicitorId)
+            var solicitorAssignmentRecord = await _appDbContext.SolicitorAssignments
+                                                .Where(a => a.RequestId == requestId && !a.IsAccepted
+                                                && a.SolicitorId == solicitorId)
                                                 .FirstOrDefaultAsync();
 
-            return assignment;
+            return solicitorAssignmentRecord;
         }
 
         public async Task<SolicitorAssignment> GetNextSolicitorInLine(Guid requestId, int currentOrder = 0)
@@ -177,10 +154,11 @@ namespace LegalSearch.Infrastructure.Managers
 
         public async Task<IEnumerable<Guid>> GetRequestsToReroute()
         {
-            var twentyMinutesAgo = DateTime.UtcNow.AddHours(1).AddMinutes(-20); // 20 minutes ago
+            // re-routes requests with elapsed SLA
+            var elapsedTime = TimeUtils.GetSeventyTwoHoursElapsedTime();
 
             var requestIds = await _appDbContext.SolicitorAssignments
-                                                .Where(a => !a.IsAccepted && a.AssignedAt <= twentyMinutesAgo)
+                                                .Where(a => a.IsAccepted && a.AssignedAt <= elapsedTime)
                                                 .Select(a => a.RequestId)
                                                 .Distinct()
                                                 .ToListAsync();
@@ -188,20 +166,27 @@ namespace LegalSearch.Infrastructure.Managers
             return requestIds ?? Enumerable.Empty<Guid>();
         }
 
-        public async Task<IEnumerable<Guid>> GetUnattendedAcceptedRequestsForTheTimeFrame(DateTime timeframe)
+        public async Task<IEnumerable<Guid>> GetUnattendedAcceptedRequestsForTheTimeFrame(DateTime timeframe, bool isSlaElapsed)
         {
             /*
-             this method queries requests that have been accepted by solicitors but 
-            left unattended within the timeframe. Time can be past 24 hours(1 day) or past 72 hours (3 days)
+             This method queries requests that have been accepted by solicitors but 
+             left unattended within the timeframe. Time can be past 24 hours(1 day) or past 72 hours (3 days)
              */
 
-            var requestIds = await _appDbContext.SolicitorAssignments
-                                                .Where(a => a.IsAccepted && a.AssignedAt <= timeframe)
-                                                .Select(a => a.RequestId)
-                                                .Distinct()
-                                                .ToListAsync();
+            var query = _appDbContext.SolicitorAssignments
+                                     .Where(a => a.IsAccepted && a.AssignedAt <= timeframe);
 
-            return requestIds ?? Enumerable.Empty<Guid>();
+            if (!isSlaElapsed)
+            {
+                DateTime elapsedSlaTime = TimeUtils.GetSeventyTwoHoursElapsedTime();
+                query = query.Where(a => a.AssignedAt > elapsedSlaTime);
+            }
+
+            var requestIds = await query.Select(a => a.RequestId)
+                                        .Distinct()
+                                        .ToListAsync();
+
+            return requestIds;
         }
     }
 }

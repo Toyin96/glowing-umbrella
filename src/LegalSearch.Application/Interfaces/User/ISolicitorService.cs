@@ -11,6 +11,7 @@ namespace LegalSearch.Application.Interfaces.User
         Task<StatusResponse> ManuallyAssignRequestToSolicitor(ManuallyAssignRequestToSolicitorRequest manuallyAssignRequestToSolicitorRequest);
         Task<StatusResponse> ActivateOrDeactivateSolicitor(ActivateOrDeactivateSolicitorRequest activateOrDeactivateSolicitorRequest);
         Task<ListResponse<SolicitorProfileDto>> ViewSolicitors(ViewSolicitorsRequestFilter viewSolicitorsRequestFilter);
+        Task<ListResponse<SolicitorProfileResponseDto>> ViewMappedSolicitorsProfiles(ViewSolicitorsBasedOnRegionRequestFilter viewSolicitorsBasedOnRegionRequestFilter);
         Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest editSolicitorProfileRequest);
     }
 }

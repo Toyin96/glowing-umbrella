@@ -9,4 +9,9 @@ namespace LegalSearch.Application.Models.Requests.Solicitor
         public Guid? FirmId { get; set; }
         public ProfileStatusType? Status { get; set; }
     }
+
+    public record ViewSolicitorsBasedOnRegionRequestFilter : PaginatedRequest
+    {
+        public ProfileStatusType? Status { get; set; }
+    }
 }

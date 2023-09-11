@@ -20,6 +20,7 @@ using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -62,30 +63,30 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             _options = options.Value;
         }
 
-        public async Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest acceptRequest)
+        public async Task<StatusResponse> AcceptLegalSearchRequest(AcceptRequest request)
         {
             try
             {
-                // get legal request
-                var result = await FetchAndValidateRequest(acceptRequest.RequestId, acceptRequest.SolicitorId);
+                // get legal legalSearchRequest
+                var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
                     return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
 
-                // update request status
-                var request = result.request;
+                // update legalSearchRequest status
+                var legalSearchRequest = result.request;
 
                 // get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request!.AssignedSolicitorId);
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId);
 
-                // check if request is currently assigned to solicitor
+                // check if legalSearchRequest is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
-                solicitorAssignmentRecord.IsAccepted = true; // solicitor accepts request here
+                solicitorAssignmentRecord.IsAccepted = true; // solicitor accepts legalSearchRequest here
 
-                request!.Status = nameof(RequestStatusType.LawyerAccepted);
-                var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request);
+                legalSearchRequest!.Status = nameof(RequestStatusType.LawyerAccepted);
+                var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearchRequest);
 
                 if (!isRequestUpdated)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
@@ -94,7 +95,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occured inside AcceptLegalSearchRequest. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside AcceptLegalSearchRequest. See reason: {JsonSerializer.Serialize(ex)}");
 
                 return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
@@ -130,13 +131,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // get the CSO account
                 var user = await _userManager.FindByIdAsync(userId);
 
-                // create new legal search request 
+                // create new legal search legalSearchRequest 
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
 
-                // assign lien ID to request
+                // assign lien ID to legalSearchRequest
                 //newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
 
-                //update request payload
+                //update legalSearchRequest payload
                 newLegalSearchRequest.BranchId = user.SolId ?? user!.BranchId!;
                 newLegalSearchRequest.StaffId = user!.StaffId!;
                 newLegalSearchRequest.InitiatorId = user!.Id;
@@ -145,13 +146,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // add registration documents and other information here
                 await AddAdditionalInfoAndDocuments(legalSearchRequest, newLegalSearchRequest);
 
-                // persist request
+                // persist legalSearchRequest
                 var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
 
                 if (!result)
                     return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
 
-                // Enqueue the request for background processing
+                // Enqueue the legalSearchRequest for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitorsJob(newLegalSearchRequest.Id));
 
                 return new StatusResponse("Request created successfully", ResponseCodes.Success);
@@ -249,7 +250,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<RegistrationDocument> documents = await ProcessRegistrationDocument(legalSearchRequest.RegistrationDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
             }
 
@@ -258,7 +259,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<SupportingDocument> documents = await ProcessSupportingDocuments(legalSearchRequest.SupportingDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
             }
         }
@@ -275,7 +276,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<RegistrationDocument> documents = await ProcessRegistrationDocument(legalSearchRequest.RegistrationDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
             }
 
@@ -284,7 +285,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<SupportingDocument> documents = await ProcessSupportingDocuments(legalSearchRequest.SupportingDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
             }
         }
@@ -301,7 +302,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<RegistrationDocument> documents = await ProcessRegistrationDocument(legalSearchRequest.RegistrationDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.RegistrationDocuments.Add(x));
             }
 
@@ -310,7 +311,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             {
                 List<SupportingDocument> documents = await ProcessSupportingDocuments(legalSearchRequest.SupportingDocuments);
 
-                // attach document to request object
+                // attach document to legalSearchRequest object
                 documents.ForEach(x => newLegalSearchRequest.SupportingDocuments.Add(x));
             }
         }
@@ -342,14 +343,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     request!.Discussions.Add(new Discussion { Conversation = returnRequest.Feedback });
                 }
 
-                // update request
+                // update legalSearchRequest
                 request!.Status = nameof(RequestStatusType.BackToCso);
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
                 if (isRequestUpdated == false)
                     return new StatusResponse("An error occurred while sending request. Please try again later.", result.errorCode);
 
-                // Enqueue the request for background processing
+                // Enqueue the legalSearchRequest for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.PushBackRequestToCSOJob(request!.Id));
 
                 return new StatusResponse("Request has been successfully pushed back to staff for additional information/clarification"
@@ -367,7 +368,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                // get legal request
+                // get legal legalSearchRequest
                 var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
@@ -378,7 +379,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // get solicitor assignment record
                 var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId);
 
-                // check if request is currently assigned to solicitor
+                // check if legalSearchRequest is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
@@ -389,7 +390,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (!isRequestUpdated)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 
-                // Enqueue the request for background processing
+                // Enqueue the legalSearchRequest for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.PushRequestToNextSolicitorInOrder(legalSearchRequest.Id, solicitorAssignmentRecord.Order));
 
                 return new StatusResponse("Operation is successful", ResponseCodes.Success);
@@ -405,7 +406,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                // get legal request
+                // get legal legalSearchRequest
                 var result = await FetchAndValidateAcceptedRequest(submitLegalSearchReport.RequestId, solicitorId);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
@@ -413,7 +414,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var request = result.request;
 
-                // verify that customer request have a lien ID
+                // verify that customer legalSearchRequest have a lien ID
                 if (request!.LienId == null)
                     return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
 
@@ -433,14 +434,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     request!.Discussions.Add(new Discussion { Conversation = submitLegalSearchReport.Feedback });
                 }
 
-                // update request
+                // update legalSearchRequest
                 request!.Status = nameof(RequestStatusType.Completed);
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
                 if (isRequestUpdated == false)
                     return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
 
-                // Notify of the request update
+                // Notify of the legalSearchRequest update
                 var notification = new Domain.Entities.Notification.Notification
                 {
                     Title = "Request has been completed",
@@ -449,7 +450,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     MetaData = JsonSerializer.Serialize(request)
                 };
 
-                // Push request to credit solicitor's account upon completion of request
+                // Push legalSearchRequest to credit solicitor's account upon completion of legalSearchRequest
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
@@ -468,13 +469,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateRequest(Guid requestId, Guid solicitorId)
         {
-            // get legal request
+            // get legal legalSearchRequest
             var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
 
             if (request == null)
                 return (request, "Could not find request", BaseResponseCodes.ServiceError);
 
-            // check if request is currently assigned to solicitor
+            // check if legalSearchRequest is currently assigned to solicitor
             if (request.AssignedSolicitorId != solicitorId)
                 return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
 
@@ -486,13 +487,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateAcceptedRequest(Guid requestId, Guid solicitorId)
         {
-            // get legal request
+            // get legal legalSearchRequest
             var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
 
             if (request == null)
                 return (request, "Could not find request", BaseResponseCodes.ServiceError);
 
-            // check if request is currently assigned to solicitor
+            // check if legalSearchRequest is currently assigned to solicitor
             if (request.AssignedSolicitorId != solicitorId)
                 return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
 
@@ -620,9 +621,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
-        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid csoId)
+        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request, Guid csoId)
         {
-            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request, csoId);
+            // get user
+            var user = await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == csoId);
+
+            if (user == null) return new ObjectResponse<CsoRootResponsePayload>("User not found. Please try again", ResponseCodes.Forbidden);
+
+            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request, user);
 
             return new ObjectResponse<CsoRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
@@ -634,7 +640,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             var newLegalSearchRequest = MapFinacleRequestToLegalRequest(legalSearchRequest);
 
-            // persist request
+            // persist legalSearchRequest
             var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
 
             if (result == false)
@@ -670,7 +676,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                // fetch legal search request 
+                // fetch legal search legalSearchRequest 
                 var legalSearch = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
 
                 if (legalSearch == null)
@@ -708,7 +714,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // update legal search record 
                 legalSearch = await UpdateLegalSearchRecord(legalSearch, request);
 
-                // assign lien ID, staff ID to request
+                // assign lien ID, staff ID to legalSearchRequest
                 legalSearch.LienId = addLienResponse!.Data.LienId;
                 legalSearch.InitiatorId = user!.Id;
                 legalSearch.StaffId = user.StaffId;
@@ -720,7 +726,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (!result)
                     return new ObjectResponse<string>("Request could not be updated", ResponseCodes.ServiceError);
 
-                // Enqueue the request for background processing
+                // Enqueue the legalSearchRequest for background processing
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitorsJob(legalSearch.Id));
 
                 return new StatusResponse("Request updated successfully, and queued for processing", ResponseCodes.Success);
@@ -758,10 +764,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         private async Task<(string status, string errorMessage)> ValidateCancelLegalSearchRequest(CancelRequest request)
         {
-            // get request
+            // get legalSearchRequest
             var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
 
-            // validate request
+            // validate legalSearchRequest
             if (legalSearchRequest == null)
                 return (ResponseCodes.NotFound, "Request not found");
 
@@ -795,7 +801,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         public async Task<StatusResponse> UpdateRequestByStaff(UpdateRequest request)
         {
-            // get request
+            // get legalSearchRequest
             var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
 
             if (legalSearchRequest == null)
@@ -808,7 +814,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (!result)
                 return new ObjectResponse<string>("Request could not be updated", ResponseCodes.ServiceError);
 
-            // Enqueue the request for background processing
+            // Enqueue the legalSearchRequest for background processing
             BackgroundJob.Enqueue<IBackgroundService>(x => x.AssignRequestToSolicitorsJob(legalSearchRequest.Id));
 
             return new StatusResponse("Request updated successfully, and queued for processing", ResponseCodes.Success);
@@ -857,19 +863,19 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             if (request.RegistrationDocuments != null && request.RegistrationDocuments.Any())
             {
-                // Create a set of unique file names from request.RegistrationDocuments
+                // Create a set of unique file names from legalSearchRequest.RegistrationDocuments
                 var registrationDocumentFileNames = new HashSet<string>(request.RegistrationDocuments.Select(item => item.FileName));
 
-                // Remove documents not in request.RegistrationDocuments
+                // Remove documents not in legalSearchRequest.RegistrationDocuments
                 RemoveDocumentsNotInRequest(legalSearchRequest.RegistrationDocuments, registrationDocumentFileNames);
             }
 
             if (request.SupportingDocuments != null && request.SupportingDocuments.Any())
             {
-                // Create a set of unique file names from request.SupportingDocuments
+                // Create a set of unique file names from legalSearchRequest.SupportingDocuments
                 var SupportingDocumentFileNames = new HashSet<string>(request.SupportingDocuments.Select(item => item.FileName));
 
-                // Remove documents not in request.SupportingDocuments
+                // Remove documents not in legalSearchRequest.SupportingDocuments
                 RemoveDocumentsNotInRequest(legalSearchRequest.SupportingDocuments, SupportingDocumentFileNames);
             }
         }
