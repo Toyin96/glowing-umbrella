@@ -360,7 +360,6 @@ namespace LegalSearch.Infrastructure.Services.User
                 is2FaRequired = false,
                 DisplayName = user.FullName,
                 Branch = branch,
-                BranchId = user.SolId,
                 Role = role,
                 LastLoginDate = user.LastLogin,
                 SolId = user.SolId!
