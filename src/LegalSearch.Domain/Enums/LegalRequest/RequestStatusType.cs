@@ -8,6 +8,7 @@
         LawyerRejected,
         BackToCso,
         UnAssigned,
-        Completed
+        Completed,
+        Cancelled
     }
 }

@@ -623,12 +623,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request, Guid csoId)
         {
-            // get user
-            var user = await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == csoId);
-
-            if (user == null) return new ObjectResponse<CsoRootResponsePayload>("User not found. Please try again", ResponseCodes.Forbidden);
-
-            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request, user);
+            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request);
 
             return new ObjectResponse<CsoRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
@@ -757,12 +752,12 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
         public async Task<StatusResponse> CancelLegalSearchRequest(CancelRequest request)
         {
-            var response = await ValidateCancelLegalSearchRequest(request);
+            var (status, errorMessage) = await CancelLegalSearchRequestAction(request);
 
-            return new StatusResponse(response.errorMessage, response.status);
+            return new StatusResponse(errorMessage, status);
         }
 
-        private async Task<(string status, string errorMessage)> ValidateCancelLegalSearchRequest(CancelRequest request)
+        private async Task<(string status, string errorMessage)> CancelLegalSearchRequestAction(CancelRequest request)
         {
             // get legalSearchRequest
             var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
@@ -771,7 +766,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (legalSearchRequest == null)
                 return (ResponseCodes.NotFound, "Request not found");
 
-            legalSearchRequest.Status = RequestStatusType.UnAssigned.ToString();
+            legalSearchRequest.Status = RequestStatusType.Cancelled.ToString();
             legalSearchRequest.ReasonForCancelling = request.Reason;
             legalSearchRequest.DateOfCancellation = TimeUtils.GetCurrentLocalTime();    
 
@@ -878,6 +873,16 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // Remove documents not in legalSearchRequest.SupportingDocuments
                 RemoveDocumentsNotInRequest(legalSearchRequest.SupportingDocuments, SupportingDocumentFileNames);
             }
+        }
+
+        public async Task<ObjectResponse<BranchLegalSearchResponsePayload>> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request)
+        {
+            var response = await _legalSearchRequestManager.GetBranchLegalRequestsForStaff(request);
+
+            return new ObjectResponse<BranchLegalSearchResponsePayload>("Successfully Retrieved Legal Search Requests")
+            {
+                Data = response,
+            };
         }
     }
 }

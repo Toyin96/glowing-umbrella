@@ -10,6 +10,7 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
     {
         Task<ListResponse<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId);
         Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request, Guid csoId);
+        Task<ObjectResponse<BranchLegalSearchResponsePayload>> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request);
         Task<ObjectResponse<LegalSearchRootResponsePayload>> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
         Task<ObjectResponse<GetAccountInquiryResponse>> PerformNameInquiryOnAccount(string accountNumber);
         Task<StatusResponse> CreateNewRequestFromFinacle(Models.Requests.FinacleLegalSearchRequest legalSearchRequest);

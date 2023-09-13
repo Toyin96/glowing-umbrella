@@ -59,6 +59,12 @@ namespace LegalSearch.Api
                 });
             });
 
+            services.AddHttpsRedirection(options =>
+            {
+                options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+                options.HttpsPort = 443; // Default HTTPS port
+            });
+
             services.AddHttpClient<IFCMBService, FCMBService>();
             services.AddOptions<FCMBServiceAppConfig>().BindConfiguration(nameof(FCMBServiceAppConfig)).ValidateDataAnnotations();
 
