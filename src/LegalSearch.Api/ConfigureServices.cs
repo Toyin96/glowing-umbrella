@@ -13,9 +13,11 @@ using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -59,12 +61,6 @@ namespace LegalSearch.Api
                 });
             });
 
-            services.AddHttpsRedirection(options =>
-            {
-                options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
-                options.HttpsPort = 443; // Default HTTPS port
-            });
-
             services.AddHttpClient<IFCMBService, FCMBService>();
             services.AddOptions<FCMBServiceAppConfig>().BindConfiguration(nameof(FCMBServiceAppConfig)).ValidateDataAnnotations();
 
@@ -96,8 +92,6 @@ namespace LegalSearch.Api
             app.UseGlobalExceptionHandler();
 
             app.UseRouting();
-
-            app.UseHttpsRedirection();
 
             app.UseCors();
 
