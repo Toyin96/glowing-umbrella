@@ -5,6 +5,7 @@
         NewRequest = 1,
         AssignedToLawyer,
         LawyerRejected,
-        Completed
+        Completed,
+        Returned
     }
 }

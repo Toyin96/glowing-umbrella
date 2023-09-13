@@ -105,5 +105,23 @@ namespace LegalSearch.Api.Controllers
 
             return HandleResponse(result);
         }
+
+        /// <summary>
+        /// Endpoint to get branch legal search request analytics for CSO   
+        /// </summary>
+        /// <param name="csoDashboardAnalyticsRequest"></param>
+        /// <returns></returns>
+        [HttpGet("ViewBranchRequestAnalytics")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<BranchLegalSearchResponsePayload>>> ViewBranchRequestAnalytics([FromQuery] CsoBranchDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        {
+            var solId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.SolId))!.Value;
+            csoDashboardAnalyticsRequest.BranchId = solId;
+            var result = await _legalSearchRequestService.GetBranchLegalRequestsForStaff(csoDashboardAnalyticsRequest);
+
+            return HandleResponse(result);
+        }
     }
 }

@@ -5,6 +5,8 @@ using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.Entities.LegalRequest;
+using LegalSearch.Domain.Entities.User;
+using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
@@ -31,10 +33,12 @@ namespace LegalSearch.Infrastructure.Managers
         public async Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload request, Guid solicitorId)
         {
             // Step 1: Create the query to fetch legal requests
-            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests
+            IQueryable<LegalRequest> rawQuery = _appDbContext.LegalSearchRequests
                                                           .Include(x => x.Discussions)
                                                           .Include(x => x.SupportingDocuments)
                                                           .Include(x => x.SupportingDocuments);
+
+            var query = rawQuery;
 
             // Step 2: Retrieve the solicitor assignments for the given solicitor
             var solicitorAssignments = await _appDbContext.SolicitorAssignments
@@ -48,7 +52,7 @@ namespace LegalSearch.Infrastructure.Managers
                 return new LegalSearchRootResponsePayload
                 {
                     LegalSearchRequests = new List<LegalSearchResponsePayload>(),
-                    TotalRequests = 0,
+                    TotalRequestsCount = 0,
                     WithinSLACount = 0,
                     ElapsedSLACount = 0,
                     Within3HoursToDueCount = 0
@@ -76,9 +80,10 @@ namespace LegalSearch.Infrastructure.Managers
             {
                 query = FilterQueryBasedOnRequestStatus(request, solicitorId, query, assignedRequestIds);
             }
-
-            // Step 6: Apply filtering to fetch only assigned requests
-            query = query.Where(x => assignedRequestIds.Contains(x.Id));
+            else
+            {
+                query = query.Where(x => assignedRequestIds.Contains(x.Id));
+            }
 
             // Step 7: Apply pagination to the query as per the request 
             query.Paginate(request);
@@ -138,22 +143,106 @@ namespace LegalSearch.Infrastructure.Managers
                 ReasonOfCancellation = x.ReasonForCancelling,
                 DateOfCancellation = x.DateOfCancellation,
                 DateDue = x.DateDue.HasValue ? x.DateDue : DateTime.MinValue,
-                Discussions = x.Discussions.Select(x => new DiscussionDto { Conversation = x.Conversation }).ToList(), 
-                SupportingDocuments = x.SupportingDocuments.Select(x => new RegistrationDocumentDto { FileName = x.FileName, FileContent = x.FileContent, FileType = x.FileType}).ToList(),
+                Discussions = x.Discussions.Select(x => new DiscussionDto { Conversation = x.Conversation }).ToList(),
+                SupportingDocuments = x.SupportingDocuments.Select(x => new RegistrationDocumentDto { FileName = x.FileName, FileContent = x.FileContent, FileType = x.FileType }).ToList(),
                 RegistrationDocuments = x.RegistrationDocuments.Select(x => new RegistrationDocumentDto { FileName = x.FileName, FileContent = x.FileContent, FileType = x.FileType }).ToList(),
             }).ToList();
 
+            // get the requests query 
+            var assignedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString() && x.AssignedSolicitorId == solicitorId);
+            var completedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.Completed.ToString() && x.AssignedSolicitorId == solicitorId);
+            var newRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString() && x.AssignedSolicitorId == solicitorId);
+            var rejectedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerRejected.ToString() && x.AssignedSolicitorId == solicitorId);
+            var returnedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.BackToCso.ToString() && x.AssignedSolicitorId == solicitorId);
+
             // Step 12: Calculate the counts for the three categories
+            var assignedRequestsCount = assignedRequestsCountQuery != null ? await assignedRequestsCountQuery.CountAsync() : 0;
+            var completedRequestsCount = completedRequestsCountQuery != null ? await completedRequestsCountQuery.CountAsync() : 0;
+            var rejectedRequestsCount = rejectedRequestsCountQuery != null ? await rejectedRequestsCountQuery.CountAsync() : 0;
+            var returnedRequestsCount = returnedRequestsCountQuery != null ? await returnedRequestsCountQuery.CountAsync() : 0;
+            var newRequestsCount = newRequestsCountQuery != null ? await newRequestsCountQuery.CountAsync() : 0;
+
+            // Calculate requests by month
+            var requestsByMonth = CalculateRequestsByMonth(mappedResponse, TimeUtils.GetCurrentLocalTime());
+
+            // Step 13: Map the response data to the response payload
             var summary = new LegalSearchRootResponsePayload
             {
+                AssignedRequestsCount = assignedRequestsCount,
+                CompletedRequestsCount = completedRequestsCount,
+                RejectedRequestsCount = rejectedRequestsCount,
+                ReturnedRequestsCount = returnedRequestsCount,
+                NewRequestsCount = newRequestsCount,
                 LegalSearchRequests = mappedResponse,
-                TotalRequests = mappedResponse.Count,
+                TotalRequestsCount = mappedResponse.Count,
                 WithinSLACount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateCreated && currentTime < x.DateDue?.AddHours(-3)),
                 ElapsedSLACount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue),
-                Within3HoursToDueCount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue?.AddHours(-3) && currentTime <= x.DateDue)
+                Within3HoursToDueCount = mappedResponse.Count(x => x.DateDue != null && currentTime > x.DateDue?.AddHours(-3) && currentTime <= x.DateDue),
+                RequestsByMonth = requestsByMonth 
             };
 
             return summary;
+        }
+
+        private Dictionary<string, Dictionary<string, int>> CalculateRequestsByMonth(List<LegalSearchResponsePayload> mappedResponse, DateTime currentTime)
+        {
+            // Initialize the dictionary with all months and counts set to zero
+            var allMonths = Enumerable.Range(1, 12).Select(month => new DateTime(currentTime.Year, month, 1));
+
+            var requestsByMonth = allMonths.ToDictionary(
+                month => month.ToString("MMM"),
+                _ => new Dictionary<string, int> { { "new", 0 }, { "comp", 0 } }
+            );
+
+            // Update the counts for months that have requests
+            foreach (var request in mappedResponse)
+            {
+                var monthKey = request.DateCreated.ToString("MMM");
+                if (requestsByMonth.ContainsKey(monthKey))
+                {
+                    if (request.Status == RequestStatusType.AssignedToLawyer.ToString())
+                    {
+                        requestsByMonth[monthKey]["new"]++;
+                    }
+                    else if (request.Status == RequestStatusType.Completed.ToString())
+                    {
+                        requestsByMonth[monthKey]["comp"]++;
+                    }
+                }
+            }
+
+            return requestsByMonth;
+        }
+
+        private Dictionary<string, Dictionary<string, int>> CalculateRequestsByMonthForCso(List<LegalSearchResponsePayload> allRecords, DateTime currentTime)
+        {
+            // Initialize the dictionary with all months and counts set to zero
+            var allMonths = Enumerable.Range(1, 12).Select(month => new DateTime(currentTime.Year, month, 1));
+
+            var requestsByMonth = allMonths.ToDictionary(
+                month => month.ToString("MMM"),
+                _ => new Dictionary<string, int> { { "open", 0 }, { "completed", 0 } }
+            );
+
+            // Update the counts for months that have requests
+            foreach (var request in allRecords)
+            {
+                var monthKey = request.DateCreated.ToString("MMM");
+                if (requestsByMonth.ContainsKey(monthKey))
+                {
+                    if (request.Status != RequestStatusType.Completed.ToString()
+                        && request.Status != RequestStatusType.Cancelled.ToString())
+                    {
+                        requestsByMonth[monthKey]["open"]++;
+                    }
+                    else if (request.Status == RequestStatusType.Completed.ToString())
+                    {
+                        requestsByMonth[monthKey]["completed"]++;
+                    }
+                }
+            }
+
+            return requestsByMonth;
         }
 
         private static IQueryable<LegalRequest> FilterQueryBasedOnRequestStatus(SolicitorRequestAnalyticsPayload request, Guid solicitorId, IQueryable<LegalRequest> query, List<Guid> assignedRequestIds)
@@ -161,10 +250,11 @@ namespace LegalSearch.Infrastructure.Managers
             switch (request.RequestStatus)
             {
                 case SolicitorRequestStatusType.NewRequest:
-                    query = query.Where(x => x.Status == RequestStatusType.Initiated.ToString());
+                    query = query.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString()
+                    && x.AssignedSolicitorId == solicitorId);
                     break;
                 case SolicitorRequestStatusType.AssignedToLawyer:
-                    query = query.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString()
+                    query = query.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString()
                     && x.AssignedSolicitorId == solicitorId);
                     break;
                 case SolicitorRequestStatusType.Completed:
@@ -174,6 +264,10 @@ namespace LegalSearch.Infrastructure.Managers
                 case SolicitorRequestStatusType.LawyerRejected:
                     query = query.Where(x => assignedRequestIds.Contains(x.Id) &&
                     x.AssignedSolicitorId != solicitorId);
+                    break;
+                case SolicitorRequestStatusType.Returned:
+                    query = query.Where(x => x.Status == RequestStatusType.BackToCso.ToString()
+                    && x.AssignedSolicitorId == solicitorId);
                     break;
             }
 
@@ -185,13 +279,14 @@ namespace LegalSearch.Infrastructure.Managers
             switch (request.CsoRequestStatusType)
             {
                 case CsoRequestStatusType.PendingWithCso:
-                    query = query.Where(x => x.Status == RequestStatusType.BackToCso.ToString());
+                    query = query.Where(x => (x.Status == RequestStatusType.BackToCso.ToString()) ||
+                                    (x.Status == RequestStatusType.UnAssigned.ToString() && x.RequestSource == RequestSourceType.Finacle));
                     break;
                 case CsoRequestStatusType.PendingWithSolicitor:
                     query = query.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString());
                     break;
                 case CsoRequestStatusType.CancelledRequest:
-                    query = query.Where(x => x.Status == RequestStatusType.UnAssigned.ToString());
+                    query = query.Where(x => x.Status == RequestStatusType.Cancelled.ToString());
                     break;
                 case CsoRequestStatusType.Completed:
                     query = query.Where(x => x.Status == RequestStatusType.Completed.ToString());
@@ -217,13 +312,15 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<CsoRootResponsePayload> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request, Domain.Entities.User.User user)
+        public async Task<CsoRootResponsePayload> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request)
         {
             // Step 1: Create the query to fetch legal requests
-            IQueryable<LegalRequest> query = _appDbContext.LegalSearchRequests
+            IQueryable<LegalRequest> rawQuery = _appDbContext.LegalSearchRequests
                                                             .Include(x => x.Discussions)
                                                             .Include(x => x.RegistrationDocuments)
                                                             .Include(x => x.SupportingDocuments);
+
+            var query = rawQuery;
 
             // Step 2: Apply filtering based on the request payload
             query = ApplyFilters(request, query);
@@ -232,19 +329,48 @@ namespace LegalSearch.Infrastructure.Managers
             query = query.Paginate(request);
 
             // Step 4: Get distinct state IDs
-            var businessLocationGuids = query.Select(x => x.BusinessLocation);
-            var registrationLocationGuids = query.Select(x => x.RegistrationLocation);
-
-            var allLocationGuids = businessLocationGuids.Concat(registrationLocationGuids).Distinct().ToList();
+            var locationGuids = query.Select(x => x.BusinessLocation)
+                                    .Union(query.Select(x => x.RegistrationLocation))
+                                    .Distinct()
+                                    .ToList();
 
             // Step 5: Create a dictionary of states based on the locationGuids
-            var stateQuery = _appDbContext.States;
-            var stateDictionary = await stateQuery
-                .Where(location => allLocationGuids.Contains(location.Id))
-                .ToDictionaryAsync(location => location.Id, location => location);
+            var stateDictionary = await _appDbContext.States
+                                                     .Where(location => locationGuids.Contains(location.Id))
+                                                     .ToDictionaryAsync(location => location.Id, location => location);
 
             // Step 6: Fetch the requested data
-            var response = await query
+            List<LegalSearchResponsePayload> response = await GenerateLegalSearchResponsePayload(query, stateDictionary);
+
+            var allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary);
+
+            // Step 7: Calculate counts
+            var counts = await CalculateCounts(response, query, allRecords);
+
+            // step 8: Generate the requests bar chart
+            var requestsByMonth = CalculateRequestsByMonthForCso(allRecords, TimeUtils.GetCurrentLocalTime());
+
+            // Step 9: Create the final payload
+            var finalPayload = new CsoRootResponsePayload
+            {
+                CompletedRequests = counts.completedRequestsCount,
+                OpenRequests = counts.openRequestsCount,
+                RequestsCountBarChart = requestsByMonth,
+                PendingRequests = counts.pendingRequestsCount,
+                LegalSearchRequests = response,
+                TotalRequests = counts.totalRequests,
+                WithinSLACount = counts.withinSLACount,
+                ElapsedSLACount = counts.elapsedSLACount,
+                Within3HoursToSLACount = counts.within3HoursToDueCount,
+                RequestsWithLawyersFeedbackCount = counts.requestsWithLawyersFeedbackCount
+            };
+
+            return finalPayload;
+        }
+
+        private static async Task<List<LegalSearchResponsePayload>> GenerateLegalSearchResponsePayload(IQueryable<LegalRequest> query, Dictionary<Guid, State> stateDictionary)
+        {
+            return await query
             .Select(legalSearch => new LegalSearchResponsePayload
             {
                 Id = legalSearch.Id,
@@ -266,34 +392,42 @@ namespace LegalSearch.Infrastructure.Managers
                 RegistrationDocuments = legalSearch.RegistrationDocuments.Select(x => new RegistrationDocumentDto
                 {
                     FileContent = x.FileContent,
-                    FileName = x.FileName, FileType = x.FileType}).ToList(),
+                    FileName = x.FileName,
+                    FileType = x.FileType
+                }).ToList(),
                 SupportingDocuments = legalSearch.SupportingDocuments.Select(x => new RegistrationDocumentDto
                 {
                     FileContent = x.FileContent,
-                    FileName = x.FileName, FileType = x.FileType }).ToList(),
+                    FileName = x.FileName,
+                    FileType = x.FileType
+                }).ToList(),
                 Discussions = legalSearch.Discussions.Select(x => new DiscussionDto
-                { Conversation = x.Conversation}).ToList(),
+                { Conversation = x.Conversation }).ToList(),
             })
             .ToListAsync();
-
-            // Step 7: Calculate counts
-            var counts = await CalculateCounts(response, user.Id, query);
-
-            // Step 8: Create the final payload
-            var finalPayload = new CsoRootResponsePayload
-            {
-                LegalSearchRequests = response,
-                TotalRequests = counts.totalRequests,
-                WithinSLACount = counts.withinSLACount,
-                ElapsedSLACount = counts.elapsedSLACount,
-                Within3HoursToDueCount = counts.within3HoursToDueCount,
-                RequestsWithLawyersFeedbackCount = counts.requestsWithLawyersFeedbackCount
-            };
-
-            return finalPayload;
         }
 
         private IQueryable<LegalRequest> ApplyFilters(CsoDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
+        {
+            if (request.StartPeriod.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt >= request.StartPeriod);
+            }
+
+            if (request.EndPeriod.HasValue)
+            {
+                query = query.Where(x => x.CreatedAt <= request.EndPeriod);
+            }
+
+            if (request.CsoRequestStatusType.HasValue)
+            {
+                query = FilterQueryBasedOnCsoRequestStatus(request, query);
+            }
+
+            return query;
+        }
+
+        private IQueryable<LegalRequest> ApplyFilters(CsoBranchDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
         {
             if (request.StartPeriod.HasValue)
             {
@@ -310,36 +444,48 @@ namespace LegalSearch.Infrastructure.Managers
                 query = query.Where(x => x.BranchId == request.BranchId);
             }
 
-            if (request.CsoRequestStatusType.HasValue)
-            {
-                query = FilterQueryBasedOnCsoRequestStatus(request, query);
-            }
-
             return query;
         }
 
-        private async Task<(int totalRequests, int withinSLACount, int elapsedSLACount, int within3HoursToDueCount, int requestsWithLawyersFeedbackCount)> CalculateCounts(List<LegalSearchResponsePayload> response, Guid csoId, IQueryable<LegalRequest> query)
+        private async Task<(int totalRequests, int withinSLACount, int elapsedSLACount, int within3HoursToDueCount, int requestsWithLawyersFeedbackCount, int pendingRequestsCount, int completedRequestsCount,
+            int openRequestsCount)> CalculateCounts(List<LegalSearchResponsePayload> response, IQueryable<LegalRequest> query, List<LegalSearchResponsePayload> allRecords)
         {
             var currentTime = TimeUtils.GetCurrentLocalTime();
 
+            // Calculate the total number of requests based on the response list.
             var totalRequests = response.Count;
 
+            // Calculate the number of requests within SLA (Service Level Agreement).
             var withinSLACount = response.Count(x => x.DateDue != null &&
                 currentTime > x.DateCreated &&
                 currentTime < (x.DateDue?.AddHours(-3)));
 
+            // Calculate the number of requests where the SLA has elapsed.
             var elapsedSLACount = response.Count(x => x.DateDue != null &&
                 currentTime > x.DateDue);
 
+            // Calculate the number of requests within 3 hours to due date.
             var within3HoursToDueCount = response.Count(x => x.DateDue != null &&
                 currentTime > (x.DateDue?.AddHours(-3)) &&
                 currentTime <= x.DateDue);
 
-            var requestsWithLawyersFeedbackQuery = query.Where(x => x.InitiatorId == csoId && x.Status == RequestStatusType.BackToCso.ToString());
+            // Filter and count pending requests based on specific criteria.
+            var pendingRequestsCountQuery = query
+                .Where(x => (x.Status == RequestStatusType.BackToCso.ToString()) ||
+                            (x.Status == RequestStatusType.UnAssigned.ToString() && x.RequestSource == RequestSourceType.Finacle));
 
-            var requestsWithLawyersFeedbackCount = requestsWithLawyersFeedbackQuery != null ? await requestsWithLawyersFeedbackQuery.CountAsync() : 0;
+            var pendingRequestsCount = await pendingRequestsCountQuery.CountAsync();
 
-            return (totalRequests, withinSLACount, elapsedSLACount, within3HoursToDueCount, requestsWithLawyersFeedbackCount);
+            // Filter and count requests with lawyers' feedback based on specific criteria.
+            var requestsWithLawyersFeedbackQuery = query.Where(x => x.Status == RequestStatusType.BackToCso.ToString());
+            var requestsWithLawyersFeedbackCount = await requestsWithLawyersFeedbackQuery.CountAsync();
+
+            // Count completed and open requests based on the entire dataset (allRecords).
+            var completedRequestsCount = allRecords.Count(x => x.Status == RequestStatusType.Completed.ToString());
+            var openRequestsCount = allRecords.Count(x => x.Status != RequestStatusType.Completed.ToString());
+
+            // Return the calculated counts as a tuple.
+            return (totalRequests, withinSLACount, elapsedSLACount, within3HoursToDueCount, requestsWithLawyersFeedbackCount, pendingRequestsCount, completedRequestsCount, openRequestsCount);
         }
 
 
@@ -387,6 +533,57 @@ namespace LegalSearch.Infrastructure.Managers
                 query = query.Where(x => x.CreatedAt <= request.EndPeriod.Value);
 
             return query;
+        }
+
+        public async Task<BranchLegalSearchResponsePayload> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request)
+        {
+            // Step 1: Create the query to fetch legal requests
+            IQueryable<LegalRequest> rawQuery = _appDbContext.LegalSearchRequests
+                                                            .Include(x => x.Discussions)
+                                                            .Include(x => x.RegistrationDocuments)
+                                                            .Include(x => x.SupportingDocuments);
+
+            var query = rawQuery;
+
+            // Step 2: Apply filtering based on the request payload
+            query = ApplyFilters(request, query);
+
+            // Step 3: Apply pagination to the query as per the request 
+            query = query.Paginate(request);
+
+            // Step 4: Get distinct state IDs
+            var locationGuids = query.Select(x => x.BusinessLocation)
+                                    .Union(query.Select(x => x.RegistrationLocation))
+                                    .Distinct()
+                                    .ToList();
+
+            // Step 5: Create a dictionary of states based on the locationGuids
+            var stateDictionary = await _appDbContext.States
+                                                     .Where(location => locationGuids.Contains(location.Id))
+                                                     .ToDictionaryAsync(location => location.Id, location => location);
+
+            // Step 6: Fetch the requested data
+            List<LegalSearchResponsePayload> response = await GenerateLegalSearchResponsePayload(query, stateDictionary);
+
+            rawQuery = rawQuery.Where(x => x.BranchId == request.BranchId);
+            var allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary);
+
+            // Step 7: Calculate counts
+            var counts = await CalculateCounts(response, query, allRecords);
+
+            // step 8: Generate the requests bar chart
+            var requestsByMonth = CalculateRequestsByMonthForCso(allRecords, TimeUtils.GetCurrentLocalTime());
+
+            // Step 9: Create the final payload
+            var finalPayload = new BranchLegalSearchResponsePayload
+            {
+                CompletedRequestsCount = counts.completedRequestsCount,
+                OpenRequestsCount = counts.openRequestsCount,
+                RequestsCountBarChart = requestsByMonth,
+                LegalSearchRequests = response,
+            };
+
+            return finalPayload;
         }
     }
 }
