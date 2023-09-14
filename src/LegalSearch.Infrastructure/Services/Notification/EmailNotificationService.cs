@@ -1,5 +1,6 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests.Notification;
+using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -12,14 +13,14 @@ namespace LegalSearch.Infrastructure.Services.Notification
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<EmailNotificationService> _logger;
-        private readonly UserManager<Domain.Entities.User.User> _userManager;
+        private readonly AppDbContext _context;
 
         public EmailNotificationService(IHttpClientFactory httpClientFactory, 
-            ILogger<EmailNotificationService> logger, UserManager<Domain.Entities.User.User> userManager)
+            ILogger<EmailNotificationService> logger, AppDbContext context)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            _userManager = userManager;
+            _context = context;
         }
 
         public async Task<bool> SendEmail(SendEmailRequest sendEmailRequest)
@@ -66,7 +67,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             var client = _httpClientFactory.CreateClient("notificationClient");
 
             // get user
-            var user = await _userManager.FindByIdAsync(notification.RecipientUserId);
+            var user = await _context.Users.FindAsync(Guid.Parse(notification.RecipientUserId));
 
             string emailTemplate = GetNotificationTemplateToSend(notification);
 

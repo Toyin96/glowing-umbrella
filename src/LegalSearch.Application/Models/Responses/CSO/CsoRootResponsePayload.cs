@@ -3,7 +3,7 @@
     public class CsoRootResponsePayload
     {
         public List<LegalSearchResponsePayload> LegalSearchRequests { get; set; }
-        public Dictionary<string, Dictionary<string, int>> RequestsCountBarChart { get; set; }
+        public List<MonthlyRequestData> RequestsCountBarChart { get; set; }
         public int PendingRequests { get; set; }
         public int CompletedRequests { get; set; }
         public int OpenRequests { get; set; }

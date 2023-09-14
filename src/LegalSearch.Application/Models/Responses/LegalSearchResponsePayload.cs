@@ -22,7 +22,8 @@ namespace LegalSearch.Application.Models.Responses
         public required string ReasonOfCancellation { get; set; }
         public DateTime? DateOfCancellation { get; set; }
         public DateTime RegistrationDate { get; set; }
-        public string Status { get; set; }
+        public string Region { get; set; }
+        public Guid RegionCode { get; set; }
         public ICollection<DiscussionDto> Discussions { get; set; } = new List<DiscussionDto>();
         public ICollection<RegistrationDocumentDto> RegistrationDocuments { get; set; } = new List<RegistrationDocumentDto>();
         public ICollection<RegistrationDocumentDto> SupportingDocuments { get; set; } = new List<RegistrationDocumentDto>();
@@ -31,7 +32,7 @@ namespace LegalSearch.Application.Models.Responses
     public class LegalSearchRootResponsePayload
     {
         public required List<LegalSearchResponsePayload> LegalSearchRequests { get; set; }
-        public Dictionary<string, Dictionary<string, int>> RequestsByMonth { get; set; }
+        public List<MonthlyRequestData> RequestsByMonth { get; set; }
         public int TotalRequestsCount { get; set; }
         public int AssignedRequestsCount { get; set; }
         public int CompletedRequestsCount { get; set; }
@@ -41,5 +42,12 @@ namespace LegalSearch.Application.Models.Responses
         public int WithinSLACount { get; set; }
         public int ElapsedSLACount { get; set; }
         public int Within3HoursToDueCount { get; set; }
+    }
+
+    public class MonthlyRequestData
+    {
+        public string Name { get; set; }
+        public int New { get; set; }
+        public int Comp { get; set; }
     }
 }
