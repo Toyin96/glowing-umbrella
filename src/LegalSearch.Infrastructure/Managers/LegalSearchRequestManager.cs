@@ -118,8 +118,9 @@ namespace LegalSearch.Infrastructure.Managers
                                    .ToList();
 
             var stateNames = _appDbContext.States
+                .Include(x => x.Region)
                 .Where(state => stateIds.Contains(state.Id))
-                .ToDictionary(state => state.Id, state => state.Name);
+                .ToDictionary(state => state.Id, state => state);
 
             // Step 10: Get the current time in the application's local time zone
             var currentTime = TimeUtils.GetCurrentLocalTime();
@@ -131,12 +132,14 @@ namespace LegalSearch.Infrastructure.Managers
                 RequestInitiator = x.RequestInitiator!,
                 RequestType = x.RequestType!,
                 RegistrationDate = x.RegistrationDate,
+                Region = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Region.Name : string.Empty,
+                RegionCode = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Region.Id : Guid.Empty,
                 RequestStatus = x.Status,
                 CustomerAccountName = x.CustomerAccountName,
                 CustomerAccountNumber = x.CustomerAccountNumber,
                 RegistrationNumber = x.RegistrationNumber,
-                BusinessLocation = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation] : string.Empty,
-                RegistrationLocation = stateNames.ContainsKey(x.RegistrationLocation) ? stateNames[x.RegistrationLocation] : string.Empty,
+                BusinessLocation = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Name : string.Empty,
+                RegistrationLocation = stateNames.ContainsKey(x.RegistrationLocation) ? stateNames[x.RegistrationLocation].Name : string.Empty,
                 BusinessLocationId = x.BusinessLocation,
                 RegistrationLocationId = x.RegistrationLocation,
                 DateCreated = x.CreatedAt,
@@ -184,29 +187,35 @@ namespace LegalSearch.Infrastructure.Managers
             return summary;
         }
 
-        private Dictionary<string, Dictionary<string, int>> CalculateRequestsByMonth(List<LegalSearchResponsePayload> mappedResponse, DateTime currentTime)
+        private List<MonthlyRequestData> CalculateRequestsByMonth(List<LegalSearchResponsePayload> mappedResponse, DateTime currentTime)
         {
             // Initialize the dictionary with all months and counts set to zero
             var allMonths = Enumerable.Range(1, 12).Select(month => new DateTime(currentTime.Year, month, 1));
 
-            var requestsByMonth = allMonths.ToDictionary(
-                month => month.ToString("MMM"),
-                _ => new Dictionary<string, int> { { "new", 0 }, { "comp", 0 } }
-            );
+            var requestsByMonth = allMonths.Select(month => new MonthlyRequestData
+            {
+                Name = month.ToString("MMM"),
+                New = 0,
+                Comp = 0
+            }).ToList();
 
             // Update the counts for months that have requests
             foreach (var request in mappedResponse)
             {
                 var monthKey = request.DateCreated.ToString("MMM");
-                if (requestsByMonth.ContainsKey(monthKey))
+                var monthEntry = requestsByMonth.FirstOrDefault(m => m.Name == monthKey);
+
+                if (monthEntry != null)
                 {
-                    if (request.Status == RequestStatusType.AssignedToLawyer.ToString())
+                    if (request.RequestStatus == RequestStatusType.AssignedToLawyer.ToString()
+                        || request.RequestStatus == RequestStatusType.BackToCso.ToString() 
+                        || request.RequestStatus == RequestStatusType.LawyerAccepted.ToString())
                     {
-                        requestsByMonth[monthKey]["new"]++;
+                        monthEntry.New++;
                     }
-                    else if (request.Status == RequestStatusType.Completed.ToString())
+                    else if (request.RequestStatus == RequestStatusType.Completed.ToString())
                     {
-                        requestsByMonth[monthKey]["comp"]++;
+                        monthEntry.Comp++;
                     }
                 }
             }
@@ -214,36 +223,42 @@ namespace LegalSearch.Infrastructure.Managers
             return requestsByMonth;
         }
 
-        private Dictionary<string, Dictionary<string, int>> CalculateRequestsByMonthForCso(List<LegalSearchResponsePayload> allRecords, DateTime currentTime)
+
+        private List<MonthlyRequestData> CalculateRequestsByMonthForCso(List<LegalSearchResponsePayload> allRecords, DateTime currentTime)
         {
             // Initialize the dictionary with all months and counts set to zero
             var allMonths = Enumerable.Range(1, 12).Select(month => new DateTime(currentTime.Year, month, 1));
 
-            var requestsByMonth = allMonths.ToDictionary(
-                month => month.ToString("MMM"),
-                _ => new Dictionary<string, int> { { "open", 0 }, { "completed", 0 } }
-            );
+            var requestsByMonth = allMonths.Select(month => new MonthlyRequestData
+            {
+                Name = month.ToString("MMM"),
+                New = 0,
+                Comp = 0
+            }).ToList();
 
             // Update the counts for months that have requests
             foreach (var request in allRecords)
             {
                 var monthKey = request.DateCreated.ToString("MMM");
-                if (requestsByMonth.ContainsKey(monthKey))
+                var monthEntry = requestsByMonth.FirstOrDefault(m => m.Name == monthKey);
+
+                if (monthEntry != null)
                 {
-                    if (request.Status != RequestStatusType.Completed.ToString()
-                        && request.Status != RequestStatusType.Cancelled.ToString())
+                    if (request.RequestStatus != RequestStatusType.Completed.ToString()
+                        && request.RequestStatus != RequestStatusType.Cancelled.ToString())
                     {
-                        requestsByMonth[monthKey]["open"]++;
+                        monthEntry.New++;
                     }
-                    else if (request.Status == RequestStatusType.Completed.ToString())
+                    else if (request.RequestStatus == RequestStatusType.Completed.ToString())
                     {
-                        requestsByMonth[monthKey]["completed"]++;
+                        monthEntry.Comp++;
                     }
                 }
             }
 
             return requestsByMonth;
         }
+
 
         private static IQueryable<LegalRequest> FilterQueryBasedOnRequestStatus(SolicitorRequestAnalyticsPayload request, Guid solicitorId, IQueryable<LegalRequest> query, List<Guid> assignedRequestIds)
         {
@@ -336,6 +351,7 @@ namespace LegalSearch.Infrastructure.Managers
 
             // Step 5: Create a dictionary of states based on the locationGuids
             var stateDictionary = await _appDbContext.States
+                                                     .Include(x => x.Region)
                                                      .Where(location => locationGuids.Contains(location.Id))
                                                      .ToDictionaryAsync(location => location.Id, location => location);
 
@@ -381,6 +397,8 @@ namespace LegalSearch.Infrastructure.Managers
                 RegistrationNumber = legalSearch.RegistrationNumber,
                 CustomerAccountName = legalSearch.CustomerAccountName,
                 CustomerAccountNumber = legalSearch.CustomerAccountNumber,
+                Region = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Name : string.Empty,
+                RegionCode = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Id : Guid.Empty,
                 BusinessLocation = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Name : string.Empty,
                 RegistrationLocation = stateDictionary.ContainsKey(legalSearch.RegistrationLocation) ? stateDictionary[legalSearch.RegistrationLocation].Name : string.Empty,
                 BusinessLocationId = legalSearch.BusinessLocation,
@@ -481,8 +499,8 @@ namespace LegalSearch.Infrastructure.Managers
             var requestsWithLawyersFeedbackCount = await requestsWithLawyersFeedbackQuery.CountAsync();
 
             // Count completed and open requests based on the entire dataset (allRecords).
-            var completedRequestsCount = allRecords.Count(x => x.Status == RequestStatusType.Completed.ToString());
-            var openRequestsCount = allRecords.Count(x => x.Status != RequestStatusType.Completed.ToString());
+            var completedRequestsCount = allRecords.Count(x => x.RequestStatus == RequestStatusType.Completed.ToString());
+            var openRequestsCount = allRecords.Count(x => x.RequestStatus != RequestStatusType.Completed.ToString());
 
             // Return the calculated counts as a tuple.
             return (totalRequests, withinSLACount, elapsedSLACount, within3HoursToDueCount, requestsWithLawyersFeedbackCount, pendingRequestsCount, completedRequestsCount, openRequestsCount);
@@ -559,6 +577,7 @@ namespace LegalSearch.Infrastructure.Managers
 
             // Step 5: Create a dictionary of states based on the locationGuids
             var stateDictionary = await _appDbContext.States
+                                                     .Include(x => x.Region)
                                                      .Where(location => locationGuids.Contains(location.Id))
                                                      .ToDictionaryAsync(location => location.Id, location => location);
 

@@ -68,7 +68,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             try
             {
                 // get legal legalSearchRequest
-                var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId);
+                var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId, ActionType.AcceptRequest);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
                     return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
@@ -320,7 +320,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                var result = await FetchAndValidateRequest(returnRequest.RequestId, solicitorId);
+                var result = await FetchAndValidateRequest(returnRequest.RequestId, solicitorId, ActionType.ReturnRequest);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
                     return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
@@ -369,7 +369,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             try
             {
                 // get legal legalSearchRequest
-                var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId);
+                var result = await FetchAndValidateRequest(request.RequestId, request.SolicitorId, ActionType.RejectRequest);
 
                 if (result.errorCode == ResponseCodes.ServiceError)
                     return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
@@ -467,7 +467,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateRequest(Guid requestId, Guid solicitorId)
+        private async Task<(LegalRequest? request, string? errorMessage, string errorCode)> FetchAndValidateRequest(Guid requestId, Guid solicitorId, ActionType actionType)
         {
             // get legal legalSearchRequest
             var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
@@ -475,12 +475,32 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (request == null)
                 return (request, "Could not find request", BaseResponseCodes.ServiceError);
 
-            // check if legalSearchRequest is currently assigned to solicitor
-            if (request.AssignedSolicitorId != solicitorId)
-                return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
+            switch (actionType)
+            {
+                case ActionType.AcceptRequest:
+                    if (request.AssignedSolicitorId != solicitorId)
+                        return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
 
-            if (request.Status != nameof(RequestStatusType.AssignedToLawyer))
-                return (null, "Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+                    if (request.Status != nameof(RequestStatusType.AssignedToLawyer))
+                        return (null, "Something went wrong, please try again later", ResponseCodes.ServiceError);
+                    break;
+                case ActionType.RejectRequest:
+                    if (request.AssignedSolicitorId != solicitorId)
+                        return (null, "Sorry you cannot reject a request not assigned to you", ResponseCodes.ServiceError);
+
+                    if (request.Status != nameof(RequestStatusType.AssignedToLawyer))
+                        return (null, "You've already accepted this request so you cannot reject it", ResponseCodes.ServiceError);
+                    break;
+                case ActionType.ReturnRequest:
+                    if (request.AssignedSolicitorId != solicitorId)
+                        return (null, "Sorry you cannot return a request not assigned to you", ResponseCodes.ServiceError);
+
+                    if (request.Status != nameof(RequestStatusType.LawyerAccepted))
+                        return (null, "You need to accept the request before you can return it for additional information", ResponseCodes.ServiceError);
+                    break;
+                default:
+                    break;
+            }
 
             return (request, null, ResponseCodes.Success);
         }
@@ -498,7 +518,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 return (null, "Sorry you cannot accept a request not assigned to you", ResponseCodes.ServiceError);
 
             if (request.Status != nameof(RequestStatusType.LawyerAccepted))
-                return (null, "Sorry you cannot perform this action at this time.", ResponseCodes.ServiceError);
+                return (null, "Sorry, you can't submit a report; it's being routed back to the CSO for more information.", ResponseCodes.ServiceError);
 
             return (request, null, ResponseCodes.Success);
         }

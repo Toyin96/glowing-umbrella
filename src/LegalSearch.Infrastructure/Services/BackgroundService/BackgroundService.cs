@@ -363,6 +363,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     Title = ConstantTitle.PendingAssignedRequestTitle,
                     NotificationType = NotificationType.OutstandingRequestAfter24Hours,
                     Message = ConstantMessage.RequestPendingWithSolicitorMessage,
+                    RecipientUserId = individualSolicitorRequestsDictionary.Key.ToString(),
                     MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value, _serializerOptions)
                 };
 
