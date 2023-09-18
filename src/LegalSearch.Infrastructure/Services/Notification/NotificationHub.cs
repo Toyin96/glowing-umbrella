@@ -81,7 +81,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
                 // Combine and send both sets of pending notifications to the connected user
                 var pendingNotificationsForRoleList = pendingNotificationsForRole.ToList();
-                var allPendingNotifications = pendingNotificationsForRoleList.Concat(pendingNotificationsForUser).ToList();
+                var allPendingNotifications = pendingNotificationsForRoleList.Union(pendingNotificationsForUser).Distinct().ToList();
                 foreach (var notification in allPendingNotifications)
                 {
                     var jsonNotification = JsonSerializer.Serialize(notification);

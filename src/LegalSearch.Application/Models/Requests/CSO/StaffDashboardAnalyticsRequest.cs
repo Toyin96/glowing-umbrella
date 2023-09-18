@@ -3,7 +3,7 @@ using LegalSearch.Domain.Enums.LegalRequest;
 
 namespace LegalSearch.Application.Models.Requests.CSO
 {
-    public record CsoDashboardAnalyticsRequest : PaginatedDateRangeRequest
+    public record StaffDashboardAnalyticsRequest : PaginatedDateRangeRequest
     {
         public CsoRequestStatusType? CsoRequestStatusType { get; set; }
     }

@@ -15,6 +15,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public Guid BusinessLocation { get; set; }
         public string? LienId { get; set; }
         public Guid RegistrationLocation { get; set; }
+        public DateTime? RequestSubmissionDate { get; set; }
         public required string Status { get; set; }
         public required string CustomerAccountName { get; set; }
         public required string CustomerAccountNumber { get; set; }
