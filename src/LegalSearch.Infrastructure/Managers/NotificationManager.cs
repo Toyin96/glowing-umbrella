@@ -1,4 +1,5 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
+using LegalSearch.Domain.Entities.Notification;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,20 +13,22 @@ namespace LegalSearch.Infrastructure.Services.Notification
         {
             _appDbContext = appDbContext;
         }
-        public Task<bool> AddMultipleNotifications(List<Domain.Entities.Notification.Notification> requests)
+        public async Task<bool> AddMultipleNotifications(List<Domain.Entities.Notification.Notification> requests)
         {
-            throw new NotImplementedException();
+            await _appDbContext.Notifications.AddRangeAsync(requests);
+            return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public Task<bool> AddNotification(Domain.Entities.Notification.Notification notification)
+        public async Task<bool> AddNotification(Domain.Entities.Notification.Notification notification)
         {
-            throw new NotImplementedException();
+            await _appDbContext.Notifications.AddAsync(notification);
+            return await _appDbContext.SaveChangesAsync() > 0;
         }
 
         public async Task<IEnumerable<Domain.Entities.Notification.Notification>> GetPendingNotificationsForRole(string role)
         {
             var pendingNotifications = await _appDbContext.Notifications
-                                                          .Where(n => n.IsRead == false 
+                                                          .Where(n => !n.IsRead
                                                           && n.RecipientRole == role && n.IsBroadcast)
                                                           .ToListAsync();
 

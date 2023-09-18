@@ -15,10 +15,12 @@ namespace LegalSearch.Application.Models.Responses
         public required string BusinessLocation { get; set; }
         public required Guid BusinessLocationId { get; set; }
         public required string RegistrationLocation { get; set; }
+        public DateTime? RequestSubmissionDate { get; set; }
         public required Guid RegistrationLocationId { get; set; }
         public required string RegistrationNumber { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateDue { get; set; }
+        public string Solicitor { get; set; }
         public required string ReasonOfCancellation { get; set; }
         public DateTime? DateOfCancellation { get; set; }
         public DateTime RegistrationDate { get; set; }

@@ -62,17 +62,20 @@ namespace LegalSearch.Api
             });
 
             services.AddHttpClient<IFCMBService, FCMBService>();
-            services.AddOptions<FCMBServiceAppConfig>().BindConfiguration(nameof(FCMBServiceAppConfig)).ValidateDataAnnotations();
+            services.AddOptions<FCMBServiceAppConfig>()
+                    .BindConfiguration(nameof(FCMBServiceAppConfig))
+                    .ValidateDataAnnotations()
+                    .ValidateOnStart();
 
             services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
 
-            //configure database
+            //Configure database
             services.ConfigureDatabase(configuration);
 
-            //configure hangfire
+            //Configure hangfire
             services.ConfigureHangFire(configuration);
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            //Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
             services.ConfigureSwagger();
         }

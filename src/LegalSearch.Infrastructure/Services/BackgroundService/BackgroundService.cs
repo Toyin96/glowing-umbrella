@@ -128,6 +128,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                         /*
                          This request has been routed to legalPerfection team either due to:
                             1. No matching solicitor
+                                    OR
+                          A solicitor is currently treat
                          */
                         continue;
                     }
@@ -322,7 +324,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
 
                 // could not find legal search request
-                if (legalSearchRequest == null) continue;
+                if (legalSearchRequest == null || legalSearchRequest.Status == RequestStatusType.UnAssigned.ToString()) continue;
 
                 // get the currently assigned solicitor to know his/her order
                 var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(requestId,

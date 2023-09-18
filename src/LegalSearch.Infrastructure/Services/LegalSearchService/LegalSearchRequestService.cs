@@ -20,14 +20,9 @@ using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Reflection.Metadata;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace LegalSearch.Infrastructure.Services.LegalSearchService
 {
@@ -170,10 +165,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (addLienResponse == null)
                 return (false, "Something went wrong. Please try again");
 
-            if (addLienResponse != null && addLienResponse.Code != _successStatusCode)
+            if (addLienResponse is not null && addLienResponse.Code != _successStatusCode)
                 return (false, addLienResponse.Description);
 
-            if (addLienResponse != null && addLienResponse.Code == _successStatusCode
+            if (addLienResponse is not null && addLienResponse.Code == _successStatusCode
                 && !string.IsNullOrWhiteSpace(addLienResponse?.Data?.LienId))
             {
                 return (true, "Lien was successfully applied on customer's account");
@@ -182,15 +177,18 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             return (false, "Please try again");
         }
 
-        private AddLienToAccountRequest GenerateLegalSearchLienRequestPayload(LegalSearchRequest legalSearchRequest) => new AddLienToAccountRequest
+        private AddLienToAccountRequest GenerateLegalSearchLienRequestPayload(LegalSearchRequest legalSearchRequest)
         {
-            RequestID = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}",
-            AccountNo = legalSearchRequest.CustomerAccountNumber,
-            AmountValue = Convert.ToDecimal(_options.LegalSearchAmount),
-            CurrencyCode = nameof(CurrencyType.NGN),
-            Rmks = _options.LegalSearchRemarks,
-            ReasonCode = $"{_options.LegalSearchReasonCode}{GenerateUnique5DigitNumber()}"
-        };
+            return new AddLienToAccountRequest
+            {
+                RequestID = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}",
+                AccountNo = legalSearchRequest.CustomerAccountNumber,
+                AmountValue = Convert.ToDecimal(_options.LegalSearchAmount),
+                CurrencyCode = nameof(CurrencyType.NGN),
+                Rmks = _options.LegalSearchRemarks,
+                ReasonCode = $"{_options.LegalSearchReasonCode}{GenerateUnique5DigitNumber()}"
+            };
+        }
 
         private static int GenerateUnique5DigitNumber()
         {
@@ -220,16 +218,16 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             if (accountInquiryResponse == null)
                 return (false, "Something went wrong. Please try again");
 
-            if (accountInquiryResponse != null && accountInquiryResponse.Code != _successStatusCode)
+            if (accountInquiryResponse is not null && accountInquiryResponse.Code != _successStatusCode)
                 return (false, accountInquiryResponse.Description);
 
-            if (accountInquiryResponse != null && accountInquiryResponse.Code == _successStatusCode
+            if (accountInquiryResponse is not null && accountInquiryResponse.Code == _successStatusCode
                 && accountInquiryResponse.Data.AvailableBalance < legalSearchAmount)
             {
                 return (true, "Customer does not have enough money to perform this action");
             }
 
-            if (accountInquiryResponse != null && accountInquiryResponse.Code == _successStatusCode
+            if (accountInquiryResponse is not null && accountInquiryResponse.Code == _successStatusCode
                 && accountInquiryResponse.Data.AvailableBalance >= legalSearchAmount)
             {
                 return (true, "Name & balance inquiry was successful");
@@ -436,9 +434,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 // update legalSearchRequest
                 request!.Status = nameof(RequestStatusType.Completed);
+                request.RequestSubmissionDate = TimeUtils.GetCurrentLocalTime();
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
-                if (isRequestUpdated == false)
+                if (!isRequestUpdated)
                     return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
 
                 // Notify of the legalSearchRequest update
@@ -534,21 +533,18 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     continue;
                 }
 
-                using (var memoryStream = new MemoryStream())
+                using var memoryStream = new MemoryStream();
+                await formFile.CopyToAsync(memoryStream);
+                var fileContent = memoryStream.ToArray();
+
+                var fileType = Path.GetExtension(formFile.FileName).ToLower();
+
+                documents.Add(new SupportingDocument
                 {
-                    await formFile.CopyToAsync(memoryStream);
-                    var fileContent = memoryStream.ToArray();
-
-                    var fileType = Path.GetExtension(formFile.FileName).ToLower();
-
-                    documents.Add(new SupportingDocument
-                    {
-                        FileName = formFile.FileName,
-                        FileContent = fileContent,
-                        FileType = fileType
-                    });
-
-                }
+                    FileName = formFile.FileName,
+                    FileContent = fileContent,
+                    FileType = fileType
+                });
             }
 
             return documents;
@@ -565,21 +561,18 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     continue;
                 }
 
-                using (var memoryStream = new MemoryStream())
+                using var memoryStream = new MemoryStream();
+                await formFile.CopyToAsync(memoryStream);
+                var fileContent = memoryStream.ToArray();
+
+                var fileType = Path.GetExtension(formFile.FileName).ToLower();
+
+                documents.Add(new RegistrationDocument
                 {
-                    await formFile.CopyToAsync(memoryStream);
-                    var fileContent = memoryStream.ToArray();
-
-                    var fileType = Path.GetExtension(formFile.FileName).ToLower();
-
-                    documents.Add(new RegistrationDocument
-                    {
-                        FileName = formFile.FileName,
-                        FileContent = fileContent,
-                        FileType = fileType
-                    });
-
-                }
+                    FileName = formFile.FileName,
+                    FileContent = fileContent,
+                    FileType = fileType
+                });
             }
 
             return documents;
@@ -612,7 +605,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // Validate customer's account status and balance
                 var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(accountNumber);
 
-                if (accountInquiryResponse == null)
+                if (accountInquiryResponse == null || accountInquiryResponse?.Data == null)
                     return new ObjectResponse<GetAccountInquiryResponse>("Something went wrong. Please try again.", ResponseCodes.ServiceError);
 
                 // add legal search amount to response payload
@@ -641,11 +634,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
-        public async Task<ObjectResponse<CsoRootResponsePayload>> GetLegalRequestsForStaff(CsoDashboardAnalyticsRequest request, Guid csoId)
+        public async Task<ObjectResponse<StaffRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid csoId)
         {
             var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request);
 
-            return new ObjectResponse<CsoRootResponsePayload>("Successfully Retrieved Legal Search Requests")
+            return new ObjectResponse<StaffRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
                 Data = response,
             };
@@ -658,7 +651,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             // persist legalSearchRequest
             var result = await _legalSearchRequestManager.AddNewLegalSearchRequest(newLegalSearchRequest);
 
-            if (result == false)
+            if (!result)
                 return new ObjectResponse<string>("Request could not be created", ResponseCodes.ServiceError);
 
             return new StatusResponse("Request created successfully", ResponseCodes.Success);
@@ -895,11 +888,21 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        public async Task<ObjectResponse<BranchLegalSearchResponsePayload>> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request)
+        public async Task<ObjectResponse<BranchLegalSearchResponsePayload>> GetBranchLegalRequestsForCso(CsoBranchDashboardAnalyticsRequest request)
         {
             var response = await _legalSearchRequestManager.GetBranchLegalRequestsForStaff(request);
 
             return new ObjectResponse<BranchLegalSearchResponsePayload>("Successfully Retrieved Legal Search Requests")
+            {
+                Data = response,
+            };
+        }
+
+        public async Task<ObjectResponse<StaffRootResponsePayload>> GetLegalRequestsForLegalPerfectionTeam(StaffDashboardAnalyticsRequest request)
+        {
+            var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request);
+
+            return new ObjectResponse<StaffRootResponsePayload>("Successfully Retrieved Legal Search Requests")
             {
                 Data = response,
             };

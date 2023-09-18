@@ -98,7 +98,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<CsoRootResponsePayload>>> ViewRequestAnalytics([FromQuery] CsoDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest, Guid.Parse(userId));
@@ -119,7 +119,7 @@ namespace LegalSearch.Api.Controllers
         {
             var solId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.SolId))!.Value;
             csoDashboardAnalyticsRequest.BranchId = solId;
-            var result = await _legalSearchRequestService.GetBranchLegalRequestsForStaff(csoDashboardAnalyticsRequest);
+            var result = await _legalSearchRequestService.GetBranchLegalRequestsForCso(csoDashboardAnalyticsRequest);
 
             return HandleResponse(result);
         }

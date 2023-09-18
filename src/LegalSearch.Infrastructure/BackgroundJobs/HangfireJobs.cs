@@ -10,7 +10,7 @@ namespace LegalSearch.Infrastructure.BackgroundJobs
         public static void RegisterRecurringJobs()
         {
             RecurringJob.AddOrUpdate<IBackgroundService>("CheckAndRerouteRequestsJob", x => x.CheckAndRerouteRequestsJob(), Cron.Hourly);
-            RecurringJob.AddOrUpdate<IBackgroundService>("NotificationReminderForUnAttendedRequestsJob", x => x.NotificationReminderForUnAttendedRequestsJob(), Cron.Hourly);
+            RecurringJob.AddOrUpdate<IBackgroundService>("NotificationReminderForUnAttendedRequestsJob", x => x.NotificationReminderForUnAttendedRequestsJob(), Cron.Hourly); // PS: this guy is rerouting requests. check it!
             RecurringJob.AddOrUpdate<IBackgroundService>("GenerateDailySummaryForZonalServiceManagers", x => x.GenerateDailySummaryForZonalServiceManagers(), TimeUtils.GetCronExpressionFor10pmDailyWAT);
         }
     }
