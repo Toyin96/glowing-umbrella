@@ -1,8 +1,11 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Constants;
+using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
@@ -166,6 +169,28 @@ namespace LegalSearch.Api.Controllers
             var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
             var response = await _legalSearchRequestService.GetLegalRequestsForSolicitor(request, Guid.Parse(userId));
             return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Generates the request analytics report.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        [HttpGet("GenerateRequestAnalyticsReport")]
+        [ProducesResponseType(typeof(Stream), 200)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [ProducesDefaultResponseType]
+        public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> GenerateRequestAnalyticsReport([FromQuery] SolicitorRequestAnalyticsPayload request)
+        {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
+            const string file = $"{ReportConstants.LegalSearchReport}.xlsx";
+            var response = await _legalSearchRequestService.GenerateRequestAnalyticsReportForSolicitor(request, Guid.Parse(userId));
+
+            if (response.Code is not ResponseCodes.Success)
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+
+            return File(response.Data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file);
         }
     }
 }

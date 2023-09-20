@@ -1,9 +1,13 @@
-﻿using Fcmb.Shared.Models.Responses;
+﻿using Azure;
+using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
+using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
+using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Application.Models.Responses.Solicitor;
+using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,6 +69,43 @@ namespace LegalSearch.Api.Controllers
         {
             var result = await _legalSearchRequestService.UpdateRequestByStaff(request);
             return HandleResponse(result);
+        }
+
+        /// <summary>
+        /// Endpoint to get legal search request analytics for CSO and Legal Perfection Team
+        /// </summary>
+        /// <param name="csoDashboardAnalyticsRequest"></param>
+        /// <returns></returns>
+        [HttpGet("ViewRequestAnalytics")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        {
+            var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest);
+
+            return HandleResponse(result);
+        }
+
+        /// <summary>
+        /// Endpoint to generate legal search report for CSO and Legal Perfection Team
+        /// </summary>
+        /// <param name="csoDashboardAnalyticsRequest"></param>
+        /// <returns></returns>
+        [HttpGet("GenerateRequestAnalyticsReport")]
+        [ProducesResponseType(typeof(Stream), 200)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        [ProducesDefaultResponseType]
+        public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> GenerateRequestAnalyticsReport([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
+        {
+            const string file = $"{ReportConstants.LegalSearchReport}.xlsx";
+            var response = await _legalSearchRequestService.GenerateRequestAnalyticsReportForStaff(csoDashboardAnalyticsRequest);
+
+            if (response.Code is not ResponseCodes.Success)
+                return StatusCode(StatusCodes.Status500InternalServerError, response);
+
+            return File(response.Data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file);
         }
 
         /// <summary>

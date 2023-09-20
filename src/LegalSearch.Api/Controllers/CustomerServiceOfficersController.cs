@@ -1,5 +1,6 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
+using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Responses;
@@ -100,26 +101,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
-            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))!.Value;
-            var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest, Guid.Parse(userId));
-
-            return HandleResponse(result);
-        }
-
-        /// <summary>
-        /// Endpoint to get branch legal search request analytics for CSO   
-        /// </summary>
-        /// <param name="csoDashboardAnalyticsRequest"></param>
-        /// <returns></returns>
-        [HttpGet("ViewBranchRequestAnalytics")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ObjectResponse<BranchLegalSearchResponsePayload>>> ViewBranchRequestAnalytics([FromQuery] CsoBranchDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
-        {
-            var solId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.SolId))!.Value;
-            csoDashboardAnalyticsRequest.BranchId = solId;
-            var result = await _legalSearchRequestService.GetBranchLegalRequestsForCso(csoDashboardAnalyticsRequest);
+            var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest);
 
             return HandleResponse(result);
         }
