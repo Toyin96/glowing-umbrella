@@ -12,7 +12,6 @@ namespace LegalSearch.Application.Interfaces.LegalSearchRequest
         Task<bool> AddNewLegalSearchRequest(Domain.Entities.LegalRequest.LegalRequest legalRequest);
         Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId);
         Task<StaffRootResponsePayload> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request);
-        Task<BranchLegalSearchResponsePayload> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request);
         Task<List<FinacleLegalSearchResponsePayload>> GetFinacleLegalRequestsForCso(GetFinacleRequest request, string solId);
     }
 }

@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Net;
@@ -45,7 +47,6 @@ namespace LegalSearch.Api
             services.AddRouting();
             services.AddHttpContextAccessor();
             services.AddHttpClient();
-            services.AddSignalR(); // added signalR capability
             services.RegisterHttpRequiredServices(configuration);
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
@@ -54,12 +55,15 @@ namespace LegalSearch.Api
             {
                 options.AddDefaultPolicy(builder =>
                 {
-                    builder
-                        .AllowAnyOrigin()
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
+                    builder.WithOrigins("http://20.161.50.136:5007", "http://localhost:8080")
+                           .AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .AllowCredentials();
                 });
             });
+
+            // added signalR capability
+            services.AddSignalR(option => option.EnableDetailedErrors = true);
 
             services.AddHttpClient<IFCMBService, FCMBService>();
             services.AddOptions<FCMBServiceAppConfig>()
@@ -67,7 +71,7 @@ namespace LegalSearch.Api
                     .ValidateDataAnnotations()
                     .ValidateOnStart();
 
-            services.Configure<ApiBehaviorOptions>(options => { options.SuppressModelStateInvalidFilter = true; });
+            services.Configure<ApiBehaviorOptions>(options => options.SuppressModelStateInvalidFilter = true);
 
             //Configure database
             services.ConfigureDatabase(configuration);
@@ -92,15 +96,15 @@ namespace LegalSearch.Api
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "LegalSearch.Api v1"));
             }
 
+            app.UseCors();
+
             app.UseGlobalExceptionHandler();
 
             app.UseRouting();
 
-            app.UseCors();
+            app.MapHub<NotificationHub>("/notificationHub");
 
             UpdateDatabase(app, configuration); // ensure migration upon startup
-
-            app.MapHub<NotificationHub>("/notificationHub"); // Map the NotificationHub
 
             app.UseAuthentication();
 

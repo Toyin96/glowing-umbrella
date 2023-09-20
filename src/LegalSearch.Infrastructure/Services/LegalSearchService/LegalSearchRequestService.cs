@@ -16,6 +16,7 @@ using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;
+using LegalSearch.Infrastructure.File.Report;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Http;
@@ -634,7 +635,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
-        public async Task<ObjectResponse<StaffRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request, Guid csoId)
+        public async Task<ObjectResponse<StaffRootResponsePayload>> GetLegalRequestsForStaff(StaffDashboardAnalyticsRequest request)
         {
             var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request);
 
@@ -888,23 +889,31 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        public async Task<ObjectResponse<BranchLegalSearchResponsePayload>> GetBranchLegalRequestsForCso(CsoBranchDashboardAnalyticsRequest request)
-        {
-            var response = await _legalSearchRequestManager.GetBranchLegalRequestsForStaff(request);
-
-            return new ObjectResponse<BranchLegalSearchResponsePayload>("Successfully Retrieved Legal Search Requests")
-            {
-                Data = response,
-            };
-        }
-
-        public async Task<ObjectResponse<StaffRootResponsePayload>> GetLegalRequestsForLegalPerfectionTeam(StaffDashboardAnalyticsRequest request)
+        public async Task<ObjectResponse<byte[]>> GenerateRequestAnalyticsReportForStaff(StaffDashboardAnalyticsRequest request)
         {
             var response = await _legalSearchRequestManager.GetLegalRequestsForStaff(request);
 
-            return new ObjectResponse<StaffRootResponsePayload>("Successfully Retrieved Legal Search Requests")
+            await using var outputStream = new MemoryStream();
+
+            ReportFileGenerator.WriteLegalSearchReportToStreamForStaff(outputStream, response);
+
+            return new ObjectResponse<byte[]>("Successfully Generated Audit Report")
             {
-                Data = response,
+                Data = outputStream.ToArray()
+            };
+        }
+
+        public async Task<ObjectResponse<byte[]>> GenerateRequestAnalyticsReportForSolicitor(SolicitorRequestAnalyticsPayload request, Guid solicitorId)
+        {
+            var response = await _legalSearchRequestManager.GetLegalRequestsForSolicitor(request, solicitorId);
+
+            await using var outputStream = new MemoryStream();
+
+            ReportFileGenerator.WriteLegalSearchReportToStreamForSolicitor(outputStream, response);
+
+            return new ObjectResponse<byte[]>("Successfully Generated Audit Report")
+            {
+                Data = outputStream.ToArray()
             };
         }
     }

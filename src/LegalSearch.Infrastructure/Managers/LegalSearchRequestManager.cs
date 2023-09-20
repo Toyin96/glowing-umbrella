@@ -5,7 +5,6 @@ using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.Entities.LegalRequest;
-using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
@@ -374,6 +373,11 @@ namespace LegalSearch.Infrastructure.Managers
             // Step 6: Fetch the requested data
             List<LegalSearchResponsePayload> response = await GenerateLegalSearchResponsePayload(query, stateDictionary, solicitors);
 
+            if (request.BranchId != null)
+            {
+                rawQuery = rawQuery.Where(x => x.BranchId == request.BranchId);
+            }
+
             var allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary, solicitors);
 
             // Step 7: Calculate counts
@@ -509,6 +513,11 @@ namespace LegalSearch.Infrastructure.Managers
                 query = FilterQueryBasedOnCsoRequestStatus(request, query);
             }
 
+            if (request.BranchId != null)
+            {
+                query = query.Where(x => x.BranchId == request.BranchId);
+            }
+
             return query;
         }
         private IQueryable<LegalRequest> ApplyFilters(CsoBranchDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
@@ -616,65 +625,6 @@ namespace LegalSearch.Infrastructure.Managers
                 query = query.Where(x => x.CreatedAt <= request.EndPeriod.Value);
 
             return query;
-        }
-
-        public async Task<BranchLegalSearchResponsePayload> GetBranchLegalRequestsForStaff(CsoBranchDashboardAnalyticsRequest request)
-        {
-            // Step 1: Create the query to fetch legal requests
-            IQueryable<LegalRequest> rawQuery = _appDbContext.LegalSearchRequests
-                                                            .Include(x => x.Discussions)
-                                                            .Include(x => x.RegistrationDocuments)
-                                                            .Include(x => x.SupportingDocuments);
-
-            var query = rawQuery;
-
-            // Step 2: Apply filtering based on the request payload
-            query = ApplyFilters(request, query);
-
-            // Step 3: Apply pagination to the query as per the request 
-            query = query.Paginate(request);
-
-            // Step 4: Get distinct state IDs
-            var locationGuids = query.Select(x => x.BusinessLocation)
-                                    .Union(query.Select(x => x.RegistrationLocation))
-                                    .Distinct()
-                                    .ToList();
-
-            // Step 5: Create a dictionary of states based on the locationGuids
-            var stateDictionary = await _appDbContext.States
-                                                     .Include(x => x.Region)
-                                                     .Where(location => locationGuids.Contains(location.Id))
-                                                     .ToDictionaryAsync(location => location.Id, location => location);
-
-            var solicitorIds = query.Where(x => x.AssignedSolicitorId != Guid.Empty)
-                                    .Select(x => x.AssignedSolicitorId)
-                                    .Distinct()
-                                    .ToList();
-
-            var solicitors = _appDbContext.Users.Where(x => solicitorIds.Contains(x.Id)).ToDictionary(x => x.Id, x => $"{x.FirstName} {x.LastName}");
-
-            // Step 6: Fetch the requested data
-            List<LegalSearchResponsePayload> response = await GenerateLegalSearchResponsePayload(query, stateDictionary, solicitors);
-
-            rawQuery = rawQuery.Where(x => x.BranchId == request.BranchId);
-            var allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary, solicitors);
-
-            // Step 7: Calculate counts
-            var counts = await CalculateCounts(response, query, allRecords);
-
-            // step 8: Generate the requests bar chart
-            var requestsByMonth = CalculateRequestsByMonthForStaff(allRecords, TimeUtils.GetCurrentLocalTime());
-
-            // Step 9: Create the final payload
-            var finalPayload = new BranchLegalSearchResponsePayload
-            {
-                CompletedRequestsCount = counts.completedRequestsCount,
-                OpenRequestsCount = counts.openRequestsCount,
-                RequestsCountBarChart = requestsByMonth,
-                LegalSearchRequests = response,
-            };
-
-            return finalPayload;
         }
     }
 }
