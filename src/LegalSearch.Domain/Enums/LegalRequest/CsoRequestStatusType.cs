@@ -6,6 +6,7 @@
         Completed,
         PendingWithCso, 
         PendingWithSolicitor, //assignedToLawyer
-        CancelledRequest
+        CancelledRequest,
+        UnAssigned
     }
 }

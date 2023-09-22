@@ -8,6 +8,7 @@ using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests.LegalPerfectionTeam;
 using LegalSearch.Application.Models.Requests.Solicitor;
+using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User.Solicitor;
@@ -85,24 +86,24 @@ namespace LegalSearch.Infrastructure.Services.User
             }
         }
 
-        public async Task<StatusResponse> ManuallyAssignRequestToSolicitor(ManuallyAssignRequestToSolicitorRequest request)
+        public async Task<StatusResponse> ManuallyAssignRequestToSolicitor(ManuallyAssignRequestToSolicitorRequest manuallyAssignRequestToSolicitorRequest)
         {
-            // get solicitor
-            var user = await _userManager.FindByIdAsync(request.SolicitorId.ToString());
-
-            if (user == null)
-                return new StatusResponse("User not found", ResponseCodes.DataNotFound);
-
             // get request
-            var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
+            var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(manuallyAssignRequestToSolicitorRequest.RequestId);
 
             if (legalSearchRequest == null)
                 return new StatusResponse("LegalSearchRequest not found", ResponseCodes.DataNotFound);
 
+            // get solicitor
+            var user = await _userManager.FindByIdAsync(manuallyAssignRequestToSolicitorRequest.SolicitorId.ToString());
+
+            if (user == null)
+                return new StatusResponse("User not found", ResponseCodes.DataNotFound);
+
             if (legalSearchRequest.Status != RequestStatusType.UnAssigned.ToString())
                 return new StatusResponse("Only unassigned requests can be manually assigned to solicitors", ResponseCodes.Conflict);
 
-            BackgroundJob.Enqueue<IBackgroundService>(x => x.ManuallyAssignRequestToSolicitorJob(request.RequestId, request.SolicitorId));
+            BackgroundJob.Enqueue<IBackgroundService>(x => x.ManuallyAssignRequestToSolicitorJob(manuallyAssignRequestToSolicitorRequest.RequestId, new UserMiniDto { UserId = user.Id, UserEmail = user.Email }));
 
             return new StatusResponse("Request have been pushed to solicitor's tab", ResponseCodes.Success);
         }

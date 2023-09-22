@@ -2,6 +2,7 @@
 using HangfireBasicAuthenticationFilter;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;

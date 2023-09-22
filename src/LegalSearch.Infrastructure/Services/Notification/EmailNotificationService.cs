@@ -1,5 +1,6 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests.Notification;
+using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
@@ -57,23 +58,46 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return false;
         }
 
-        public Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification)
+        public async Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
-            return Task.CompletedTask; //Update this code
+            if (userEmails?.Any() == true)
+            {
+                var client = _httpClientFactory.CreateClient("notificationClient");
+
+                string emailTemplate = GetNotificationTemplateToSend(notification);
+
+                var requestContent = new MultipartFormDataContent();
+                requestContent.Add(new StringContent("ebusiness@fcmb.com"), "From");
+                requestContent.Add(new StringContent(notification.RecipientUserEmail!), "To");
+                requestContent.Add(new StringContent(notification.Title!), "Subject");
+                requestContent.Add(new StringContent(emailTemplate), "Body");
+
+                // Add each email in userEmails list as "Bcc"
+                foreach (var userEmail in userEmails)
+                {
+                    requestContent.Add(new StringContent(userEmail), "Bcc");
+                }
+
+                using var response = await client.PostAsync("/fcmb/api/Mail/SendMail", requestContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+
+                    _logger.LogInformation($"Response from calling send email endpoint: {responseContent}");
+                }
+            }
         }
 
         public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
             var client = _httpClientFactory.CreateClient("notificationClient");
 
-            // get user
-            var user = await _context.Users.FindAsync(Guid.Parse(notification.RecipientUserId));
-
             string emailTemplate = GetNotificationTemplateToSend(notification);
 
             var requestContent = new MultipartFormDataContent();
             requestContent.Add(new StringContent("ebusiness@fcmb.com"), "From");
-            requestContent.Add(new StringContent(user.Email!), "To");
+            requestContent.Add(new StringContent(notification.RecipientUserEmail!), "To");
             requestContent.Add(new StringContent(notification.Title!), "Subject");
             requestContent.Add(new StringContent(emailTemplate), "Body");
 

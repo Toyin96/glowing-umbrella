@@ -13,22 +13,26 @@ namespace LegalSearch.Infrastructure.Services.Notification
         private readonly INotificationManager _notificationService;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly IHubContext<NotificationHub> _context;
         private readonly Dictionary<string, List<Domain.Entities.Notification.Notification>> _pendingNotifications = new Dictionary<string, List<Domain.Entities.Notification.Notification>>();
 
         public NotificationHub(INotificationManager notificationService,
             UserManager<Domain.Entities.User.User> userManager, 
-            IJwtTokenService jwtTokenService)
+            IJwtTokenService jwtTokenService,
+            IHubContext<NotificationHub> context)
         {
             _notificationService = notificationService;
             _userManager = userManager;
             _jwtTokenService = jwtTokenService;
+            _context = context;
         }
 
         // Method to send notifications to connected clients on a particular role
-        public async Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification)
+        public async Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
             var jsonNotification = JsonSerializer.Serialize(notification);
-            await Clients.Group(roleName).SendAsync("ReceiveNotification", jsonNotification);
+            if (_context.Clients != null)
+                await _context.Clients.Group(roleName).SendAsync("ReceiveNotification", jsonNotification);
         }
 
         public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
@@ -39,16 +43,20 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             string? id = principal.FindFirst(nameof(ClaimType.UserId))?.Value?.ToString();
 
-            if (userId.ToString() != id)
+            if (notification.RecipientUserId != id)
             {
                 // User is not logged in, store the notification for later retrieval
                 await StorePendingNotification(userId.ToString(), notification);
             }
             else
             {
+                // NOTE: Notification is always sent to the initiator and recipient
+                // TODO: send notification to the initiator as well
+
                 // User is authenticated and connected, send the notification immediately
                 var jsonNotification = JsonSerializer.Serialize(notification);
-                await Clients.User(userId.ToString()).SendAsync("ReceiveNotification", jsonNotification);
+                if (_context.Clients != null)
+                    await _context.Clients.User(notification.RecipientUserId).SendAsync("ReceiveNotification", jsonNotification);
             }
         }
 
@@ -73,6 +81,9 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             if (!string.IsNullOrEmpty(userRole))
             {
+                // Add the user to a group based on their role
+                await Groups.AddToGroupAsync(Context.ConnectionId, userRole);
+
                 // Retrieve pending notifications for the connected user's role
                 var pendingNotificationsForRole = await _notificationService.GetPendingNotificationsForRole(userRole);
 
