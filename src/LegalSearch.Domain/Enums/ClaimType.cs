@@ -4,6 +4,7 @@
     {
         UserId,
         SolId,
-        BranchId
+        BranchId,
+        Email
     }
 }

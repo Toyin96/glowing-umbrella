@@ -62,6 +62,7 @@ namespace LegalSearch.Infrastructure.Managers
                                                                      .Select(x => new SolicitorRetrievalResponse
                                                                      {
                                                                          SolicitorId = x.Id,
+                                                                         SolicitorEmail = x.Email
                                                                      })
                                                                      .ToListAsync();
 
@@ -111,6 +112,7 @@ namespace LegalSearch.Infrastructure.Managers
                                         .Select(u => new SolicitorRetrievalResponse
                                         {
                                             SolicitorId = u.Id,
+                                            SolicitorEmail = u.Email
                                         })
                                         .ToListAsync();
 

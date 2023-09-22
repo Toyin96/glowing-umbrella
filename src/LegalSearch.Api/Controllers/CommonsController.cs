@@ -128,6 +128,7 @@ namespace LegalSearch.Api.Controllers
         /// </summary>
         /// <param name="request">The request.</param>
         /// <returns></returns>
+        [AllowAnonymous]
         [HttpGet("ViewSolicitors")]
         public async Task<ActionResult<ListResponse<SolicitorProfileDto>>> ViewSolicitors([FromQuery] ViewSolicitorsRequestFilter request)
         {

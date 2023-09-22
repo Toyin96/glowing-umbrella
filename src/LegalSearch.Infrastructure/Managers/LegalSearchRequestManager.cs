@@ -149,7 +149,7 @@ namespace LegalSearch.Infrastructure.Managers
                 BusinessLocationId = x.BusinessLocation,
                 RegistrationLocationId = x.RegistrationLocation,
                 DateCreated = x.CreatedAt,
-                Solicitor = x.AssignedSolicitorId != Guid.Empty ? solicitors[x.AssignedSolicitorId] : string.Empty,
+                Solicitor = x.AssignedSolicitorId != Guid.Empty && solicitors.ContainsKey(x.AssignedSolicitorId) ? solicitors[x.AssignedSolicitorId] : string.Empty,
                 ReasonOfCancellation = x.ReasonForCancelling,
                 DateOfCancellation = x.DateOfCancellation,
                 DateDue = x.DateDue.HasValue ? x.DateDue : DateTime.MinValue,
@@ -311,6 +311,9 @@ namespace LegalSearch.Infrastructure.Managers
                 case CsoRequestStatusType.Completed:
                     query = query.Where(x => x.Status == RequestStatusType.Completed.ToString());
                     break;
+                case CsoRequestStatusType.UnAssigned:
+                    query = query.Where(x => x.Status == RequestStatusType.UnAssigned.ToString());
+                    break;
             }
 
             return query;
@@ -455,45 +458,55 @@ namespace LegalSearch.Infrastructure.Managers
 
         private static async Task<List<LegalSearchResponsePayload>> GenerateLegalSearchResponsePayload(IQueryable<LegalRequest> query, Dictionary<Guid, State> stateDictionary, Dictionary<Guid, string> solicitors)
         {
-            return await query
-            .Select(legalSearch => new LegalSearchResponsePayload
+            try
             {
-                Id = legalSearch.Id,
-                RequestInitiator = legalSearch.RequestInitiator!,
-                RequestType = legalSearch.RequestType!,
-                RegistrationDate = legalSearch.RegistrationDate,
-                RequestStatus = legalSearch.Status,
-                RequestSubmissionDate = legalSearch.RequestSubmissionDate,
-                Solicitor = legalSearch.AssignedSolicitorId != Guid.Empty ? solicitors[legalSearch.AssignedSolicitorId] : string.Empty,
-                RegistrationNumber = legalSearch.RegistrationNumber,
-                CustomerAccountName = legalSearch.CustomerAccountName,
-                CustomerAccountNumber = legalSearch.CustomerAccountNumber,
-                Region = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Name : string.Empty,
-                RegionCode = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Id : Guid.Empty,
-                BusinessLocation = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Name : string.Empty,
-                RegistrationLocation = stateDictionary.ContainsKey(legalSearch.RegistrationLocation) ? stateDictionary[legalSearch.RegistrationLocation].Name : string.Empty,
-                BusinessLocationId = legalSearch.BusinessLocation,
-                RegistrationLocationId = legalSearch.RegistrationLocation,
-                DateCreated = legalSearch.CreatedAt,
-                ReasonOfCancellation = legalSearch.ReasonForCancelling,
-                DateOfCancellation = legalSearch.DateOfCancellation,
-                DateDue = legalSearch.DateDue,
-                RegistrationDocuments = legalSearch.RegistrationDocuments.Select(x => new RegistrationDocumentDto
+                var data = await query
+                .Select(legalSearch => new LegalSearchResponsePayload
                 {
-                    FileContent = x.FileContent,
-                    FileName = x.FileName,
-                    FileType = x.FileType
-                }).ToList(),
-                SupportingDocuments = legalSearch.SupportingDocuments.Select(x => new RegistrationDocumentDto
-                {
-                    FileContent = x.FileContent,
-                    FileName = x.FileName,
-                    FileType = x.FileType
-                }).ToList(),
-                Discussions = legalSearch.Discussions.Select(x => new DiscussionDto
-                { Conversation = x.Conversation }).ToList(),
-            })
-            .ToListAsync();
+                    Id = legalSearch.Id,
+                    RequestInitiator = legalSearch.RequestInitiator!,
+                    RequestType = legalSearch.RequestType!,
+                    RegistrationDate = legalSearch.RegistrationDate,
+                    RequestStatus = legalSearch.Status,
+                    RequestSubmissionDate = legalSearch.RequestSubmissionDate,
+                    Solicitor = legalSearch.AssignedSolicitorId != Guid.Empty && solicitors.ContainsKey(legalSearch.AssignedSolicitorId) ? solicitors[legalSearch.AssignedSolicitorId] : string.Empty,
+                    RegistrationNumber = legalSearch.RegistrationNumber,
+                    CustomerAccountName = legalSearch.CustomerAccountName,
+                    CustomerAccountNumber = legalSearch.CustomerAccountNumber,
+                    Region = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Name : string.Empty,
+                    RegionCode = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Id : Guid.Empty,
+                    BusinessLocation = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Name : string.Empty,
+                    RegistrationLocation = stateDictionary.ContainsKey(legalSearch.RegistrationLocation) ? stateDictionary[legalSearch.RegistrationLocation].Name : string.Empty,
+                    BusinessLocationId = legalSearch.BusinessLocation,
+                    RegistrationLocationId = legalSearch.RegistrationLocation,
+                    DateCreated = legalSearch.CreatedAt,
+                    ReasonOfCancellation = legalSearch.ReasonForCancelling,
+                    DateOfCancellation = legalSearch.DateOfCancellation,
+                    DateDue = legalSearch.DateDue,
+                    RegistrationDocuments = legalSearch.RegistrationDocuments.Select(x => new RegistrationDocumentDto
+                    {
+                        FileContent = x.FileContent,
+                        FileName = x.FileName,
+                        FileType = x.FileType
+                    }).ToList(),
+                    SupportingDocuments = legalSearch.SupportingDocuments.Select(x => new RegistrationDocumentDto
+                    {
+                        FileContent = x.FileContent,
+                        FileName = x.FileName,
+                        FileType = x.FileType
+                    }).ToList(),
+                    Discussions = legalSearch.Discussions.Select(x => new DiscussionDto
+                    { Conversation = x.Conversation }).ToList(),
+                })
+                .ToListAsync();
+
+                return data;
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
 
         private IQueryable<LegalRequest> ApplyFilters(StaffDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)

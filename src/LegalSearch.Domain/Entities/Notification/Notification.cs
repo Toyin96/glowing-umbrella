@@ -9,6 +9,7 @@ namespace LegalSearch.Domain.Entities.Notification
         public NotificationType NotificationType { get; set; }
         public string? RecipientRole { get; set; } // New property for role-based recipients
         public string RecipientUserId { get; set; }
+        public string RecipientUserEmail { get; set; }
         public string Message { get; set; }
         public bool IsBroadcast { get; set; }
         public bool IsRead { get; set; }

@@ -1,4 +1,5 @@
 ﻿using LegalSearch.Application.Models.Requests.CSO;
+using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Domain.Entities.LegalRequest;
 
 namespace LegalSearch.Application.Interfaces.BackgroundService
@@ -6,7 +7,7 @@ namespace LegalSearch.Application.Interfaces.BackgroundService
     public interface IBackgroundService
     {
         Task AssignRequestToSolicitorsJob(Guid requestId);
-        Task ManuallyAssignRequestToSolicitorJob(Guid requestId, Guid solicitorId);
+        Task ManuallyAssignRequestToSolicitorJob(Guid requestId, UserMiniDto solicitorInfo);
         Task GenerateDailySummaryForZonalServiceManagers();
         Task PushBackRequestToCSOJob(Guid requestId);
         Task InitiatePaymentToSolicitorJob(Guid requestId);

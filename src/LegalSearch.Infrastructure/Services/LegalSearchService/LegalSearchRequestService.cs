@@ -413,6 +413,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var request = result.request;
 
+                // get the cso that initiated the request
+                var cso = await _userManager.FindByIdAsync(request.InitiatorId.ToString());
+                if (cso == null)
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
+
                 // verify that customer legalSearchRequest have a lien ID
                 if (request!.LienId == null)
                     return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
@@ -441,10 +446,12 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (!isRequestUpdated)
                     return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
 
-                // Notify of the legalSearchRequest update
+                // Notify the COS of completion of legalSearchRequest update
                 var notification = new Domain.Entities.Notification.Notification
                 {
                     Title = "Request has been completed",
+                    RecipientUserId = request.InitiatorId.ToString(),
+                    RecipientUserEmail = cso.Email,
                     NotificationType = NotificationType.CompletedRequest,
                     Message = ConstantMessage.CompletedRequestMessage,
                     MetaData = JsonSerializer.Serialize(request)
@@ -454,7 +461,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
-                await NotifyClient(request.InitiatorId, notification);
+                await NotifyClient(request.AssignedSolicitorId, notification);
 
                 return new StatusResponse("You have successfully submitted the report for this request"
                     , ResponseCodes.Success);
