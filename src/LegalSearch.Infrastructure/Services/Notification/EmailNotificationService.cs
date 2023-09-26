@@ -24,7 +24,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             _context = context;
         }
 
-        public async Task<bool> SendEmail(SendEmailRequest sendEmailRequest)
+        public async Task<bool> SendEmailAsync(SendEmailRequest sendEmailRequest)
         {
             var client = _httpClientFactory.CreateClient("notificationClient");
 

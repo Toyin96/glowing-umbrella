@@ -496,7 +496,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 Body = emailBody
             };
 
-            await _emailService.SendEmail(emailPayload);
+            await _emailService.SendEmailAsync(emailPayload);
         }
 
         public async Task<StatusResponse> OnboardNewUser(OnboardNewUserRequest request)

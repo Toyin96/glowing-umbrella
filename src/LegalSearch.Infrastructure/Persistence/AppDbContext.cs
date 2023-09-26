@@ -21,6 +21,7 @@ namespace LegalSearch.Infrastructure.Persistence
         public DbSet<LegalRequest> LegalSearchRequests { get; set; }
         public DbSet<SupportingDocument> SupportingDocuments { get; set; }
         public DbSet<Branch> Branches { get; set; }
+        public DbSet<ZonalServiceManager> ZonalServiceManagers { get; set; }
         public DbSet<Region> Regions { get; set; }
         public DbSet<Discussion> Discussions { get; set; }
         public DbSet<LegalSearchRequestPaymentLog> LegalSearchRequestPaymentLogs { get; set; }

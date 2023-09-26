@@ -1,4 +1,5 @@
-﻿using LegalSearch.Application.Interfaces.BackgroundService;
+﻿using Azure;
+using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.Location;
@@ -6,10 +7,13 @@ using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.CSO;
+using LegalSearch.Application.Models.Requests.Notification;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.ZSM;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
+using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;
@@ -34,6 +38,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly IFCMBService _fCMBService;
         private readonly ILegalSearchRequestPaymentLogManager _legalSearchRequestPaymentLogManager;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
+        private readonly IZonalManagerService _zonalManagerService;
+        private readonly IEmailService _emailService;
         private readonly FCMBServiceAppConfig _options;
         private readonly string _successStatusCode = "00";
         private readonly string _successStatusDescription = "SUCCESS";
@@ -46,7 +52,9 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             ILegalSearchRequestManager legalSearchRequestManager,
             IFCMBService fCMBService, IOptions<FCMBServiceAppConfig> options,
             ILegalSearchRequestPaymentLogManager legalSearchRequestPaymentLogManager,
-            UserManager<Domain.Entities.User.User> userManager)
+            UserManager<Domain.Entities.User.User> userManager,
+            IZonalManagerService zonalManagerService,
+            IEmailService emailService)
         {
             _appDbContext = appDbContext;
             _notificationService = notificationService;
@@ -56,6 +64,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             _fCMBService = fCMBService;
             _legalSearchRequestPaymentLogManager = legalSearchRequestPaymentLogManager;
             _userManager = userManager;
+            _zonalManagerService = zonalManagerService;
+            _emailService = emailService;
             _options = options.Value;
         }
         public async Task AssignRequestToSolicitorsJob(Guid requestId)
@@ -291,7 +301,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         }
 
         public async Task NotificationReminderForUnAttendedRequestsJob()
-       {
+        {
             try
             {
                 #region Send a reminder notification after 24hours that a request has been assigned
@@ -365,11 +375,14 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 if (legalSearchRequest == null) continue;
 
                 // get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorManager.GetCurrentSolicitorMappedToRequest(legalSearchRequest.Id, 
+                var solicitorAssignmentRecord = await _solicitorManager.GetCurrentSolicitorMappedToRequest(legalSearchRequest.Id,
                     legalSearchRequest.AssignedSolicitorId);
 
-                solicitorRequestsDictionary.Add(new UserMiniDto {UserId = solicitorAssignmentRecord.SolicitorId, 
-                    UserEmail = solicitorAssignmentRecord.SolicitorEmail } , legalSearchRequest);
+                solicitorRequestsDictionary.Add(new UserMiniDto
+                {
+                    UserId = solicitorAssignmentRecord.SolicitorId,
+                    UserEmail = solicitorAssignmentRecord.SolicitorEmail
+                }, legalSearchRequest);
             }
 
             // process notification to solicitor in parallel
@@ -645,15 +658,112 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
         }
 
-        public Task GenerateDailySummaryForZonalServiceManagers()
+        public async Task GenerateDailySummaryForZonalServiceManagers()
         {
-            // get all zonal service managers
-            var query = _appDbContext.Users
-                .Where(user => user.Role.Name == nameof(RoleType.ZonalServiceManager)); // Filter users by role
+            var zonalServiceManagers = await _zonalManagerService.GetZonalServiceManagers();
 
-            // get 
+            if (!zonalServiceManagers.Data.Any()) return;
 
-            throw new NotImplementedException();
+            zonalServiceManagers.Data.ToList().ForEach(x =>
+            {
+                x.EmailAddress = "onagoruwam@gmail.com";
+            });
+
+            foreach (var zonalServiceManager in zonalServiceManagers.Data)
+            {
+                try
+                {
+                    var branchIds = await _appDbContext.Branches
+                        .Where(x => x.ZonalServiceManagerId == zonalServiceManager.Id)
+                        .Select(x => x.SolId)
+                        .ToListAsync();
+
+                    if (!branchIds.Any()) continue;
+
+                    var requests = _appDbContext.LegalSearchRequests
+                        .Where(x => branchIds.Contains(x.BranchId)
+                                    && x.CreatedAt.Date <= TimeUtils.GetCurrentLocalTime().Date);
+
+                    var zsmReportModel = await ProcessRequestsForZonalServiceManager(requests);
+
+                    await SendReportToZonalServiceManager(zonalServiceManager, zsmReportModel);
+                }
+                catch (Exception ex)
+                {
+                    // Handle the exception (log, notify, etc.)
+                    Console.WriteLine($"Error processing Zonal Service Manager {zonalServiceManager.Id}: {ex.Message}");
+                }
+            }
         }
+
+        private async Task<ZonalServiceManagerReportModel> ProcessRequestsForZonalServiceManager(IQueryable<LegalRequest> requests)
+        {
+            try
+            {
+                var currentTime = TimeUtils.GetCurrentLocalTime();
+
+                // Materialize the IQueryable to a list
+                var requestList = await requests.ToListAsync();
+
+                var countsTasks = new List<Task<int>>
+                {
+                    Task.Run(() => requestList.Count(x => x.Status == RequestStatusType.AssignedToLawyer.ToString())),
+                    Task.Run(() => requestList.Count(x => (x.Status == RequestStatusType.BackToCso.ToString())
+                                                        || (x.Status == RequestStatusType.Initiated.ToString() && x.RequestSource == RequestSourceType.Finacle))),
+                    Task.Run(() => requestList.Count(x => x.Status == RequestStatusType.AssignedToLawyer.ToString() &&
+                                                        x.DateDue != null && x.DateDue > currentTime)),
+                    Task.Run(() => requestList.Count(x => x.Status == RequestStatusType.Completed.ToString())),
+                };
+
+                await Task.WhenAll(countsTasks);
+
+                return new ZonalServiceManagerReportModel
+                {
+                    RequestsPendingWithSolicitorCount = countsTasks[0].Result,
+                    RequestsPendingWithCsoCount = countsTasks[1].Result,
+                    RequestsWithElapsedSlaCount = countsTasks[2].Result,
+                    CompletedRequestsCount = countsTasks[3].Result,
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing requests for Zonal Service Manager: {ex.Message}");
+                throw; // Re-throw the exception to propagate it
+            }
+        }
+
+
+        private async Task SendReportToZonalServiceManager(ZonalServiceManagerMiniDto zonalServiceManager, ZonalServiceManagerReportModel zsmReportModel)
+        {
+            var emailTemplate = EmailTemplates.GetDailyReportEmailTemplateForZsm();
+
+            var keys = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("{{ZonalServiceManagerName}}", zonalServiceManager.Name),
+                new KeyValuePair<string, string>("{{RequestsPendingWithSolicitorCount}}", zsmReportModel.RequestsPendingWithSolicitorCount.ToString()),
+                new KeyValuePair<string, string>("{{RequestsPendingWithCsoCount}}", zsmReportModel.RequestsPendingWithCsoCount.ToString()),
+                new KeyValuePair<string, string>("{{RequestsWithin3HoursToSlaCount}}", zsmReportModel.RequestsWithElapsedSlaCount.ToString())
+            };
+
+            emailTemplate = await emailTemplate.UpdatePlaceHolders(keys);
+
+            // generate email model
+            var emailModel = GenerateEmailModel(emailTemplate, zonalServiceManager);
+
+            // send email
+            await _emailService.SendEmailAsync(emailModel);
+        }
+
+        private SendEmailRequest GenerateEmailModel(string emailTemplate, ZonalServiceManagerMiniDto zonalServiceManager)
+        {
+            return new SendEmailRequest
+            {
+                From = "ebusiness@fcmb.com",
+                Body = emailTemplate,
+                To = zonalServiceManager.EmailAddress,
+                Subject = "Legal Search Daily Summary Report"
+            };
+        }
+
     }
 }
