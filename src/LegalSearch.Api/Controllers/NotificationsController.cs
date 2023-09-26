@@ -41,7 +41,7 @@ namespace LegalSearch.Api.Controllers
         /// Gets the pending notifications for user.
         /// </summary>
         /// <returns></returns>
-        [HttpPost("GetPendingNotificationsForUser")]
+        [HttpGet("GetPendingNotificationsForUser")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
@@ -56,7 +56,7 @@ namespace LegalSearch.Api.Controllers
         /// Marks all notification as read.
         /// </summary>
         /// <returns></returns>
-        [HttpPost("MarkAllNotificationAsRead")]
+        [HttpGet("MarkAllNotificationAsRead")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]

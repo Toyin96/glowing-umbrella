@@ -28,14 +28,14 @@ namespace LegalSearch.Infrastructure.Services.Notification
         }
 
         // Method to send notifications to connected clients on a particular role
-        public async Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
+        public async Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
             var jsonNotification = JsonSerializer.Serialize(notification);
             if (_context.Clients != null)
                 await _context.Clients.Group(roleName).SendAsync("ReceiveNotification", jsonNotification);
         }
 
-        public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
             var jwtToken = Context.GetHttpContext()?.Request?.Headers["Authorization"].ToString()?.Replace("Bearer ", "");
 
@@ -79,6 +79,9 @@ namespace LegalSearch.Infrastructure.Services.Notification
             // Retrieve the user's role
             var userRole = Context.User!.Claims.SingleOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
+            // Retrieve the user branch Id
+            var solId = Context.User!.Claims.SingleOrDefault(c => c.Type == nameof(ClaimType.SolId))?.Value;
+
             if (!string.IsNullOrEmpty(userRole))
             {
                 // Add the user to a group based on their role
@@ -88,7 +91,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 var pendingNotificationsForRole = await _notificationService.GetPendingNotificationsForRole(userRole);
 
                 // Retrieve pending notifications for the connected user individually
-                var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId);
+                var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId, userRole, solId);
 
                 // Combine and send both sets of pending notifications to the connected user
                 var pendingNotificationsForRoleList = pendingNotificationsForRole.ToList();

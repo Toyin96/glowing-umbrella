@@ -2,22 +2,32 @@
 using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Responses;
+using Microsoft.AspNetCore.Identity;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
     internal class InAppNotificationService : IInAppNotificationService
     {
         private readonly INotificationManager _notificationManager;
+        private readonly UserManager<Domain.Entities.User.User> _userManager;
 
-        public InAppNotificationService(INotificationManager notificationManager)
+        public InAppNotificationService(INotificationManager notificationManager, UserManager<Domain.Entities.User.User> userManager)
         {
             _notificationManager = notificationManager;
+            _userManager = userManager;
         }
 
 
         public async Task<ListResponse<NotificationResponse>> GetNotificationsForUser(string userId)
         {
-            var notifications = await _notificationManager.GetPendingNotificationsForUser(userId);
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return new ListResponse<NotificationResponse>("Something went wrong. Please try again", ResponseCodes.Forbidden);
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            var notifications = await _notificationManager.GetPendingNotificationsForUser(userId, roles[0], user.SolId);
 
             return new ListResponse<NotificationResponse>("Operation was successful", ResponseCodes.Success)
             {

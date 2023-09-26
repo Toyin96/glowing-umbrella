@@ -58,7 +58,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return false;
         }
 
-        public async Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
+        public async Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
             if (userEmails?.Any() == true)
             {
@@ -89,7 +89,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             }
         }
 
-        public async Task SendNotificationToUser(Guid userId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
         {
             var client = _httpClientFactory.CreateClient("notificationClient");
 
@@ -118,8 +118,8 @@ namespace LegalSearch.Infrastructure.Services.Notification
         {
             return notification.NotificationType switch
             {
-                Domain.Enums.Notification.NotificationType.NewRequest => NotificationTemplates.RequestAssignmentNotification(),
-                Domain.Enums.Notification.NotificationType.AssignedToSolicitor => NotificationTemplates.GenerateNewRequestNotification(),
+                Domain.Enums.Notification.NotificationType.NewRequest => NotificationTemplates.NotifySolicitorOnRequestAssignment(),
+                Domain.Enums.Notification.NotificationType.AssignedToSolicitor => NotificationTemplates.GenerateNewRequestNotificationForSolicitor(),
                 Domain.Enums.Notification.NotificationType.OutstandingRequestAfter24Hours => NotificationTemplates.OutstandingRequestNotification(),
                 Domain.Enums.Notification.NotificationType.RequestWithElapsedSLA => NotificationTemplates.RequestwithElapsedSLANotification(),
                 Domain.Enums.Notification.NotificationType.RequestReturnedToCso => NotificationTemplates.RequestReturnedNotification(),

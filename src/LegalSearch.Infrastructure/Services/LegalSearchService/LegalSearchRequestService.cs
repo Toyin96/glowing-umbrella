@@ -449,9 +449,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // Notify the COS of completion of legalSearchRequest update
                 var notification = new Domain.Entities.Notification.Notification
                 {
-                    Title = "Request has been completed",
+                    Title = ConstantTitle.CompletedRequestTitleForCso,
                     RecipientUserId = request.InitiatorId.ToString(),
                     RecipientUserEmail = cso.Email,
+                    SolId = request.BranchId,
                     NotificationType = NotificationType.CompletedRequest,
                     Message = ConstantMessage.CompletedRequestMessage,
                     MetaData = JsonSerializer.Serialize(request)
@@ -588,7 +589,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private async Task NotifyClient(Guid userId, Domain.Entities.Notification.Notification notification)
         {
             //send notification to client
-            await _notificationService.SendNotificationToUser(userId, notification);
+            await _notificationService.NotifyUser(userId, notification);
         }
         private LegalRequest MapRequestToLegalRequest(LegalSearchRequest request)
         {
