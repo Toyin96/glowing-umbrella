@@ -184,7 +184,7 @@ namespace LegalSearch.Api
                 options.UseSqlServer(configuration.GetConnectionString("legal_search_db"), sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly("LegalSearch.Infrastructure");
-                    sqlOptions.EnableRetryOnFailure(); // Optional: Enable automatic retries on transient failures.
+                    sqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null); // Optional: Enable automatic retries on transient failures.
                 });
             });
         }

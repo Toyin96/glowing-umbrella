@@ -6,8 +6,8 @@ namespace LegalSearch.Application.Interfaces.Notification
     {
         Task<bool> AddNotification(Domain.Entities.Notification.Notification notification);
         Task<bool> AddMultipleNotifications(List<Domain.Entities.Notification.Notification> requests);
-        Task<IEnumerable<Domain.Entities.Notification.Notification>> GetPendingNotificationsForRole(string role);
-        Task<IEnumerable<Domain.Entities.Notification.Notification>> GetPendingNotificationsForUser(string userId);
+        Task<IEnumerable<NotificationResponse>> GetPendingNotificationsForRole(string role);
+        Task<IEnumerable<NotificationResponse>> GetPendingNotificationsForUser(string userId);
         Task<bool> MarkNotificationAsRead(Guid id);
         Task<bool> MarkAllNotificationAsRead(string userId);
     }

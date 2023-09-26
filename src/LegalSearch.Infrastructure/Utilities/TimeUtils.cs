@@ -9,6 +9,6 @@
 
 
         // Cron Expressions
-        public static string GetCronExpressionFor10pmDailyWAT => "0 22 * * *";
+        public static string GetCronExpressionFor10pmDailyWAT => "55 23 * * *";
     }
 }

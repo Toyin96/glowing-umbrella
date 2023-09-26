@@ -300,7 +300,7 @@ namespace LegalSearch.Infrastructure.Managers
             {
                 case CsoRequestStatusType.PendingWithCso:
                     query = query.Where(x => (x.Status == RequestStatusType.BackToCso.ToString()) ||
-                                    (x.Status == RequestStatusType.UnAssigned.ToString() && x.RequestSource == RequestSourceType.Finacle));
+                                    (x.Status == RequestStatusType.Initiated.ToString() && x.RequestSource == RequestSourceType.Finacle));
                     break;
                 case CsoRequestStatusType.PendingWithSolicitor:
                     query = query.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString());
@@ -524,25 +524,6 @@ namespace LegalSearch.Infrastructure.Managers
             if (request.CsoRequestStatusType.HasValue)
             {
                 query = FilterQueryBasedOnCsoRequestStatus(request, query);
-            }
-
-            if (request.BranchId != null)
-            {
-                query = query.Where(x => x.BranchId == request.BranchId);
-            }
-
-            return query;
-        }
-        private IQueryable<LegalRequest> ApplyFilters(CsoBranchDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
-        {
-            if (request.StartPeriod.HasValue)
-            {
-                query = query.Where(x => x.CreatedAt >= request.StartPeriod);
-            }
-
-            if (request.EndPeriod.HasValue)
-            {
-                query = query.Where(x => x.CreatedAt <= request.EndPeriod);
             }
 
             if (request.BranchId != null)

@@ -673,7 +673,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 BranchId = request.BranchId,
                 CustomerAccountName = request.CustomerAccountName,
                 CustomerAccountNumber = request.CustomerAccountNumber,
-                Status = RequestStatusType.UnAssigned.ToString(),
+                Status = RequestStatusType.Initiated.ToString(),
             };
         }
 

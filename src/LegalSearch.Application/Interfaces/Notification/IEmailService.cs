@@ -4,6 +4,6 @@ namespace LegalSearch.Application.Interfaces.Notification
 {
     public interface IEmailService
     {
-        Task<bool> SendEmail(SendEmailRequest sendEmailRequest);
+        Task<bool> SendEmailAsync(SendEmailRequest sendEmailRequest);
     }
 }
