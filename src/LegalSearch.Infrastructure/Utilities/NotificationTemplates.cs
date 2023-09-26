@@ -9,7 +9,7 @@ namespace LegalSearch.Infrastructure.Utilities
 {
     public static class NotificationTemplates
     {
-        public static string GenerateNewRequestNotification()
+        public static string GenerateNewRequestNotificationForSolicitor()
         {
             var text = @"
             <!DOCTYPE html>
@@ -28,7 +28,7 @@ namespace LegalSearch.Infrastructure.Utilities
             return text;
         }
 
-        public static string RequestAssignmentNotification()
+        public static string NotifySolicitorOnRequestAssignment()
         {
             var text = @"
             <!DOCTYPE html>

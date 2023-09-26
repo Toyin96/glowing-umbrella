@@ -1,6 +1,8 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Entities.Notification;
+using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,20 +47,33 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return pendingNotifications ?? Enumerable.Empty<NotificationResponse>();
         }
 
-        public async Task<IEnumerable<NotificationResponse>> GetPendingNotificationsForUser(string userId)
+        public async Task<IEnumerable<NotificationResponse>> GetPendingNotificationsForUser(string userId, string role, string? solId)
         {
-            var pendingNotifications = await _appDbContext.Notifications
-                                   .Where(n => n.RecipientUserId == userId && !n.IsRead)
-                                    .Select(x => new NotificationResponse
-                                    {
-                                        Title = x.Title,
-                                        NotificationType = x.NotificationType,
-                                        RecipientUserId = x.RecipientUserId,
-                                        Message = x.Message,
-                                        IsRead = x.IsRead,
-                                        MetaData = x.MetaData
-                                    })
-                                    .ToListAsync();
+            IQueryable<Domain.Entities.Notification.Notification> query = _appDbContext.Notifications;
+
+            if (role == RoleType.Solicitor.ToString())
+            {
+                query = query.Where(n => n.RecipientUserId == userId && !n.IsRead);
+            }
+            else if (role == RoleType.Cso.ToString())
+            {
+                query = query.Where(n => n.IsBroadcast && n.RecipientRole == role && !n.IsRead && n.SolId == solId);
+            }
+            else
+            {
+                query = query.Where(n => n.IsBroadcast && n.RecipientRole == role && !n.IsRead);
+            }
+
+            var pendingNotifications = await query.Select(x => new NotificationResponse
+            {
+                Title = x.Title,
+                NotificationType = x.NotificationType,
+                RecipientUserId = x.RecipientUserId,
+                Message = x.Message,
+                IsRead = x.IsRead,
+                MetaData = x.MetaData
+            })
+            .ToListAsync();
 
             return pendingNotifications ?? Enumerable.Empty<NotificationResponse>();
         }

@@ -10,7 +10,7 @@ namespace LegalSearch.Application.Interfaces.Notification
         /// <param name="initiatorUserId">The user identifier.</param>
         /// <param name="notification">The notification.</param>
         /// <returns></returns>
-        Task SendNotificationToUser(Guid initiatorUserId, Domain.Entities.Notification.Notification notification);
-        Task SendNotificationToRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null);
+        Task NotifyUser(Guid initiatorUserId, Domain.Entities.Notification.Notification notification);
+        Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null);
     }
 }
