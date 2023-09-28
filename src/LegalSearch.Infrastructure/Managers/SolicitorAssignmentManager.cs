@@ -17,5 +17,12 @@ namespace LegalSearch.Infrastructure.Managers
         {
             return await _appDbContext.SolicitorAssignments.FirstOrDefaultAsync(x => x.SolicitorId == id);
         }
+
+        public async Task<bool> UpdateSolicitorAssignmentRecord(SolicitorAssignment solicitorAssignment)
+        {
+            _appDbContext.SolicitorAssignments.Update(solicitorAssignment);
+
+            return await _appDbContext.SaveChangesAsync() > 0;
+        }
     }
 }
