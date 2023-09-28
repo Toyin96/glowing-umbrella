@@ -5,6 +5,7 @@ namespace LegalSearch.Domain.Entities.User.Solicitor
     {
         public Guid SolicitorId { get; set; }
         public string SolicitorEmail { get; set; }
+        public bool IsCurrentlyAssigned { get; set; }
         public Guid RequestId { get; set; }
         public int Order { get; set; }
         public DateTime AssignedAt { get; set; }

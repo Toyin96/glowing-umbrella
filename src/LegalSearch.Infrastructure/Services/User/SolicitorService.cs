@@ -6,6 +6,7 @@ using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
+using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.LegalPerfectionTeam;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Requests.User;
@@ -94,18 +95,31 @@ namespace LegalSearch.Infrastructure.Services.User
             if (legalSearchRequest == null)
                 return new StatusResponse("LegalSearchRequest not found", ResponseCodes.DataNotFound);
 
-            // get solicitor
-            var user = await _userManager.FindByIdAsync(manuallyAssignRequestToSolicitorRequest.SolicitorId.ToString());
-
-            if (user == null)
-                return new StatusResponse("User not found", ResponseCodes.DataNotFound);
-
             if (legalSearchRequest.Status != RequestStatusType.UnAssigned.ToString())
                 return new StatusResponse("Only unassigned requests can be manually assigned to solicitors", ResponseCodes.Conflict);
 
-            BackgroundJob.Enqueue<IBackgroundService>(x => x.ManuallyAssignRequestToSolicitorJob(manuallyAssignRequestToSolicitorRequest.RequestId, new UserMiniDto { UserId = user.Id, UserEmail = user.Email }));
+            (string status, string? errorMessage, Domain.Entities.User.User? user) validationResponse = await ValidateSolicitor(manuallyAssignRequestToSolicitorRequest.SolicitorId.ToString());
+
+            if (validationResponse.status != ResponseCodes.Success)
+                return new StatusResponse(validationResponse.errorMessage ?? "Something went wrong. Please try again later", validationResponse.status);
+
+            BackgroundJob.Enqueue<IBackgroundService>(x => x.ManuallyAssignRequestToSolicitorJob(manuallyAssignRequestToSolicitorRequest.RequestId, new UserMiniDto { UserId = validationResponse.user!.Id, UserEmail = validationResponse.user.Email! }));
 
             return new StatusResponse("Request have been pushed to solicitor's tab", ResponseCodes.Success);
+        }
+
+        private async Task<(string status, string? errorMessage, Domain.Entities.User.User? user)> ValidateSolicitor(string id)
+        {
+            // get solicitor
+            var user = await _userManager.FindByIdAsync(id);
+
+            if (user == null)
+                return (ResponseCodes.DataNotFound, "User not found", null);
+
+            if (user.ProfileStatus != ProfileStatusType.Active.ToString())
+                return (ResponseCodes.DataNotFound, "Sorry, the solicitor is not currently active", null);
+
+            return (ResponseCodes.Success, null, user);
         }
 
         public async Task<ListResponse<SolicitorProfileResponseDto>> ViewMappedSolicitorsProfiles(ViewSolicitorsBasedOnRegionRequestFilter viewSolicitorsBasedOnRegionRequestFilter)

@@ -386,6 +386,12 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 legalSearchRequest.Status = nameof(RequestStatusType.LawyerRejected);
                 var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearchRequest);
 
+                solicitorAssignmentRecord.IsCurrentlyAssigned = false;
+                var hasSolicitorAssignmentRecordUpdated = await _solicitorAssignmentManager.UpdateSolicitorAssignmentRecord(solicitorAssignmentRecord);
+
+                if (!hasSolicitorAssignmentRecordUpdated)
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
+
                 if (!isRequestUpdated)
                     return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
 

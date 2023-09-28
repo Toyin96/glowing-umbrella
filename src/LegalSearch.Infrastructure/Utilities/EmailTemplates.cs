@@ -148,11 +148,12 @@
     <div class=""container"">
         <div class=""content"">
             <p>Dear {{ZonalServiceManagerName}},</p>
-            <p>Here is your daily summary report:</p>
+            <p>Here is a recap of today, {{date}},</p>
             <ul>
+                <li>Completed requests: {{CompletedRequestCount}}</li>
                 <li>Total pending requests with Solicitors: {{RequestsPendingWithSolicitorCount}}</li>
                 <li>Total pending requests with Customer Service Officers: {{RequestsPendingWithCsoCount}}</li>
-                <li>Total pending requests that have exceeded SLA (3 days): {{RequestsWithin3HoursToSlaCount}}</li>
+                <li>Total pending requests that have exceeded SLA (3 days): {{RequestsWithElapsedSlaCount}}</li>
             </ul>
             <p>Best regards,<br>LegalSearch Team</p>
         </div>

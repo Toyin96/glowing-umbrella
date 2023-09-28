@@ -160,7 +160,8 @@ namespace LegalSearch.Infrastructure.Managers
             var elapsedTime = TimeUtils.GetSeventyTwoHoursElapsedTime();
 
             var requestIds = await _appDbContext.SolicitorAssignments
-                                                .Where(a => a.IsAccepted && a.AssignedAt <= elapsedTime)
+                                                .Where(a => a.IsAccepted && a.IsCurrentlyAssigned
+                                                && a.AssignedAt <= elapsedTime)
                                                 .Select(a => a.RequestId)
                                                 .Distinct()
                                                 .ToListAsync();
@@ -181,7 +182,7 @@ namespace LegalSearch.Infrastructure.Managers
             if (!isSlaElapsed)
             {
                 DateTime elapsedSlaTime = TimeUtils.GetSeventyTwoHoursElapsedTime();
-                query = query.Where(a => a.AssignedAt > elapsedSlaTime);
+                query = query.Where(a => a.AssignedAt > elapsedSlaTime && a.IsCurrentlyAssigned);
             }
 
             var requestIds = await query.Select(a => a.RequestId)

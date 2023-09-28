@@ -155,6 +155,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                     await PushRequestToNextSolicitorInOrder(request, currentlyAssignedSolicitor.Order);
                 }
+
             }
             catch (Exception ex)
             {
@@ -189,6 +190,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
                 // logged time request was assigned to solicitor
                 nextSolicitor.AssignedAt = TimeUtils.GetCurrentLocalTime();
+                nextSolicitor.IsCurrentlyAssigned = true;
                 nextSolicitor.UpdatedAt = TimeUtils.GetCurrentLocalTime();
 
                 // Update the request status and assigned solicitor(s)
@@ -310,58 +312,18 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 #region Send a reminder notification after 24hours that a request has been assigned
 
                 // resolves time to 24 hours ago
-                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyFourHoursElapsedTime(), false);
+                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(/*TimeUtils.GetTwentyFourHoursElapsedTime()*/TimeUtils.GetCurrentLocalTime(), false);
 
                 if (requestsAcceptedTwentyFoursAgo != null && requestsAcceptedTwentyFoursAgo.Any())
                 {
                     await ProcessNotifications(requestsAcceptedTwentyFoursAgo);
                 }
                 #endregion
-
-                #region Re-route request to another solicitor after request SLA have elapsed
-
-                // get assigned requests that have been unattended for the 72 hours (3 days)
-                var requestsWithElapsedSLA = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetSeventyTwoHoursElapsedTime(), true);
-
-                // check if any matching request was returned
-                if (requestsWithElapsedSLA != null && requestsWithElapsedSLA.Any())
-                {
-                    await PushRequestToTheNextSolicitor(requestsWithElapsedSLA);
-                }
-
-                #endregion
             }
             catch (Exception ex)
             {
 
                 Console.WriteLine($"An exception was thrown inside NotificationReminderForUnAttendedRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
-            }
-        }
-
-        private async Task PushRequestToTheNextSolicitor(IEnumerable<Guid> requestsWithElapsedSLA)
-        {
-            Dictionary<Guid, int> elapsedSLARequestsDictionary = new Dictionary<Guid, int>();
-
-            foreach (var requestId in requestsWithElapsedSLA.ToList())
-            {
-                // get the associated legal search
-                var legalSearchRequest = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
-
-                // could not find legal search request
-                if (legalSearchRequest == null || legalSearchRequest.Status == RequestStatusType.UnAssigned.ToString()) continue;
-
-                // get the currently assigned solicitor to know his/her order
-                var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(requestId,
-                    legalSearchRequest.AssignedSolicitorId);
-
-                elapsedSLARequestsDictionary.Add(requestId, currentlyAssignedSolicitor.Order);
-            }
-
-            // process each request serially
-            foreach (var request in elapsedSLARequestsDictionary)
-            {
-                // pass the request to another solicitor in-line based on the current solicitor's order
-                await PushRequestToNextSolicitorInOrder(request.Key, request.Value);
             }
         }
 
@@ -588,6 +550,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 Title = ConstantTitle.NewRequestAssignmentTitle,
                 RecipientUserId = solicitorInfo.UserId.ToString(),
                 RecipientUserEmail = solicitorInfo.UserEmail,
+                SolId = legalSearchRequest.BranchId,
                 NotificationType = NotificationType.AssignedToSolicitor,
                 Message = ConstantMessage.NewRequestAssignmentMessage,
                 MetaData = JsonSerializer.Serialize(legalSearchRequest, _serializerOptions)
@@ -745,10 +708,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
             var keys = new List<KeyValuePair<string, string>>
             {
+                new KeyValuePair<string, string>("{{date}}", TimeUtils.GetCurrentLocalTime().ToString("D")),
                 new KeyValuePair<string, string>("{{ZonalServiceManagerName}}", zonalServiceManager.Name),
+                new KeyValuePair<string, string>("{{CompletedRequestCount}}", zsmReportModel.CompletedRequestsCount.ToString()),
                 new KeyValuePair<string, string>("{{RequestsPendingWithSolicitorCount}}", zsmReportModel.RequestsPendingWithSolicitorCount.ToString()),
                 new KeyValuePair<string, string>("{{RequestsPendingWithCsoCount}}", zsmReportModel.RequestsPendingWithCsoCount.ToString()),
-                new KeyValuePair<string, string>("{{RequestsWithin3HoursToSlaCount}}", zsmReportModel.RequestsWithElapsedSlaCount.ToString())
+                new KeyValuePair<string, string>("{{RequestsWithElapsedSlaCount}}", zsmReportModel.RequestsWithElapsedSlaCount.ToString())
             };
 
             emailTemplate = await emailTemplate.UpdatePlaceHolders(keys);
