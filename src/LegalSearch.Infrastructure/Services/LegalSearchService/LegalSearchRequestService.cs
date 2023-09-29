@@ -422,11 +422,11 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 // get the cso that initiated the request
                 var cso = await _userManager.FindByIdAsync(request.InitiatorId.ToString());
                 if (cso == null)
-                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", result.errorCode);
+                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", ResponseCodes.BadRequest);
 
                 // verify that customer legalSearchRequest have a lien ID
                 if (request!.LienId == null)
-                    return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
 
                 // add the files & feedback if any
                 if (submitLegalSearchReport.RegistrationDocuments.Any())
@@ -450,7 +450,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
                 if (!isRequestUpdated)
-                    return new StatusResponse("An error occurred while sending report. Please try again later.", result.errorCode);
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
 
                 // Notify the COS of completion of legalSearchRequest update
                 var notification = new Domain.Entities.Notification.Notification

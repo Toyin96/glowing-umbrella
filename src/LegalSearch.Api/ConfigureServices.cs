@@ -1,8 +1,11 @@
-﻿using Hangfire;
+﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Hangfire;
 using HangfireBasicAuthenticationFilter;
+using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.Notification;
+using LegalSearch.Application.Models.Logging;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
@@ -16,10 +19,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -51,6 +56,9 @@ namespace LegalSearch.Api
             services.RegisterHttpRequiredServices(configuration);
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
+
+            // add logging capabilities
+            services.ConfigureLoggingCapability(configuration);
 
             services.AddCors(options =>
             {
@@ -161,6 +169,32 @@ namespace LegalSearch.Api
                     ValidAudience = jwtSettings["Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(secretKey),
                 };
+            });
+        }
+
+        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration)
+        {
+            // Retrieve logger options from appsettings.json
+            var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
+
+            // Check if loggerOptions is null
+            if (loggerOptions == null)
+            {
+                throw new ArgumentNullException(nameof(loggerOptions), "LoggerOptions is null. Check the configuration.");
+            }
+
+            // Configure the logger
+            var loggerConfigurationService = new LoggerConfigurationService(configuration);
+            var loggerConfiguration = loggerConfigurationService.ConfigureLogger(loggerOptions);
+
+            // Set the logger as the default logger for the application
+            Log.Logger = loggerConfiguration.CreateLogger();
+
+            // Clear existing logging providers and add Serilog
+            services.AddLogging(loggingBuilder =>
+            {
+                loggingBuilder.ClearProviders();
+                loggingBuilder.AddSerilog(dispose: true);
             });
         }
 

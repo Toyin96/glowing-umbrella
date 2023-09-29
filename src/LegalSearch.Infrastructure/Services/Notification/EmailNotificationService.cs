@@ -60,7 +60,49 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public async Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
-            if (userEmails?.Any() == true)
+            if (userEmails == null || !userEmails.Any())
+                return;
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("notificationClient");
+
+                string emailTemplate = GetNotificationTemplateToSend(notification);
+
+                using var requestContent = new MultipartFormDataContent();
+
+                // Add standard email parts
+                requestContent.Add(new StringContent("ebusiness@fcmb.com"), "From");
+                requestContent.Add(new StringContent(userEmails[0]), "To");
+                requestContent.Add(new StringContent(notification.Title!), "Subject");
+                requestContent.Add(new StringContent(emailTemplate), "Body");
+
+                // Add each email in userEmails list as "Bcc"
+                foreach (var userEmail in userEmails.Skip(1))
+                    requestContent.Add(new StringContent(userEmail), "Bcc");
+
+                using var response = await client.PostAsync("/fcmb/api/Mail/SendMail", requestContent);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation($"Response from calling send email endpoint: {responseContent}");
+                }
+                else
+                {
+                    _logger.LogError($"Failed to send email. Status code: {response.StatusCode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An error occurred while sending email: {ex.Message}");
+            }
+        }
+
+
+        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
+        {
+            try
             {
                 var client = _httpClientFactory.CreateClient("notificationClient");
 
@@ -72,47 +114,24 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 requestContent.Add(new StringContent(notification.Title!), "Subject");
                 requestContent.Add(new StringContent(emailTemplate), "Body");
 
-                // Add each email in userEmails list as "Bcc"
-                foreach (var userEmail in userEmails)
-                {
-                    requestContent.Add(new StringContent(userEmail), "Bcc");
-                }
-
                 using var response = await client.PostAsync("/fcmb/api/Mail/SendMail", requestContent);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-
                     _logger.LogInformation($"Response from calling send email endpoint: {responseContent}");
                 }
+                else
+                {
+                    _logger.LogError($"Failed to send email. Status code: {response.StatusCode}");
+                }
             }
-        }
-
-        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
-        {
-            var client = _httpClientFactory.CreateClient("notificationClient");
-
-            string emailTemplate = GetNotificationTemplateToSend(notification);
-
-            var requestContent = new MultipartFormDataContent();
-            requestContent.Add(new StringContent("ebusiness@fcmb.com"), "From");
-            requestContent.Add(new StringContent(notification.RecipientUserEmail!), "To");
-            requestContent.Add(new StringContent(notification.Title!), "Subject");
-            requestContent.Add(new StringContent(emailTemplate), "Body");
-
-
-            using var response = await client.PostAsync("/fcmb/api/Mail/SendMail",requestContent);
-
-            if (response.IsSuccessStatusCode)
+            catch (Exception ex)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-
-                _logger.LogInformation($"Response from calling send email endpoint::::{responseContent}");
+                _logger.LogError($"An error occurred while sending email: {ex.Message}");
             }
-
-            //TODO: Do something when it fails
         }
+
 
         private static string GetNotificationTemplateToSend(Domain.Entities.Notification.Notification notification)
         {
