@@ -60,7 +60,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             var updateStatus = await _userManager.UpdateAsync(user);
 
-            if (updateStatus.Succeeded == false)
+            if (!updateStatus.Succeeded)
                 return new StatusResponse("Solicitor's status was not updated. Try again later", ResponseCodes.Conflict);
 
             return new StatusResponse("Solicitor status has been updated successfully", ResponseCodes.Success);

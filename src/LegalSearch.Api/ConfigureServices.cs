@@ -1,10 +1,10 @@
-﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
-using Hangfire;
+﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
+using HealthChecks.UI.Client;
+using LegalSearch.Api.HealthCheck;
 using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
 using LegalSearch.Application.Interfaces.FCMBService;
-using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Logging;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Domain.Entities.Role;
@@ -15,17 +15,13 @@ using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -56,6 +52,12 @@ namespace LegalSearch.Api
             services.RegisterHttpRequiredServices(configuration);
             services.AddHealthChecks();
             services.AddDistributedMemoryCache();
+
+            // Register custom health checks
+            services.AddHealthChecks()
+                    .AddCheck<ApiHealthCheck>("api_health_check")
+                    .AddCheck<SecurityHealthCheck>("security_health_check")
+                    .AddCheck<DatabaseHealthCheck>("database_health_check");
 
             // add logging capabilities
             services.ConfigureLoggingCapability(configuration);
@@ -113,6 +115,11 @@ namespace LegalSearch.Api
 
             app.MapHub<NotificationHub>("/notificationHub");
 
+            app.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
+
             UpdateDatabase(app, configuration); // ensure migration upon startup
 
             app.UseAuthentication();
@@ -132,6 +139,11 @@ namespace LegalSearch.Api
                         User = configuration["HangfireConfig:User"]
                     }
                 }
+            });
+
+            app.UseHealthChecksUI(options =>
+            {
+                options.UIPath = "/health-ui";
             });
 
             // Call the static method to register recurring Hangfire jobs
