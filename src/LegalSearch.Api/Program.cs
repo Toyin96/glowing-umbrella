@@ -1,6 +1,5 @@
 using LegalSearch.Api;
 using LegalSearch.Infrastructure;
-using LegalSearch.Infrastructure.BackgroundJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
