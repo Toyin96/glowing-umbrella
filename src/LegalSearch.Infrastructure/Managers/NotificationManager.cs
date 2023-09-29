@@ -35,10 +35,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
                                                           && n.RecipientRole == role && n.IsBroadcast)
                                                           .Select(x => new NotificationResponse
                                                           {
+                                                              NotificationId = x.Id,
                                                               Title = x.Title,
                                                               NotificationType = x.NotificationType,
                                                               RecipientUserId = x.RecipientUserId,
                                                               Message = x.Message,
+                                                              DateCreated = x.CreatedAt,
                                                               IsRead = x.IsRead,
                                                               MetaData = x.MetaData
                                                           })
@@ -66,10 +68,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             var pendingNotifications = await query.Select(x => new NotificationResponse
             {
+                NotificationId = x.Id,
                 Title = x.Title,
                 NotificationType = x.NotificationType,
                 RecipientUserId = x.RecipientUserId,
                 Message = x.Message,
+                DateCreated = x.CreatedAt,
                 IsRead = x.IsRead,
                 MetaData = x.MetaData
             })
