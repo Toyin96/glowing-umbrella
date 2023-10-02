@@ -31,7 +31,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
     internal class BackgroundService : IBackgroundService
     {
         private readonly AppDbContext _appDbContext;
-        private readonly INotificationService _notificationService;
+        private readonly List<INotificationService> _notificationServices;
         private readonly ISolicitorManager _solicitorManager;
         private readonly IStateRetrieveService _stateRetrieveService;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
@@ -46,7 +46,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
 
         public BackgroundService(AppDbContext appDbContext,
-            INotificationService notificationService,
+            List<INotificationService> notificationService,
             ISolicitorManager solicitorManager,
             IStateRetrieveService stateRetrieveService,
             ILegalSearchRequestManager legalSearchRequestManager,
@@ -57,7 +57,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             IEmailService emailService)
         {
             _appDbContext = appDbContext;
-            _notificationService = notificationService;
+            _notificationServices = notificationService;
             _solicitorManager = solicitorManager;
             _stateRetrieveService = stateRetrieveService;
             _legalSearchRequestManager = legalSearchRequestManager;
@@ -209,7 +209,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 };
 
                 // Notify solicitor of new request
-                await _notificationService.NotifyUser(request.InitiatorId, notification);
+                _notificationServices.ForEach(x => x.NotifyUser(request.InitiatorId, notification));
 
                 await _appDbContext.SaveChangesAsync();
             }
@@ -302,7 +302,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             var emails = users?.Select(x => x?.Email).ToList();
 
             // Notify LegalPerfectionTeam of new request was unassigned
-            await _notificationService.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails);
+            _notificationServices.ToList().ForEach(x => x.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails));
         }
 
         public async Task NotificationReminderForUnAttendedRequestsJob()
@@ -312,7 +312,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 #region Send a reminder notification after 24hours that a request has been assigned
 
                 // resolves time to 24 hours ago
-                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(/*TimeUtils.GetTwentyFourHoursElapsedTime()*/TimeUtils.GetCurrentLocalTime(), false);
+                var requestsAcceptedTwentyFoursAgo = await _solicitorManager.GetUnattendedAcceptedRequestsForTheTimeFrame(TimeUtils.GetTwentyFourHoursElapsedTime(), false);
 
                 if (requestsAcceptedTwentyFoursAgo != null && requestsAcceptedTwentyFoursAgo.Any())
                 {
@@ -365,7 +365,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value, _serializerOptions)
                 };
 
-                await _notificationService.NotifyUser(individualSolicitorRequestsDictionary.Value.InitiatorId, notification);
+                _notificationServices.ForEach(x => x.NotifyUser(individualSolicitorRequestsDictionary.Value.InitiatorId, notification));
             });
         }
 
@@ -390,7 +390,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
 
             // get staff id
-            await _notificationService.NotifyUser(request.AssignedSolicitorId, notification);
+            _notificationServices.ForEach(x => x.NotifyUser(request.AssignedSolicitorId, notification));
         }
 
         public async Task InitiatePaymentToSolicitorJob(Guid requestId)
@@ -560,7 +560,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             var users = await _userManager.GetUsersInRoleAsync(nameof(RoleType.LegalPerfectionTeam));
             var emails = users?.Select(x => x?.Email).ToList();
 
-            await _notificationService.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails);
+            _notificationServices.ToList().ForEach(x => x.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails));
         }
 
         private static SolicitorAssignment GenerateSolicitorAssignmentRecord(Guid requestId, UserMiniDto solicitorInfo)
@@ -590,17 +590,14 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             var users = await _userManager.GetUsersInRoleAsync(nameof(RoleType.LegalPerfectionTeam));
             var emails = users?.Select(x => x?.Email).ToList();
 
-            var notificationTask = request.RecipientType switch
+            var notificationTasks = request.RecipientType switch
             {
-                NotificationRecipientType.Solicitor => _notificationService.NotifyUser(legalRequest.InitiatorId, notification),
-                NotificationRecipientType.LegalPerfectionTeam => _notificationService.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails),
-                _ => null
+                NotificationRecipientType.Solicitor => _notificationServices.Select(x => x.NotifyUser(legalRequest.InitiatorId, notification)),
+                NotificationRecipientType.LegalPerfectionTeam => _notificationServices.Select(x => x.NotifyUsersInRole(nameof(RoleType.LegalPerfectionTeam), notification, emails)),
+                _ => Enumerable.Empty<Task>()  // Return an empty enumerable of tasks if the type is unknown
             };
 
-            if (notificationTask != null)
-            {
-                await notificationTask;
-            }
+            await Task.WhenAll(notificationTasks);
         }
 
         private async Task<Domain.Entities.Notification.Notification?> GenerateNotificationPayload(EscalateRequest request, LegalRequest legalRequest)

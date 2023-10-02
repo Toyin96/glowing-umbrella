@@ -129,14 +129,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayload(legalSearchRequest);
 
                 // System attempts to place a lien on the customer's account
-                // var addLienResponse = await _fCMBService.AddLien(lienRequest);
+                var addLienResponse = await _fCMBService.AddLien(lienRequest);
 
                 // Process lien response to see if the account has enough balance for this action
-                // (bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
+                (bool isSuccess, string errorMessage) lienVerificationResponse = ProcessLienResponse(addLienResponse!);
 
                 // Detailed error response is being returned here if the validation checks were not met
-                // if (!lienVerificationResponse.isSuccess)
-                //    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
+                if (!lienVerificationResponse.isSuccess)
+                    return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
 
                 // Step 3: Get the CSO account
                 var user = await _userManager.FindByIdAsync(userId);
@@ -145,7 +145,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
 
                 // Assign lien ID to the legal search request
-                // newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
+                 newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
 
                 // Update legal search request payload
                 newLegalSearchRequest.BranchId = user.SolId ?? user!.BranchId!;
@@ -228,7 +228,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 _logger.LogInformation("Generating legal search lien request payload...");
 
                 var requestId = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}";
-                var reasonCode = $"{_options.LegalSearchReasonCode}{GenerateUnique5DigitNumber()}";
+                var reasonCode = $"{_options.LegalSearchReasonCode}";
 
                 var lienRequest = new AddLienToAccountRequest
                 {
