@@ -31,7 +31,8 @@ namespace LegalSearch.Infrastructure.Managers
             {
                 Id = x.Id,
                 Name = x.Name,
-                EmailAddress = x.EmailAddress
+                EmailAddress = x.EmailAddress,
+                AlternateEmailAddress = x.AlternateEmailAddress,
             }).ToListAsync();
 
             return managers ?? Enumerable.Empty<ZonalServiceManagerMiniDto>();

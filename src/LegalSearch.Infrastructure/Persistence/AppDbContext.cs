@@ -13,6 +13,7 @@ namespace LegalSearch.Infrastructure.Persistence
 {
     public class AppDbContext : IdentityDbContext<User, Role, Guid>
     {
+        public AppDbContext(){}
         public AppDbContext(DbContextOptions<AppDbContext> dco) : base(dco) { }
 
         public DbSet<AuditLog> AuditLogs { get; set; }

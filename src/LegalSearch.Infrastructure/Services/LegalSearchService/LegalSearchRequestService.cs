@@ -35,7 +35,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
         private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
-        private readonly INotificationService _notificationService;
+        private readonly IEnumerable<INotificationService> _notificationService;
         private readonly FCMBServiceAppConfig _options;
         private readonly string _successStatusCode = "00";
         private static Random random = new Random();
@@ -46,7 +46,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             UserManager<Domain.Entities.User.User> userManager,
             ILegalSearchRequestManager legalSearchRequestManager,
             ISolicitorAssignmentManager solicitorAssignmentManager,
-            INotificationService notificationService,
+            IEnumerable<INotificationService> notificationService,
             IOptions<FCMBServiceAppConfig> options)
         {
             _appDbContext = appDbContext;
@@ -77,7 +77,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var legalSearchRequest = result.request;
 
                 // Get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId);
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId, legalSearchRequest.Id);
 
                 // Check if legal search request is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
@@ -541,7 +541,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var legalSearchRequest = result.request;
 
                 // get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId);
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(request.SolicitorId, request.RequestId);
 
                 // check if legalSearchRequest is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
@@ -552,6 +552,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 legalSearchRequest.ReasonForRejection = request.RejectionMessage;
                 legalSearchRequest.Status = nameof(RequestStatusType.LawyerRejected);
+                legalSearchRequest.AssignedSolicitorId = Guid.Empty; // reset the AssignedSolicitorId here
                 var isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(legalSearchRequest);
 
                 solicitorAssignmentRecord.IsCurrentlyAssigned = false;
@@ -871,7 +872,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 _logger.LogInformation($"Sending notification to user with ID: {userId}");
 
                 // Send notification to client
-                await _notificationService.NotifyUser(userId, notification);
+                _notificationService.ToList().ForEach(x => x.NotifyUser(userId, notification));
 
                 _logger.LogInformation("Notification sent successfully.");
             }

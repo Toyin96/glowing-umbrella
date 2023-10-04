@@ -13,9 +13,9 @@ namespace LegalSearch.Infrastructure.Managers
         {
             _appDbContext = appDbContext;
         }
-        public async Task<SolicitorAssignment?> GetSolicitorAssignmentBySolicitorId(Guid id)
+        public async Task<SolicitorAssignment?> GetSolicitorAssignmentBySolicitorId(Guid solicitorId, Guid requestId)
         {
-            return await _appDbContext.SolicitorAssignments.FirstOrDefaultAsync(x => x.SolicitorId == id);
+            return await _appDbContext.SolicitorAssignments.FirstOrDefaultAsync(x => x.SolicitorId == solicitorId && x.RequestId == requestId);
         }
 
         public async Task<bool> UpdateSolicitorAssignmentRecord(SolicitorAssignment solicitorAssignment)

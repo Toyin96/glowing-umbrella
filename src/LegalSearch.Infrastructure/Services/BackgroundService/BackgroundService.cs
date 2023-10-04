@@ -28,10 +28,10 @@ using System.Text.Json.Serialization;
 
 namespace LegalSearch.Infrastructure.Services.BackgroundService
 {
-    internal class BackgroundService : IBackgroundService
+    public class BackgroundService : IBackgroundService
     {
         private readonly AppDbContext _appDbContext;
-        private readonly List<INotificationService> _notificationServices;
+        private readonly IEnumerable<INotificationService> _notificationServices;
         private readonly ISolicitorManager _solicitorManager;
         private readonly IStateRetrieveService _stateRetrieveService;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
@@ -46,7 +46,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
 
         public BackgroundService(AppDbContext appDbContext,
-            List<INotificationService> notificationService,
+            IEnumerable<INotificationService> notificationService,
             ISolicitorManager solicitorManager,
             IStateRetrieveService stateRetrieveService,
             ILegalSearchRequestManager legalSearchRequestManager,
@@ -127,6 +127,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
 
         public async Task CheckAndRerouteRequestsJob()
         {
+            List<Guid> solicitorAssignmentRecords = new List<Guid>();
+
             try
             {
                 // Implement logic to query for requests with elapsed SLA and re-assign them accordingly
@@ -153,7 +155,20 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     var currentlyAssignedSolicitor = await _solicitorManager.GetCurrentSolicitorMappedToRequest(request,
                         legalSearchRequest.AssignedSolicitorId);
 
-                    await PushRequestToNextSolicitorInOrder(request, currentlyAssignedSolicitor.Order);
+                    if (currentlyAssignedSolicitor != null)
+                    {
+                        solicitorAssignmentRecords.Add(currentlyAssignedSolicitor.Id);
+                    }
+
+                    // get current assignment order
+                    int currentAssignmentOrder = currentlyAssignedSolicitor != null ? currentlyAssignedSolicitor.Order : 0;
+
+                    await PushRequestToNextSolicitorInOrder(request, currentAssignmentOrder);
+                }
+
+                if (requestsToReroute?.Any() == true)
+                {
+                    await _solicitorManager.UpdateManySolicitorAssignmentStatuses(solicitorAssignmentRecords);
                 }
 
             }
@@ -209,7 +224,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 };
 
                 // Notify solicitor of new request
-                _notificationServices.ForEach(x => x.NotifyUser(request.InitiatorId, notification));
+                _notificationServices.ToList().ForEach(x => x.NotifyUser(request.InitiatorId, notification));
 
                 await _appDbContext.SaveChangesAsync();
             }
@@ -365,7 +380,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     MetaData = JsonSerializer.Serialize(individualSolicitorRequestsDictionary.Value, _serializerOptions)
                 };
 
-                _notificationServices.ForEach(x => x.NotifyUser(individualSolicitorRequestsDictionary.Value.InitiatorId, notification));
+                _notificationServices.ToList().ForEach(x => x.NotifyUser(individualSolicitorRequestsDictionary.Value.InitiatorId, notification));
             });
         }
 
@@ -390,7 +405,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
 
             // get staff id
-            _notificationServices.ForEach(x => x.NotifyUser(request.AssignedSolicitorId, notification));
+            _notificationServices.ToList().ForEach(x => x.NotifyUser(request.AssignedSolicitorId, notification));
         }
 
         public async Task InitiatePaymentToSolicitorJob(Guid requestId)
@@ -729,6 +744,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 From = "ebusiness@fcmb.com",
                 Body = emailTemplate,
                 To = zonalServiceManager.EmailAddress,
+                Bcc = !string.IsNullOrWhiteSpace(zonalServiceManager.AlternateEmailAddress) ? new List<string> { zonalServiceManager.AlternateEmailAddress } : new List<string>(),
                 Subject = "Legal Search Daily Summary Report"
             };
         }

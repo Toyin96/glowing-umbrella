@@ -13,7 +13,7 @@ using System.Data;
 
 namespace LegalSearch.Infrastructure.Services.Roles
 {
-    internal class RoleService : IRoleService
+    public class RoleService : IRoleService
     {
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<RoleService> _logger;
@@ -120,7 +120,7 @@ namespace LegalSearch.Infrastructure.Services.Roles
         }
 
 
-        private IQueryable<RoleResponse> FilterRoleQuery(IQueryable<RoleResponse> roleQuery, FilterRoleRequest request)
+        public IQueryable<RoleResponse> FilterRoleQuery(IQueryable<RoleResponse> roleQuery, FilterRoleRequest request)
         {
             if (!string.IsNullOrEmpty(request.RoleName))
                 roleQuery = roleQuery.Where(x => x.RoleName.Contains(request.RoleName));

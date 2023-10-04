@@ -24,7 +24,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LegalSearch.Api\LegalSearch.Api.csproj" />
     <ProjectReference Include="..\LegalSearch.Infrastructure\LegalSearch.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="Fcmb.Shared">
+      <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.dll</HintPath>
+    </Reference>
+    <Reference Include="Fcmb.Shared.Auth">
+      <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.Auth.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+	
 </Project>

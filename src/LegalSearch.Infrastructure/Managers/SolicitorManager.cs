@@ -1,4 +1,6 @@
-﻿using LegalSearch.Application.Interfaces.User;
+﻿using DocumentFormat.OpenXml.InkML;
+using DocumentFormat.OpenXml.Office2010.CustomUI;
+using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.LegalRequest;
@@ -122,12 +124,13 @@ namespace LegalSearch.Infrastructure.Managers
         public async Task<SolicitorAssignment> GetCurrentSolicitorMappedToRequest(Guid requestId, Guid solicitorId)
         {
             var solicitorAssignmentRecord = await _appDbContext.SolicitorAssignments
-                                                .Where(a => a.RequestId == requestId && !a.IsAccepted
-                                                && a.SolicitorId == solicitorId)
-                                                .FirstOrDefaultAsync();
+                                                               .Where(a => a.RequestId == requestId && a.SolicitorId == solicitorId
+                                                               && a.IsCurrentlyAssigned)
+                                                               .FirstOrDefaultAsync();
 
             return solicitorAssignmentRecord;
         }
+
 
         public async Task<SolicitorAssignment> GetNextSolicitorInLine(Guid requestId, int currentOrder = 0)
         {
@@ -190,6 +193,67 @@ namespace LegalSearch.Infrastructure.Managers
                                         .ToListAsync();
 
             return requestIds;
+        }
+
+        public async Task<bool> UpdateManySolicitorAssignmentStatuses(List<Guid> solicitorAssignmentIds)
+        {
+            int pageSize = 20000;
+            int pageIndex = 0;
+            int totalUpdatedRecords = 0;
+
+            while (true)
+            {
+                var solicitorAssignmentRecords = await _appDbContext.SolicitorAssignments
+                                                .Where(x => solicitorAssignmentIds.Contains(x.Id))
+                                                .OrderBy(x => x.Id)
+                                                .Skip(pageIndex * pageSize)
+                                                .Take(pageSize)
+                                                .ToListAsync();
+
+                if (solicitorAssignmentRecords.Count == 0)
+                {
+                    break;
+                }
+
+                foreach (var solicitorAssignmentRecord in solicitorAssignmentRecords)
+                {
+                    solicitorAssignmentRecord.IsCurrentlyAssigned = false;
+                }
+
+                _appDbContext.SolicitorAssignments.UpdateRange(solicitorAssignmentRecords);
+
+                try
+                {
+                    totalUpdatedRecords += await _appDbContext.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    foreach (var entry in ex.Entries)
+                    {
+                        if (entry.Entity is SolicitorAssignment assignmentRecord)
+                        {
+                            var databaseValues = await entry.GetDatabaseValuesAsync();
+
+                            if (databaseValues == null)
+                            {
+                                // Record has been deleted from the database
+                                throw new Exception("Record has been deleted in another process");
+                            }
+
+                            // Update the conflicting entity with new values
+                            var databaseRecord = (SolicitorAssignment)databaseValues.ToObject();
+                            assignmentRecord.IsCurrentlyAssigned = false;
+
+                            // Retry the update
+                            await _appDbContext.SaveChangesAsync();
+                        }
+                    }
+                }
+
+                pageIndex++;
+            }
+
+            return totalUpdatedRecords > 0;
         }
     }
 }
