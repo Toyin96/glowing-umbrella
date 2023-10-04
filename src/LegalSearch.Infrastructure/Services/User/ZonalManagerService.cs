@@ -5,7 +5,7 @@ using LegalSearch.Application.Models.Requests.User;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
-    internal class ZonalManagerService : IZonalManagerService
+    public class ZonalManagerService : IZonalManagerService
     {
         private readonly IZonalServiceManager _zonalServiceManager;
 

@@ -4,7 +4,7 @@ namespace LegalSearch.Application.Interfaces.User
 {
     public interface ISolicitorAssignmentManager
     {
-        Task<SolicitorAssignment?> GetSolicitorAssignmentBySolicitorId(Guid id);
+        Task<SolicitorAssignment?> GetSolicitorAssignmentBySolicitorId(Guid solicitorId, Guid requestId);
         Task<bool> UpdateSolicitorAssignmentRecord(SolicitorAssignment solicitorAssignment);
     }
 }

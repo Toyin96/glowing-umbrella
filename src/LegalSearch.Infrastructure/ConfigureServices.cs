@@ -1,11 +1,14 @@
 ﻿using Fcmb.Shared.Models.Constants;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
 using LegalSearch.Infrastructure.Persistence;
+using LegalSearch.Infrastructure.Services.Notification;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using System.Reflection;
 
@@ -91,6 +94,10 @@ namespace LegalSearch.Infrastructure
                     .Where(type => (type.Name.EndsWith("Service") || type.Name.EndsWith("Manager")) && type.GetInterfaces().Length > 0), false)
                 .AsSelfWithInterfaces()
                 .WithTransientLifetime());
+
+            services.TryAddTransient<INotificationService, EmailNotificationService>();
+            services.TryAddTransient<INotificationService, NotificationHub>();
+            services.TryAddTransient<INotificationService, NotificationPersistenceService>();
         }
     }
 }

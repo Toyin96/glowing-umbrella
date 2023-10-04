@@ -7,7 +7,7 @@ using System.Diagnostics;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
-    internal class NotificationPersistenceService : INotificationService
+    public class NotificationPersistenceService : INotificationService
     {
         private readonly INotificationManager _notificationManager;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
@@ -24,7 +24,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             await _notificationManager.AddMultipleNotifications(notifications);
         }
 
-        private List<Domain.Entities.Notification.Notification> DetermineNotificationsToPersist(Domain.Entities.Notification.Notification notification)
+        public List<Domain.Entities.Notification.Notification> DetermineNotificationsToPersist(Domain.Entities.Notification.Notification notification)
         {
             var notifications = new List<Domain.Entities.Notification.Notification>() { notification};
 

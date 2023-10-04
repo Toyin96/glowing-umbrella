@@ -45,23 +45,23 @@ namespace LegalSearch.Api.Controllers
             return HandleResponse(response);
         }
 
-        /// <summary>
-        /// Reissues an authentication token for an authenticated user.
-        /// </summary>
-        /// <remarks>
-        /// Requires a valid authentication token (Bearer token) to access.
-        /// </remarks>
-        /// <returns>A response containing a new authentication token.</returns>
-        [Authorize(AuthenticationSchemes = "Bearer")]
-        [HttpGet("User/ReIssueToken")]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<ActionResult<ObjectResponse<ReIssueTokenResponse>>> ReIssueToken()
-        {
-            var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
-            var response = await _solicitorAuthService.ReIssueToken(userId);
-            return HandleResponse(response);
-        }
+            /// <summary>
+            /// Reissues an authentication token for an authenticated user.
+            /// </summary>
+            /// <remarks>
+            /// Requires a valid authentication token (Bearer token) to access.
+            /// </remarks>
+            /// <returns>A response containing a new authentication token.</returns>
+            [Authorize(AuthenticationSchemes = "Bearer")]
+            [HttpGet("User/ReIssueToken")]
+            [ProducesResponseType((int)HttpStatusCode.OK)]
+            [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+            public async Task<ActionResult<ObjectResponse<ReIssueTokenResponse>>> ReIssueToken()
+            {
+                var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+                var response = await _solicitorAuthService.ReIssueToken(userId);
+                return HandleResponse(response);
+            }
 
         /// <summary>
         /// Allows a user to request an unlock code to unlock their account.

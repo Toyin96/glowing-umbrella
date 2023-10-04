@@ -24,7 +24,7 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
-    internal class SolicitorService : ISolicitorService
+    public class SolicitorService : ISolicitorService
     {
         private readonly AppDbContext _appDbContext;
         private readonly ISolicitorManager _solicitorProfileManager;

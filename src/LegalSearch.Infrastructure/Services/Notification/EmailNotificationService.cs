@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
-    internal class EmailNotificationService : INotificationService, IEmailService
+    public class EmailNotificationService : INotificationService, IEmailService
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<EmailNotificationService> _logger;
@@ -34,11 +34,11 @@ namespace LegalSearch.Infrastructure.Services.Notification
             requestContent.Add(new StringContent(sendEmailRequest.Subject), "Subject");
             requestContent.Add(new StringContent(sendEmailRequest.Body), "Body");
 
-            if (sendEmailRequest.Bcc != null)
+            if (sendEmailRequest.Bcc != null && sendEmailRequest.Bcc.Any())
             {
                 sendEmailRequest.Bcc.ForEach(x => requestContent.Add(new StringContent(x), "Bcc"));
             }
-            if (sendEmailRequest.Cc != null)
+            if (sendEmailRequest.Cc != null && sendEmailRequest.Cc.Any())
             {
                 sendEmailRequest.Cc.ForEach(x => requestContent.Add(new StringContent(x), "Cc"));
             }
