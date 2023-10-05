@@ -10,6 +10,9 @@ using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// Controller for handling notifications.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = "Bearer", Roles = $"{nameof(RoleType.LegalPerfectionTeam)}, {nameof(RoleType.Cso)}, {nameof(RoleType.Solicitor)}")]
@@ -17,6 +20,10 @@ namespace LegalSearch.Api.Controllers
     {
         private readonly IInAppNotificationService _notificationService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NotificationsController"/> class.
+        /// </summary>
+        /// <param name="notificationService">The notification service.</param>
         public NotificationsController(IInAppNotificationService notificationService)
         {
             _notificationService = notificationService;
@@ -25,8 +32,8 @@ namespace LegalSearch.Api.Controllers
         /// <summary>
         /// Marks the notification as read.
         /// </summary>
-        /// <param name="request">The request.</param>
-        /// <returns></returns>
+        /// <param name="request">The request containing notification ID.</param>
+        /// <returns>A response indicating the status of the operation.</returns>
         [HttpPost("MarkNotificationAsRead")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
@@ -38,9 +45,9 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Gets the pending notifications for user.
+        /// Gets the pending notifications for the authenticated user.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A response containing a list of pending notifications.</returns>
         [HttpGet("GetPendingNotificationsForUser")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
@@ -53,9 +60,9 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Marks all notification as read.
+        /// Marks all notifications as read for the authenticated user.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A response indicating the status of the operation.</returns>
         [HttpGet("MarkAllNotificationAsRead")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]

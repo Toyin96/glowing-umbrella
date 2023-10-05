@@ -122,7 +122,6 @@ namespace LegalSearch.Api.Controllers
         /// <remarks>
         /// The solicitor receives a message notifying the solicitor if the request was successful or not
         /// </remarks>
-        /// <param name="request"></param>
         /// <returns></returns>
         [HttpGet("Solicitor/ViewProfile")]
         [ProducesResponseType((int)HttpStatusCode.OK)]

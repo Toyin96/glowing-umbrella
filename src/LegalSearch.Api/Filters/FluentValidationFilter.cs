@@ -6,15 +6,28 @@ using LegalSearch.Application.Models.Constants;
 
 namespace LegalSearch.Api.Filters
 {
+    /// <summary>
+    /// Action filter for FluentValidation-based request model validation.
+    /// </summary>
     public class FluentValidationFilter : IAsyncActionFilter
     {
         private readonly IValidatorFactory _validatorFactory;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FluentValidationFilter"/> class.
+        /// </summary>
+        /// <param name="validatorFactory">The validator factory to obtain validators.</param>
         public FluentValidationFilter(IValidatorFactory validatorFactory)
         {
             _validatorFactory = validatorFactory;
         }
 
+        /// <summary>
+        /// Executes asynchronously before the action method is invoked, validates the request models using FluentValidation.
+        /// </summary>
+        /// <param name="context">The action executing context.</param>
+        /// <param name="next">The delegate to continue the execution.</param>
+        /// <returns>A task representing the asynchronous operation.</returns>
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var validationErrors = new List<string>();
@@ -54,6 +67,7 @@ namespace LegalSearch.Api.Filters
                 return;
             }
 
+            // Continue with the action execution
             await next();
         }
     }

@@ -8,7 +8,7 @@ using System.Net;
 namespace LegalSearch.Api.Controllers
 {
     /// <summary>
-    /// 
+    /// Controller for managing roles in the system.
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
@@ -17,14 +17,19 @@ namespace LegalSearch.Api.Controllers
         private readonly IRoleService _roleService;
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="RolesController"/> class.
         /// </summary>
-        /// <param name="roleService"></param>
+        /// <param name="roleService">The role service.</param>
         public RolesController(IRoleService roleService)
         {
             _roleService = roleService;
         }
 
+        /// <summary>
+        /// Adds a new role.
+        /// </summary>
+        /// <param name="roleRequest">The role request containing role details.</param>
+        /// <returns>An action result with the response of the role creation.</returns>
         [HttpPost("[action]")]
         public async Task<ActionResult<ObjectResponse<RoleResponse>>> AddRole([FromBody] RoleRequest roleRequest)
         {
@@ -33,10 +38,10 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Retrieves Roles based on the filter request
+        /// Retrieves roles based on the filter request.
         /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
+        /// <param name="request">The filter role request.</param>
+        /// <returns>An action result with the response containing a list of roles.</returns>
         [HttpGet]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]

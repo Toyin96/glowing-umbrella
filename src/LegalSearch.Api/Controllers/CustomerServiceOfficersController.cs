@@ -13,6 +13,9 @@ using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// Controller for managing legal search requests by Customer Service Officers (CSOs).
+    /// </summary>
     [ApiController]
     [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.Cso))]
     [Route("api/[controller]")]
@@ -22,11 +25,20 @@ namespace LegalSearch.Api.Controllers
     {
         private readonly ILegalSearchRequestService _legalSearchRequestService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CustomerServiceOfficersController"/> class.
+        /// </summary>
+        /// <param name="legalSearchRequestService">The legal search request service.</param>
         public CustomerServiceOfficersController(ILegalSearchRequestService legalSearchRequestService)
         {
             _legalSearchRequestService = legalSearchRequestService;
         }
 
+        /// <summary>
+        /// Creates a new legal search request.
+        /// </summary>
+        /// <param name="request">The legal search request details.</param>
+        /// <returns>A response indicating the status of the request creation.</returns>
         [HttpPost("AddNewRequest")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -34,13 +46,18 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<StatusResponse>> CreateNewRequest([FromForm] LegalSearchRequest request)
         {
-            //get userId 
+            // Get userId 
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
             var result = await _legalSearchRequestService.CreateNewRequest(request, userId);
             return HandleResponse(result);
         }
 
+        /// <summary>
+        /// Updates a legal search request in Finacle by CSO.
+        /// </summary>
+        /// <param name="request">The update request.</param>
+        /// <returns>A response indicating the status of the update.</returns>
         [HttpPost("UpdateFinacleRequest")]
         [Consumes("multipart/form-data")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -48,7 +65,7 @@ namespace LegalSearch.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
         public async Task<ActionResult<StatusResponse>> UpdateFinacleRequest([FromForm] UpdateFinacleLegalRequest request)
         {
-            //get userId 
+            // Get userId 
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
             var result = await _legalSearchRequestService.UpdateFinacleRequestByCso(request, userId);
@@ -91,10 +108,10 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Endpoint to get legal search request analytics for CSO
+        /// Endpoint to get legal search request analytics for CSO.
         /// </summary>
-        /// <param name="csoDashboardAnalyticsRequest"></param>
-        /// <returns></returns>
+        /// <param name="csoDashboardAnalyticsRequest">The request for CSO dashboard analytics.</param>
+        /// <returns>A response containing legal search request analytics for CSO.</returns>
         [HttpGet("ViewRequestAnalytics")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
@@ -102,7 +119,6 @@ namespace LegalSearch.Api.Controllers
         public async Task<ActionResult<ObjectResponse<StaffRootResponsePayload>>> ViewRequestAnalytics([FromQuery] StaffDashboardAnalyticsRequest csoDashboardAnalyticsRequest)
         {
             var result = await _legalSearchRequestService.GetLegalRequestsForStaff(csoDashboardAnalyticsRequest);
-
             return HandleResponse(result);
         }
     }
