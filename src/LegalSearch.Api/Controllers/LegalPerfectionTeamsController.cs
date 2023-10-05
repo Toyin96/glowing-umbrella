@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// Controller for legal perfection teams.
+    /// </summary>
     [Authorize(AuthenticationSchemes = "Bearer", Roles = nameof(RoleType.LegalPerfectionTeam))]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -18,11 +21,20 @@ namespace LegalSearch.Api.Controllers
     {
         private readonly ISolicitorService _solicitorService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LegalPerfectionTeamsController"/> class.
+        /// </summary>
+        /// <param name="solicitorService">The solicitor service.</param>
         public LegalPerfectionTeamsController(ISolicitorService solicitorService)
         {
             _solicitorService = solicitorService;
         }
 
+        /// <summary>
+        /// Manually assigns a request to a solicitor.
+        /// </summary>
+        /// <param name="request">The request containing assignment details.</param>
+        /// <returns>A response indicating the status of the assignment.</returns>
         [HttpPost("ManuallyAssignRequestToSolicitor")]
         public async Task<ActionResult<StatusResponse>> ManuallyAssignRequestToSolicitor([FromBody] ManuallyAssignRequestToSolicitorRequest request)
         {
@@ -31,10 +43,10 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Endpoint for viewing registered solicitors and their locations/regions.
+        /// Gets the profiles of solicitors based on their profile statuses.
         /// </summary>
-        /// <param name="request">The request.</param>
-        /// <returns></returns>
+        /// <param name="request">The request containing region filter.</param>
+        /// <returns>A response containing a list of solicitor profiles.</returns>
         [HttpGet("ViewMappedSolicitorsProfiles")]
         public async Task<ActionResult<ListResponse<SolicitorProfileResponseDto>>> ViewMappedSolicitorsProfiles([FromQuery] ViewSolicitorsBasedOnRegionRequestFilter request)
         {
