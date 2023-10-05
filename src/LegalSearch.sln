@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Infrastructure"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Application", "LegalSearch.Application\LegalSearch.Application.csproj", "{5EA94AB2-E992-423E-9447-D802AADF2233}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LegalSearch.Tests", "LegalSearch.Tests\LegalSearch.Tests.csproj", "{268EA12C-226E-4BC6-B2EE-7DA61946F247}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LegalSearch.Test", "LegalSearch.Tests\LegalSearch.Test.csproj", "{268EA12C-226E-4BC6-B2EE-7DA61946F247}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
