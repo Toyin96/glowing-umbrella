@@ -7,30 +7,27 @@ using System.Net;
 namespace LegalSearch.Api.Controllers
 {
     /// <summary>
-    /// 
+    /// API controller for managing locations such as states and regions.
     /// </summary>
-    //[Authorize(AuthenticationSchemes = "Bearer")]
     [Route("api/[controller]")]
-    //[Consumes("application/json")]
-    //[Produces("application/json")]
     [ApiController]
     public class LocationsController : BaseController
     {
         private readonly IStateRetrieveService _stateRetrieveService;
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="LocationsController"/> class.
         /// </summary>
-        /// <param name="stateRetrieveService"></param>
+        /// <param name="stateRetrieveService">The service for retrieving location information.</param>
         public LocationsController(IStateRetrieveService stateRetrieveService)
         {
             _stateRetrieveService = stateRetrieveService;
         }
 
         /// <summary>
-        /// Retrieves all states in Nigeria
+        /// Retrieves all states in Nigeria.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A list of states in Nigeria.</returns>
         [HttpGet("GetStates")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
@@ -42,9 +39,9 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Retrieves the all the regions
+        /// Retrieves all the regions.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A list of regions.</returns>
         [HttpGet("GetRegions")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
@@ -56,9 +53,10 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
-        /// Retrieves the states under a region
+        /// Retrieves the states under a region based on the provided region ID.
         /// </summary>
-        /// <returns></returns>
+        /// <param name="regionId">The unique identifier of the region.</param>
+        /// <returns>A list of states under the specified region.</returns>
         [HttpGet("GetStatesUnderRegion/{regionId}")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
