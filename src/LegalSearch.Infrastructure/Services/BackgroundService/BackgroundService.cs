@@ -665,6 +665,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                         .Where(x => branchIds.Contains(x.BranchId)
                                     && x.CreatedAt.Date <= TimeUtils.GetCurrentLocalTime().Date);
 
+                    if (!requests.Any()) continue; // skipping for current ZSM because there are no matching requests
+
                     var zsmReportModel = await ProcessRequestsForZonalServiceManager(requests);
 
                     await SendReportToZonalServiceManager(zonalServiceManager, zsmReportModel);
