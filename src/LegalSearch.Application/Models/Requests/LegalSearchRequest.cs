@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Text.Json.Serialization;
 
 namespace LegalSearch.Application.Models.Requests
 {

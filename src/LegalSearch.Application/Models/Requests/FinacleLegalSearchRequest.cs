@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-
-namespace LegalSearch.Application.Models.Requests
+﻿namespace LegalSearch.Application.Models.Requests
 {
     public class FinacleLegalSearchRequest
     {

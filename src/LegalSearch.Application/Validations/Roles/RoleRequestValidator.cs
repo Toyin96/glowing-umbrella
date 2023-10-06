@@ -1,11 +1,6 @@
 ﻿using Fcmb.Shared.Models.Constants;
 using FluentValidation;
 using LegalSearch.Application.Models.Requests;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Application.Validations.Roles
 {

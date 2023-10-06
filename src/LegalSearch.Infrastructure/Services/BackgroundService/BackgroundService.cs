@@ -1,5 +1,4 @@
-﻿using Azure;
-using LegalSearch.Application.Interfaces.BackgroundService;
+﻿using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.Location;
@@ -13,7 +12,6 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.ZSM;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
-using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;

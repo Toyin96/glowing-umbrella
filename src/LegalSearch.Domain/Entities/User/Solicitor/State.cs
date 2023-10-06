@@ -16,7 +16,7 @@ namespace LegalSearch.Domain.Entities.User.Solicitor
 
     public class Region : BaseEntity
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public ICollection<State> States { get; set; } = new List<State>();
     }
 }

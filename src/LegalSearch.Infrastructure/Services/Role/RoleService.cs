@@ -19,7 +19,7 @@ namespace LegalSearch.Infrastructure.Services.Roles
         private readonly ILogger<RoleService> _logger;
         private readonly AppDbContext _appDbContext;
 
-        public RoleService(RoleManager<Role> roleManager, 
+        public RoleService(RoleManager<Role> roleManager,
             ILogger<RoleService> logger, AppDbContext appDbContext)
         {
             _roleManager = roleManager;

@@ -115,6 +115,12 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
+                // Get the CSO account
+                var user = await _userManager.FindByIdAsync(userId);
+
+                if (user == null)
+                    return new StatusResponse("No user found", ResponseCodes.Unauthenticated);
+
                 // Step 1: Validate customer's account status and balance
                 var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(legalSearchRequest.CustomerAccountNumber);
 
@@ -138,17 +144,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (!lienVerificationResponse.isSuccess)
                     return new StatusResponse(lienVerificationResponse.errorMessage, ResponseCodes.ServiceError);
 
-                // Step 3: Get the CSO account
-                var user = await _userManager.FindByIdAsync(userId);
-
                 // Step 4: Create a new legal search request 
-                var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest);
+                var newLegalSearchRequest = MapRequestToLegalRequest(legalSearchRequest, user);
 
                 // Assign lien ID to the legal search request
-                 newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
+                newLegalSearchRequest.LienId = addLienResponse!.Data.LienId;
 
                 // Update legal search request payload
-                newLegalSearchRequest.BranchId = user.SolId ?? user!.BranchId!;
                 newLegalSearchRequest.StaffId = user!.StaffId!;
                 newLegalSearchRequest.InitiatorId = user!.Id;
                 newLegalSearchRequest.RequestInitiator = user.FirstName;
@@ -883,7 +885,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        private LegalRequest MapRequestToLegalRequest(LegalSearchRequest request)
+        private LegalRequest MapRequestToLegalRequest(LegalSearchRequest request, Domain.Entities.User.User user)
         {
             try
             {
@@ -891,6 +893,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var legalRequest = new LegalRequest
                 {
+                    BranchId = user.SolId ?? user!.BranchId!,
                     RequestType = request.RequestType,
                     BusinessLocation = request.BusinessLocation,
                     RegistrationDate = request.RegistrationDate,

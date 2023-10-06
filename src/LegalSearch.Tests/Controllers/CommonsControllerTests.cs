@@ -11,7 +11,6 @@ using LegalSearch.Application.Models.Responses.Solicitor;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Net;
-using System.Text;
 
 namespace LegalSearch.Tests.Controllers
 {
@@ -21,7 +20,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task EscalateRequest_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new EscalateRequest { RecipientType = Domain.Enums.Role.NotificationRecipientType.Solicitor, RequestId = Guid.NewGuid()};
+            var request = new EscalateRequest { RecipientType = Domain.Enums.Role.NotificationRecipientType.Solicitor, RequestId = Guid.NewGuid() };
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
             var mockSolicitorService = new Mock<ISolicitorService>();
             mockLegalSearchRequestService.Setup(service => service.EscalateRequest(It.IsAny<EscalateRequest>()))
@@ -42,9 +41,18 @@ namespace LegalSearch.Tests.Controllers
         public async Task UpdateRequest_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new UpdateRequest { RequestId = Guid.NewGuid(), RequestType = "Corporate", CurrentRegistrationDocuments = null, 
-                CurrentSupportingDocuments = null, CustomerAccountName = "John Doe", CustomerAccountNumber = "0123456789", 
-                RegistrationDocuments = null, RegistrationNumber = "100001", SupportingDocuments = null};
+            var request = new UpdateRequest
+            {
+                RequestId = Guid.NewGuid(),
+                RequestType = "Corporate",
+                CurrentRegistrationDocuments = null,
+                CurrentSupportingDocuments = null,
+                CustomerAccountName = "John Doe",
+                CustomerAccountNumber = "0123456789",
+                RegistrationDocuments = null,
+                RegistrationNumber = "100001",
+                SupportingDocuments = null
+            };
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
             mockLegalSearchRequestService.Setup(service => service.UpdateRequestByStaff(It.IsAny<UpdateRequest>()))
                                          .ReturnsAsync(new StatusResponse("Success", ResponseCodes.Success));
@@ -67,7 +75,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task ViewRequestAnalytics_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new StaffDashboardAnalyticsRequest {};
+            var request = new StaffDashboardAnalyticsRequest { };
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
             var mockRootResponse = new StaffRootResponsePayload
             {
@@ -122,7 +130,7 @@ namespace LegalSearch.Tests.Controllers
                 RequestsWithLawyersFeedbackCount = 8
             };
 
-            var mockResponse = new ObjectResponse<StaffRootResponsePayload>("Success", ResponseCodes.Success){ Data = mockRootResponse };
+            var mockResponse = new ObjectResponse<StaffRootResponsePayload>("Success", ResponseCodes.Success) { Data = mockRootResponse };
             mockLegalSearchRequestService.Setup(service => service.GetLegalRequestsForStaff(It.IsAny<StaffDashboardAnalyticsRequest>()))
                                          .ReturnsAsync(mockResponse);
 
@@ -145,7 +153,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task CancelRequest_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new CancelRequest {Reason = "Testing purpose", RequestId = Guid.NewGuid() };
+            var request = new CancelRequest { Reason = "Testing purpose", RequestId = Guid.NewGuid() };
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
             mockLegalSearchRequestService.Setup(service => service.CancelLegalSearchRequest(It.IsAny<CancelRequest>()))
                                          .ReturnsAsync(new StatusResponse("Operation is successful", ResponseCodes.Success));
@@ -191,7 +199,7 @@ namespace LegalSearch.Tests.Controllers
                                             SolicitorAddress = ""
                                         },
                                     },
-                                    Total = 1, 
+                                    Total = 1,
                                     Code = ResponseCodes.Success,
                                 });
 
@@ -214,7 +222,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task EditProfile_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new EditSolicitorProfileByLegalTeamRequest 
+            var request = new EditSolicitorProfileByLegalTeamRequest
             {
                 SolicitorId = Guid.NewGuid(),
                 FirstName = "John",
@@ -247,7 +255,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task ActivateOrDeactivateSolicitor_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new ActivateOrDeactivateSolicitorRequest {SolicitorId = Guid.NewGuid(), ActionType = Domain.Enums.User.ProfileStatusActionType.Activate };
+            var request = new ActivateOrDeactivateSolicitorRequest { SolicitorId = Guid.NewGuid(), ActionType = Domain.Enums.User.ProfileStatusActionType.Activate };
             var mockSolicitorService = new Mock<ISolicitorService>();
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
 
@@ -263,8 +271,8 @@ namespace LegalSearch.Tests.Controllers
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var statusResponse = Assert.IsType<StatusResponse>(okResult.Value);
-            Assert.Equal("00", statusResponse.Code); 
-            Assert.Equal("Success", statusResponse.Description); 
+            Assert.Equal("00", statusResponse.Code);
+            Assert.Equal("Success", statusResponse.Description);
         }
     }
 }

@@ -1,12 +1,9 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests.Notification;
-using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Text.Json;
+using System.Net.Http;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
@@ -16,7 +13,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
         private readonly ILogger<EmailNotificationService> _logger;
         private readonly AppDbContext _context;
 
-        public EmailNotificationService(IHttpClientFactory httpClientFactory, 
+        public EmailNotificationService(IHttpClientFactory httpClientFactory,
             ILogger<EmailNotificationService> logger, AppDbContext context)
         {
             _httpClientFactory = httpClientFactory;

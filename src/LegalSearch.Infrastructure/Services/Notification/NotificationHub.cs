@@ -17,7 +17,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
         private readonly Dictionary<string, List<Domain.Entities.Notification.Notification>> _pendingNotifications = new Dictionary<string, List<Domain.Entities.Notification.Notification>>();
 
         public NotificationHub(INotificationManager notificationService,
-            UserManager<Domain.Entities.User.User> userManager, 
+            UserManager<Domain.Entities.User.User> userManager,
             IJwtTokenService jwtTokenService,
             IHubContext<NotificationHub> context)
         {
@@ -56,7 +56,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 // User is authenticated and connected, send the notification immediately
                 var jsonNotification = JsonSerializer.Serialize(notification);
                 if (_context.Clients != null)
-                    await _context.Clients.User(notification.RecipientUserId).SendAsync("ReceiveNotification", jsonNotification);
+                    await _context.Clients.User(userId: notification.RecipientUserId).SendAsync("ReceiveNotification", jsonNotification);
             }
         }
 
@@ -91,7 +91,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 var pendingNotificationsForRole = await _notificationService.GetPendingNotificationsForRole(userRole);
 
                 // Retrieve pending notifications for the connected user individually
-                var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId, userRole, solId);
+                var pendingNotificationsForUser = await _notificationService.GetPendingNotificationsForUser(userId!, userRole, solId);
 
                 // Combine and send both sets of pending notifications to the connected user
                 var pendingNotificationsForRoleList = pendingNotificationsForRole.ToList();

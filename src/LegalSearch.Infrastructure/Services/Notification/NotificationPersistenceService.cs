@@ -1,9 +1,7 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Enums.Role;
-using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
-using System.Diagnostics;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
@@ -26,7 +24,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public List<Domain.Entities.Notification.Notification> DetermineNotificationsToPersist(Domain.Entities.Notification.Notification notification)
         {
-            var notifications = new List<Domain.Entities.Notification.Notification>() { notification};
+            var notifications = new List<Domain.Entities.Notification.Notification>() { notification };
 
             var initiatorNotification = new Domain.Entities.Notification.Notification();
 

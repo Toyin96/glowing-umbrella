@@ -1,18 +1,13 @@
-﻿using Azure;
-using Azure.Core;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
-using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.LegalPerfectionTeam;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses.Solicitor;
-using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Domain.Enums.User;
@@ -32,7 +27,7 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
 
-        public SolicitorService(AppDbContext appDbContext, 
+        public SolicitorService(AppDbContext appDbContext,
             ISolicitorManager solicitorProfileManager, ILogger<SolicitorService> logger,
             UserManager<Domain.Entities.User.User> userManager, ILegalSearchRequestManager legalSearchRequestManager)
         {
@@ -230,7 +225,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 })
                 .ToListAsync();
 
-            return solicitors ?? new List<SolicitorProfileDto> ();
+            return solicitors ?? new List<SolicitorProfileDto>();
         }
 
         private async Task<List<SolicitorProfileResponseDto>> MappedSolicitorFilter(ViewSolicitorsBasedOnRegionRequestFilter request)

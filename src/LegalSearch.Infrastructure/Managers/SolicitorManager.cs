@@ -1,6 +1,4 @@
-﻿using DocumentFormat.OpenXml.InkML;
-using DocumentFormat.OpenXml.Office2010.CustomUI;
-using LegalSearch.Application.Interfaces.User;
+﻿using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Entities.LegalRequest;
@@ -57,20 +55,15 @@ namespace LegalSearch.Infrastructure.Managers
             }
 
             // get solicitors
-            List<SolicitorRetrievalResponse> solicitorIds = await _appDbContext.Users.Include(x => x.Firm)
-                                                                     .Where(x => firms.Contains(x.Firm.Id)
-                                                                     && x.ProfileStatus == ProfileStatusType.Active.ToString()
-                                                                     && x.OnboardingStatus == OnboardingStatusType.Completed)
-                                                                     .Select(x => new SolicitorRetrievalResponse
-                                                                     {
-                                                                         SolicitorId = x.Id,
-                                                                         SolicitorEmail = x.Email
-                                                                     })
-                                                                     .ToListAsync();
-
-
-
-            return solicitorIds;
+            return await _appDbContext.Users.Include(x => x.Firm).Where(x => firms.Contains(x.Firm.Id)
+                                                                  && x.ProfileStatus == ProfileStatusType.Active.ToString()
+                                                                  && x.OnboardingStatus == OnboardingStatusType.Completed)
+                                                                  .Select(x => new SolicitorRetrievalResponse
+                                                                  {
+                                                                      SolicitorId = x.Id,
+                                                                      SolicitorEmail = x.Email
+                                                                  })
+                                                                  .ToListAsync();
         }
 
         public async Task<bool> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest request, Guid userId)

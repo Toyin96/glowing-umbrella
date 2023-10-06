@@ -93,7 +93,7 @@ namespace LegalSearch.Tests.Controllers
                 HttpContext = new DefaultHttpContext { User = user }
             };
 
-            _mockAuthService.Setup(x => x.ReIssueToken(userId)).ReturnsAsync(new ObjectResponse<ReIssueTokenResponse>("Success", ResponseCodes.Success) {Data = mockResponse });
+            _mockAuthService.Setup(x => x.ReIssueToken(userId)).ReturnsAsync(new ObjectResponse<ReIssueTokenResponse>("Success", ResponseCodes.Success) { Data = mockResponse });
 
             // Act
             var result = await _authController.ReIssueToken();
@@ -108,7 +108,7 @@ namespace LegalSearch.Tests.Controllers
         public async Task UnlockAccount_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var unlockAccountRequest = new UnlockAccountRequest { Email = "sample_use1@example.com", UnlockCode = "123456"};
+            var unlockAccountRequest = new UnlockAccountRequest { Email = "sample_use1@example.com", UnlockCode = "123456" };
 
             // Mock the authentication service
             var mockAuthService = new Mock<IGeneralAuthService<User>>();
@@ -121,7 +121,7 @@ namespace LegalSearch.Tests.Controllers
             var result = await authController.UnlockAccount(unlockAccountRequest);
 
             // Assert
-            
+
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
             var response = Assert.IsType<StatusResponse>(okResult.Value);
             Assert.Equal("00", response.Code);
@@ -136,12 +136,15 @@ namespace LegalSearch.Tests.Controllers
             // Mock the authentication service
             var mockAuthService = new Mock<IGeneralAuthService<User>>();
             mockAuthService.Setup(service => service.Verify2fa(It.IsAny<TwoFactorVerificationRequest>()))
-                           .ReturnsAsync(new ObjectResponse<LoginResponse>("Operation was successful", ResponseCodes.Success) { Data = new LoginResponse
+                           .ReturnsAsync(new ObjectResponse<LoginResponse>("Operation was successful", ResponseCodes.Success)
                            {
-                               Token = "3dhfyfrytygujhihj",
-                               DisplayName = "Test",
-                               Role = "Solicitor"
-                           } });
+                               Data = new LoginResponse
+                               {
+                                   Token = "3dhfyfrytygujhihj",
+                                   DisplayName = "Test",
+                                   Role = "Solicitor"
+                               }
+                           });
 
             var authController = new AuthController(mockAuthService.Object);
 

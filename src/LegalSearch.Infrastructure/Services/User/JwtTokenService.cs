@@ -39,25 +39,25 @@ namespace LegalSearch.Infrastructure.Services.User
             return tokenHandler.WriteToken(token);
         }
 
-            public ClaimsPrincipal ValidateJwtToken(string token)
+        public ClaimsPrincipal ValidateJwtToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var validationParameters = new TokenValidationParameters
             {
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = _issuer,
-                    ValidAudience = _audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey))
-                };
+                ValidIssuer = _issuer,
+                ValidAudience = _audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey))
+            };
 
-                try
-                {
-                    var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
-                    return principal;
-                }
-                catch
-                {
-                    return null;
-                }
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+                return principal;
             }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

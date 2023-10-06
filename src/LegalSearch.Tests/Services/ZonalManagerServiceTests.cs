@@ -3,11 +3,6 @@ using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Infrastructure.Services.User;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Tests.Services
 {

@@ -1,6 +1,4 @@
-﻿using LegalSearch.Application.Models.Requests.User;
-
-namespace LegalSearch.Application.Interfaces.Notification
+﻿namespace LegalSearch.Application.Interfaces.Notification
 {
     public interface INotificationService
     {

@@ -9,11 +9,11 @@ namespace LegalSearch.Domain.Entities.AuditLog
 
         public Guid? EntityId { get; set; }
 
-        public string EntityTable { get; set; }
+        public string? EntityTable { get; set; }
 
         public AuditAction AuditAction { get; set; }
 
-        public string Log { get; set; }
+        public string? Log { get; set; }
 
         public bool IsSuccessful { get; set; } = true;
     }

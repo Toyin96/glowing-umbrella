@@ -240,7 +240,7 @@ namespace LegalSearch.Infrastructure.Services.User
             {
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                StateId = state.Id, 
+                StateId = state.Id,
                 State = state,
                 Firm = new Firm
                 {
@@ -283,7 +283,7 @@ namespace LegalSearch.Infrastructure.Services.User
             int rand = new Random(solIds.Count).Next(0, solIds.Count);
             user.SolId = solIds[rand];
 
-                if (/*result.Code is ResponseCodes.Success*/true)
+            if (/*result.Code is ResponseCodes.Success*/true)
             {
                 // get staff branch's name
                 var branch = await _branchRetrieveService.GetBranchBySolId(user.SolId!);
@@ -357,7 +357,7 @@ namespace LegalSearch.Infrastructure.Services.User
             return new LoginResponse
             {
                 Token = staffJwtToken,
-                is2FaRequired = false,
+                Is2FaRequired = false,
                 DisplayName = user.FullName,
                 Branch = branch,
                 Role = role,
@@ -472,7 +472,7 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful but requires 2fa
             return new ObjectResponse<LoginResponse>("Enter the code sent to your email to complete the login process", ResponseCodes.Success)
             {
-                Data = new LoginResponse { is2FaRequired = true, Role = role }
+                Data = new LoginResponse { Is2FaRequired = true, Role = role }
             };
         }
 

@@ -8,7 +8,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public Guid InitiatorId { get; set; } // ID of staff on application.
         public string? StaffId { get; set; } // Staff's ID from bank
         public string? RequestInitiator { get; set; } // staff's name
-        public string BranchId { get; set; }
+        public required string BranchId { get; set; }
         public Guid AssignedSolicitorId { get; set; }
         public string? RequestType { get; set; }
         public RequestSourceType RequestSource { get; set; }

@@ -1,6 +1,5 @@
 ﻿using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.User;
-using LegalSearch.Domain.Entities.LegalRequest;
 
 namespace LegalSearch.Application.Interfaces.BackgroundService
 {

@@ -1,15 +1,11 @@
 ﻿using FluentValidation;
-using FluentValidation.AspNetCore;
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
-using LegalSearch.Api.Filters;
 using LegalSearch.Api.HealthCheck;
 using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
-using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
-using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Logging;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Validations.Auth;
@@ -22,7 +18,6 @@ using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +62,9 @@ namespace LegalSearch.Api
                     .AddCheck<DatabaseHealthCheck>("database_health_check");
 
             // add logging capabilities
-            services.ConfigureLoggingCapability(configuration);
+            // Retrieve logger options from appsettings.json
+            var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
+            services.ConfigureLoggingCapability(configuration, loggerOptions);
 
             services.AddCors(options =>
             {
@@ -105,9 +102,10 @@ namespace LegalSearch.Api
         }
 
         /// <summary>
-        /// Configure the HTTP request pipeline.
+        /// Configures the HTTP request pipeline.
         /// </summary>
-        /// <param name="app"></param>
+        /// <param name="app">The application.</param>
+        /// <param name="configuration">The configuration.</param>
         public static void ConfigureHttpRequestPipeline(this WebApplication app, IConfiguration configuration)
         {
             if (app.Environment.IsDevelopment())
@@ -150,10 +148,7 @@ namespace LegalSearch.Api
                 }
             });
 
-            app.UseHealthChecksUI(options =>
-            {
-                options.UIPath = "/health-ui";
-            });
+            app.UseHealthChecksUI(options => options.UIPath = "/health-ui");
 
             // Call the static method to register recurring Hangfire jobs
             HangfireJobs.RegisterRecurringJobs();
@@ -193,11 +188,8 @@ namespace LegalSearch.Api
             });
         }
 
-        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration)
+        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration, LoggerOptions? loggerOptions)
         {
-            // Retrieve logger options from appsettings.json
-            var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
-
             // Check if loggerOptions is null
             if (loggerOptions == null)
             {

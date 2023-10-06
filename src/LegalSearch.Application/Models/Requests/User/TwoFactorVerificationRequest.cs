@@ -2,7 +2,7 @@
 {
     public class TwoFactorVerificationRequest
     {
-        public string Email { get; set; }
-        public string TwoFactorCode { get; set; }
+        public required string Email { get; set; }
+        public required string TwoFactorCode { get; set; }
     }
 }

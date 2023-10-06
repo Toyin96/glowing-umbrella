@@ -1,6 +1,4 @@
 ﻿using LegalSearch.Application.Models.Responses.CSO;
-using LegalSearch.Domain.Entities.LegalRequest;
-using Microsoft.AspNetCore.Http;
 
 namespace LegalSearch.Application.Models.Responses
 {

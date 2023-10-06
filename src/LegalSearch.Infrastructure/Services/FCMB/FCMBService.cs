@@ -61,7 +61,7 @@ namespace LegalSearch.Infrastructure.Services.FCMB
             var actionUrl = $"{_fCMBServiceAppConfig.BaseUrl}/lien/api/Accounts/v1/AddLien";
 
             // Send the GET request
-            var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(addLienToAccountRequest).ToString(), 
+            var httpResponse = await _client.PostAsync($"{actionUrl}", new StringContent(JObject.FromObject(addLienToAccountRequest).ToString(),
                 Encoding.UTF8, "application/json"));
 
             // Read the response content as a string

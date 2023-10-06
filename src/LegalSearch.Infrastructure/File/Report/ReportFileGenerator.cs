@@ -1,6 +1,4 @@
 ﻿using ClosedXML.Excel;
-using DocumentFormat.OpenXml.Bibliography;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;

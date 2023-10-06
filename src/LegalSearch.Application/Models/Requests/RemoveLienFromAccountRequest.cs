@@ -2,11 +2,11 @@
 {
     public class RemoveLienFromAccountRequest
     {
-        public string RequestID { get; set; }
-        public string AccountNo { get; set; }
-        public string LienId { get; set; }
-        public string CurrencyCode { get; set; }
-        public string Rmks { get; set; }
-        public string ReasonCode { get; set; }
+        public required string RequestID { get; set; }
+        public required string AccountNo { get; set; }
+        public required string LienId { get; set; }
+        public required string CurrencyCode { get; set; }
+        public required string Rmks { get; set; }
+        public required string ReasonCode { get; set; }
     }
 }
