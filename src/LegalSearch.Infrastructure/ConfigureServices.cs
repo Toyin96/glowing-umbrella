@@ -1,15 +1,15 @@
-﻿using System;
-using System.Reflection;
-using Fcmb.Shared.Models.Constants;
+﻿using Fcmb.Shared.Models.Constants;
+using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
-using LegalSearch.Domain.Entities.User.CustomerServiceOfficer;
-using LegalSearch.Domain.Entities.User.LegalPerfectionTeam;
-using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Infrastructure.Persistence;
+using LegalSearch.Infrastructure.Services.Notification;
+using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Reflection;
 
 namespace LegalSearch.Infrastructure
 {
@@ -23,12 +23,12 @@ namespace LegalSearch.Infrastructure
         public static void ConfigureInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
         {
             services.AutoInjectService();
-            services.ConfigureThirdPartyServices();
-            
-            services.AddMediatR(cfg => {
+
+            services.AddMediatR(cfg =>
+            {
                 cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             });
-            
+
             //configuring identity & users
             services.ConfigureIdentity();
             services.ConfigureHttpClients(configuration);
@@ -46,18 +46,27 @@ namespace LegalSearch.Infrastructure
                 // x.User./
                 x.User.RequireUniqueEmail = true;
 
-                // Password settings.
+                // NewPassword settings.
                 x.Password.RequiredLength = 8;
 
                 // Lockout settings.
                 x.Lockout.MaxFailedAccessAttempts = 3;
-                x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                x.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                x.Lockout.AllowedForNewUsers = true;
+
+                // Enable Two-Factor Authentication
+                x.Tokens.AuthenticatorTokenProvider = TokenOptions.DefaultAuthenticatorProvider;
+                x.Tokens.ChangePhoneNumberTokenProvider = TokenOptions.DefaultPhoneProvider;
+                x.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+                x.Tokens.PasswordResetTokenProvider = "NumericTokenProvider"; // Set the name of your NumericTokenProvider
             }
 
             services.AddIdentity<User, Role>(SetupIdentityOptions)
                     .AddEntityFrameworkStores<AppDbContext>()
                     .AddRoleManager<RoleManager<Role>>()
-                    .AddSignInManager<SignInManager<User>>();
+                    .AddSignInManager<SignInManager<User>>()
+                    .AddDefaultTokenProviders()
+                    .AddTokenProvider<NumericTokenProvider<User>>("NumericTokenProvider"); // default token provider for 2fa
         }
 
         private static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)
@@ -84,6 +93,9 @@ namespace LegalSearch.Infrastructure
                     .Where(type => (type.Name.EndsWith("Service") || type.Name.EndsWith("Manager")) && type.GetInterfaces().Length > 0), false)
                 .AsSelfWithInterfaces()
                 .WithTransientLifetime());
+
+            services.TryAddTransient<INotificationService, EmailNotificationService>();
+            services.TryAddTransient<INotificationService, NotificationPersistenceService>();
         }
     }
 }

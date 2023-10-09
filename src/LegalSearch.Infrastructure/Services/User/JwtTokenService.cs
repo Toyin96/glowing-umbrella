@@ -18,7 +18,7 @@ namespace LegalSearch.Infrastructure.Services.User
         {
             _configuration = configuration;
             _issuer = _configuration["JwtSettings:Issuer"];
-            _audience = null;
+            _audience = _configuration["JwtSettings:Audience"];
             _secretKey = _configuration["JwtSettings:SecretKey"];
         }
 
@@ -31,13 +31,12 @@ namespace LegalSearch.Infrastructure.Services.User
                 _issuer,
                 _audience,
                 identity.Claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddMinutes(10), // expiration time for token
                 signingCredentials: signingCredentials
             );
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var encodedToken = tokenHandler.WriteToken(token);
-            return encodedToken;
+            return tokenHandler.WriteToken(token);
         }
 
         public ClaimsPrincipal ValidateJwtToken(string token)
@@ -61,5 +60,4 @@ namespace LegalSearch.Infrastructure.Services.User
             }
         }
     }
-
 }

@@ -1,26 +1,30 @@
-﻿using LegalSearch.Application.Interfaces.Auth;
-using Microsoft.AspNetCore.Identity;
-using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Application.Models.Requests;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
+using Fcmb.Shared.Utilities;
+using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Models.Constants;
+using LegalSearch.Application.Models.Requests;
+using LegalSearch.Application.Models.Responses;
+using LegalSearch.Domain.Entities.Role;
+using LegalSearch.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Data;
-using LegalSearch.Application.Models.Responses;
-using Microsoft.EntityFrameworkCore;
-using Fcmb.Shared.Utilities;
 
 namespace LegalSearch.Infrastructure.Services.Roles
 {
-    internal class RoleService : IRoleService
+    public class RoleService : IRoleService
     {
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<RoleService> _logger;
+        private readonly AppDbContext _appDbContext;
 
-        public RoleService(RoleManager<Role> roleManager, ILogger<RoleService> logger)
+        public RoleService(RoleManager<Role> roleManager,
+            ILogger<RoleService> logger, AppDbContext appDbContext)
         {
             _roleManager = roleManager;
             _logger = logger;
+            _appDbContext = appDbContext;
         }
         public async Task<ObjectResponse<RoleResponse>> CreateRoleAsync(RoleRequest roleRequest)
         {
@@ -71,6 +75,27 @@ namespace LegalSearch.Infrastructure.Services.Roles
             };
         }
 
+        public async Task<ObjectResponse<RoleResponse>> GetRoleByIdAsync(Guid ID)
+        {
+            var role = await _appDbContext.Roles.FindAsync(ID);
+
+            if (role is null)
+            {
+                _logger.LogInformation("Role with Id {Id} not found", ID);
+
+                return new ObjectResponse<RoleResponse>("Role Not Found", ResponseCodes.DataNotFound);
+            }
+
+            return new ObjectResponse<RoleResponse>("Successfully Retrieved Role")
+            {
+                Data = new RoleResponse
+                {
+                    Permissions = role.Permissions.Select(p => p.Permission).ToList(), // Extract the permissions from RolePermission entities
+                    RoleId = role.Id,
+                    RoleName = role.Name!
+                }
+            };
+        }
 
         public async Task<ObjectResponse<RoleResponse>> GetRoleByNameAsync(string roleName)
         {
@@ -95,7 +120,7 @@ namespace LegalSearch.Infrastructure.Services.Roles
         }
 
 
-        private IQueryable<RoleResponse> FilterRoleQuery(IQueryable<RoleResponse> roleQuery, FilterRoleRequest request)
+        public IQueryable<RoleResponse> FilterRoleQuery(IQueryable<RoleResponse> roleQuery, FilterRoleRequest request)
         {
             if (!string.IsNullOrEmpty(request.RoleName))
                 roleQuery = roleQuery.Where(x => x.RoleName.Contains(request.RoleName));

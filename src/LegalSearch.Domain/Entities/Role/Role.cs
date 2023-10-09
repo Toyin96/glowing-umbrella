@@ -9,9 +9,9 @@ namespace LegalSearch.Domain.Entities.Role
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
-        
+
         public List<RolePermission> Permissions { get; set; } = new();
-        
+
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsDeleted { get; set; }

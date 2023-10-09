@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace LegalSearch.Domain.Common
 {
@@ -10,7 +9,7 @@ namespace LegalSearch.Domain.Common
             CreatedAt = DateTime.UtcNow;
             UpdatedAt = DateTime.UtcNow;
         }
-        
+
         [Key]
         public Guid Id { get; set; }
         public bool IsDeleted { get; set; }
