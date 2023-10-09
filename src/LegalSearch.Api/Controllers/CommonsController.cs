@@ -9,6 +9,7 @@ using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.Role;
+using LegalSearch.Domain.Enums.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -157,11 +158,17 @@ namespace LegalSearch.Api.Controllers
         /// <summary>
         /// This endpoint allows the CSO and Legal Perfection Team to activate/deactivate a solicitor
         /// </summary>
-        /// <param name="request">The request.</param>
+        /// <param name="solicitorId">The solicitor identifier.</param>
+        /// <param name="actionType">Type of the action.</param>
         /// <returns></returns>
-        [HttpPost("ActivateOrDeactivateSolicitor")]
-        public async Task<ActionResult<StatusResponse>> ActivateOrDeactivateSolicitor([FromBody] ActivateOrDeactivateSolicitorRequest request)
+        [HttpGet("ActivateOrDeactivateSolicitor/{solicitorId}/{actionType}")]
+        public async Task<ActionResult<StatusResponse>> ActivateOrDeactivateSolicitor(string solicitorId, ProfileStatusActionType actionType)
         {
+            var request = new ActivateOrDeactivateSolicitorRequest
+            {
+                SolicitorId = Guid.Parse(solicitorId),
+                ActionType = actionType
+            };
             var response = await _solicitorService.ActivateOrDeactivateSolicitor(request);
             return HandleResponse(response);
         }
