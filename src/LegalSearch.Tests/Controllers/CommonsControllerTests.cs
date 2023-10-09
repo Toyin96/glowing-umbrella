@@ -255,7 +255,6 @@ namespace LegalSearch.Tests.Controllers
         public async Task ActivateOrDeactivateSolicitor_ValidRequest_ReturnsOk()
         {
             // Arrange
-            var request = new ActivateOrDeactivateSolicitorRequest { SolicitorId = Guid.NewGuid(), ActionType = Domain.Enums.User.ProfileStatusActionType.Activate };
             var mockSolicitorService = new Mock<ISolicitorService>();
             var mockLegalSearchRequestService = new Mock<ILegalSearchRequestService>();
 
@@ -266,7 +265,7 @@ namespace LegalSearch.Tests.Controllers
             var controller = new CommonsController(mockLegalSearchRequestService.Object, mockSolicitorService.Object);
 
             // Act
-            var result = await controller.ActivateOrDeactivateSolicitor(request);
+            var result = await controller.ActivateOrDeactivateSolicitor(Guid.NewGuid().ToString(), Domain.Enums.User.ProfileStatusActionType.Activate);
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result.Result);
