@@ -9,14 +9,12 @@ namespace LegalSearch.Tests.Services
     public class NotificationPersistenceServiceTests
     {
         private Mock<INotificationManager> _mockNotificationManager;
-        private Mock<UserManager<Domain.Entities.User.User>> _mockUserManager;
         private INotificationService _notificationService;
 
         public NotificationPersistenceServiceTests()
         {
             _mockNotificationManager = new Mock<INotificationManager>();
-            _mockUserManager = MockUserManager.CreateMockUserManager<Domain.Entities.User.User>();
-            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object, _mockUserManager.Object);
+            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object);
         }
 
         [Fact]

@@ -174,7 +174,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     await PushRequestToNextSolicitorInOrder(request, currentAssignmentOrder);
                 }
 
-                if (requestsToReroute?.Any() == true)
+                if (solicitorAssignmentRecords?.Any() == true)
                 {
                     await _solicitorManager.UpdateManySolicitorAssignmentStatuses(solicitorAssignmentRecords);
                 }
@@ -436,6 +436,8 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         {
             try
             {
+                _logger.LogInformation($"Process started for request with ID: {requestId} inside InitiatePaymentToSolicitorJob");
+
                 // step 1: Get request
                 var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
                 var solicitor = await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == request!.AssignedSolicitorId);
@@ -540,11 +542,11 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             if (response == null)
                 return (false, "Payment endpoint returned null when trying to initiate transfer on client's account");
 
-            if (response?.Code != _successStatusCode)
+            if (response.Code != _successStatusCode)
                 return (false, "Request was not successful when trying to initiate transfer on client's account");
 
-            if (response?.Code == _successStatusCode && response?.Data != null && response?.Data?.TranId != null)
-                return (true, null);
+            if (response.Data != null && response.Data.TranId != null)
+                return (true, "The transfer request was successful");
 
             return (false, null);
         }
@@ -590,7 +592,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 RecipientUserId = solicitorInfo.UserId.ToString(),
                 RecipientUserEmail = solicitorInfo.UserEmail,
                 SolId = legalSearchRequest.BranchId,
-                NotificationType = NotificationType.AssignedToSolicitor,
+                NotificationType = NotificationType.ManualSolicitorAssignment,
                 Message = ConstantMessage.NewRequestAssignmentMessage,
                 MetaData = JsonSerializer.Serialize(legalSearchRequest, _serializerOptions)
             };

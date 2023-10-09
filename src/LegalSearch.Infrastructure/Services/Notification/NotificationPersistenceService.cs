@@ -1,5 +1,6 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.ApplicationMessages;
+using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
 
 namespace LegalSearch.Infrastructure.Services.Notification
@@ -27,8 +28,6 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
             switch (notification.NotificationType)
             {
-                case Domain.Enums.Notification.NotificationType.NewRequest:
-                    break;
                 case Domain.Enums.Notification.NotificationType.AssignedToSolicitor:
                     initiatorNotification.Title = ConstantTitle.NewRequestAssignmentTitleForSolicitor;
                     initiatorNotification.NotificationType = notification.NotificationType;
@@ -59,6 +58,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
                     initiatorNotification.MetaData = notification.MetaData;
                     break;
                 case Domain.Enums.Notification.NotificationType.ManualSolicitorAssignment:
+                case Domain.Enums.Notification.NotificationType.NewRequest:
+                    initiatorNotification.Title = ConstantTitle.NewRequestAssignmentTitle;
+                    initiatorNotification.NotificationType = NotificationType.NewRequest;
+                    initiatorNotification.RecipientUserId = notification.RecipientUserId;
+                    initiatorNotification.Message = ConstantMessage.NewRequestAssignmentMessage;
+                    initiatorNotification.MetaData = notification.MetaData;
                     break;
                 case Domain.Enums.Notification.NotificationType.CompletedRequest:
                     initiatorNotification.Title = ConstantTitle.CompletedRequestTitleForCso;

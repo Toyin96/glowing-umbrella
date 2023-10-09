@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace LegalSearch.Infrastructure.Services.LegalSearchService
 {
@@ -36,6 +37,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly IEnumerable<INotificationService> _notificationService;
         private readonly FCMBServiceAppConfig _options;
         private readonly string _successStatusCode = "00";
+        private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
 
 
         public LegalSearchRequestService(ILogger<LegalSearchRequestService> logger, IFcmbService fCMBService,
@@ -578,18 +580,18 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 var request = result.request;
 
-                // get the cso that initiated the request
-                var cso = await _userManager.FindByIdAsync(request.InitiatorId.ToString());
-                if (cso == null)
+                // get the solicitor that initiated the request
+                var solicitor = await _userManager.FindByIdAsync(solicitorId.ToString());
+                if (solicitor == null)
                 {
-                    _logger.LogError("CSO not found.");
-                    return new StatusResponse(result.errorMessage ?? "Sorry, something went wrong. Please try again later.", ResponseCodes.BadRequest);
+                    _logger.LogError("User not found.");
+                    return new StatusResponse("Sorry, something went wrong. Please try again later.", ResponseCodes.BadRequest);
                 }
 
                 // verify that customer legalSearchRequest have a lien ID
                 if (request!.LienId == null)
                 {
-                    _logger.LogError("Legal search request does not have a lien ID.");
+                    _logger.LogError($"Legal search request with ID: {request.Id} does not have a lien ID.");
                     return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
                 }
 
@@ -613,27 +615,45 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                 if (!isRequestUpdated)
                 {
-                    _logger.LogError("An error occurred while updating the request.");
+                    _logger.LogError($"An error occurred while updating the legal search request with ID: {request.Id}");
                     return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
                 }
 
-                // Notify the COS of completion of legalSearchRequest update
+                // get solicitor assignment record
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(solicitorId, request.Id);
+
+                if (solicitorAssignmentRecord == null)
+                {
+                    _logger.LogError($"An error occurred while fetching the solicitor assignment record for the legal search request with ID: {request.Id}");
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
+                }
+
+                // mark request has been completed
+                solicitorAssignmentRecord.HasCompletedLegalSearchRequest = true;
+                bool isRecordUpdated = await _solicitorAssignmentManager.UpdateSolicitorAssignmentRecord(solicitorAssignmentRecord);
+
+                if (!isRecordUpdated)
+                {
+                    _logger.LogError($"An error occurred while updating solicitor assignment record for legal search request with ID: {request.Id}");
+                    return new StatusResponse("An error occurred while sending report. Please try again later.", ResponseCodes.BadRequest);
+                }
+
+                // Notify the solicitor
                 var notification = new Domain.Entities.Notification.Notification
                 {
                     Title = ConstantTitle.CompletedRequestTitleForCso,
-                    RecipientUserId = request.InitiatorId.ToString(),
-                    RecipientUserEmail = cso.Email,
-                    SolId = request.BranchId,
+                    RecipientUserId = request.AssignedSolicitorId.ToString(),
+                    RecipientUserEmail = solicitor.Email,
                     NotificationType = NotificationType.CompletedRequest,
-                    Message = ConstantMessage.CompletedRequestMessage,
-                    MetaData = JsonSerializer.Serialize(request)
+                    Message = ConstantMessage.CompletedRequestMessageForSolicitor,
+                    MetaData = JsonSerializer.Serialize(request, _serializerOptions)
                 };
 
                 // Push legalSearchRequest to credit solicitor's account upon completion of legalSearchRequest
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
-                await NotifyClient(request.AssignedSolicitorId ?? Guid.Empty, notification);
+                NotifyClient(request.AssignedSolicitorId ?? Guid.Empty, notification);
 
                 _logger.LogInformation("Legal search report successfully submitted.");
                 return new StatusResponse("You have successfully submitted the report for this request", ResponseCodes.Success);
@@ -730,6 +750,13 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     return (request, "Could not find request", BaseResponseCodes.ServiceError);
                 }
 
+                // check if the request is missing an InitiatorId
+                if (request.InitiatorId == null)
+                {
+                    _logger.LogError($"Solicitor tried submitting a report for request with ID: {request.Id}, but the request lacks an initiator ID.");
+                    return (null, "Sorry, you cannot submit a report for this request at this time", ResponseCodes.ServiceError);
+                }
+
                 // check if legalSearchRequest is currently assigned to solicitor
                 if (request.AssignedSolicitorId != solicitorId)
                 {
@@ -737,10 +764,22 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     return (null, "Sorry you cannot submit a report for a request not assigned to you", ResponseCodes.ServiceError);
                 }
 
+                switch (request.Status)
+                {
+                    case nameof(RequestStatusType.BackToCso):
+                        _logger.LogError("Cannot submit a report for a request that is not in 'LawyerAccepted' status.");
+                        return (null, "Apologies, you are unable to submit a report for a legal search request that has been redirected back to the CSO for further information.", ResponseCodes.ServiceError);
+                    case nameof(RequestStatusType.Completed):
+                        _logger.LogError("Cannot submit a report for a request that is not in 'Completed' status.");
+                        return (null, "Sorry, you cannot submit a report for a legal search request that has already been completed.", ResponseCodes.ServiceError);
+                    default:
+                        break;
+                }
+
                 if (request.Status != nameof(RequestStatusType.LawyerAccepted))
                 {
                     _logger.LogError("Cannot submit a report for a request that is not in 'LawyerAccepted' status.");
-                    return (null, "Sorry, you can't submit a report; it's being routed back to the CSO for more information.", ResponseCodes.ServiceError);
+                    return (null, "Sorry, you cannot submit a report for a legal search request that you're yet to accept", ResponseCodes.ServiceError);
                 }
 
                 _logger.LogInformation("Accepted legal search request successfully fetched and validated.");
@@ -841,7 +880,8 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 throw;  // Re-throw the exception after logging
             }
         }
-        private async Task NotifyClient(Guid userId, Domain.Entities.Notification.Notification notification)
+
+        private void NotifyClient(Guid userId, Domain.Entities.Notification.Notification notification)
         {
             try
             {

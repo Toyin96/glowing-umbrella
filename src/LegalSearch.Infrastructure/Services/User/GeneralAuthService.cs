@@ -252,6 +252,11 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
+        /// <summary>
+        /// This method routes the requests to the appropriate method to handle the user login process
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
         public async Task<ObjectResponse<LoginResponse>> UserLogin(LoginRequest request)
         {
             var user = await _userManager.FindByEmailAsync(request.Email);
@@ -262,7 +267,7 @@ namespace LegalSearch.Infrastructure.Services.User
             // determine roles so as to know login route
             var role = await _userManager.GetRolesAsync(user);
 
-            return role.First() switch
+            return role[0] switch
             {
                 nameof(RoleType.Admin) or nameof(RoleType.Solicitor) => await InAppUserLoginFlow(user, request.Password),
                 nameof(RoleType.Cso) or nameof(RoleType.LegalPerfectionTeam) or nameof(RoleType.ITSupport) => await StaffLoginFlow(user, role, request),
@@ -270,6 +275,13 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
+        /// <summary>
+        /// This method handles the login flow for FCMB staffs.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="role">The role.</param>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
         {
             //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
@@ -345,6 +357,14 @@ namespace LegalSearch.Infrastructure.Services.User
             return new ObjectResponse<LoginResponse>("Staff login failed", ResponseCodes.BadRequest);
         }
 
+        /// <summary>
+        /// Generates the login response for staff.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="staffJwtToken">The staff JWT token.</param>
+        /// <param name="role">The role.</param>
+        /// <param name="branch">The branch.</param>
+        /// <returns></returns>
         private LoginResponse GenerateLoginResponseForStaff(Domain.Entities.User.User user,
             string staffJwtToken, string role, string branch)
         {
@@ -360,6 +380,12 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
+        /// <summary>
+        /// It handles the user login flow for admin and solicitors.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="password">The password.</param>
+        /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> InAppUserLoginFlow(Domain.Entities.User.User user, string password)
         {
             if (user == null)
@@ -386,17 +412,19 @@ namespace LegalSearch.Infrastructure.Services.User
                 return new ObjectResponse<LoginResponse>("The password is invalid, please try again!", ResponseCodes.InvalidCredentials);
             }
 
-            // check if user require 2fa
             var roles = await _userManager.GetRolesAsync(user);
 
             // check if user is solicitor and yet to reset his/her password
             if (roles[0] == RoleType.Solicitor.ToString() && user.OnboardingStatus == OnboardingStatusType.Initial)
                 return new ObjectResponse<LoginResponse>("Please reset your password before using the application.", ResponseCodes.Forbidden);
 
+            // check if user require 2fa
             if (roles[0] == RoleType.Solicitor.ToString())
             {
                 return await Generate2faTokenForSolicitor(user, roles[0]);
             }
+
+            DateTime? previousLastLogin = user.LastLogin ?? TimeUtils.GetCurrentLocalTime();
 
             // update user's last login
             await UpdateUserLastLoginTime(user);
@@ -409,10 +437,15 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful
             return new ObjectResponse<LoginResponse>("Successfully authenticated user", ResponseCodes.Success)
             {
-                Data = new LoginResponse { Token = token, Role = roles[0] }
+                Data = new LoginResponse { Token = token, Role = roles[0], LastLoginDate = previousLastLogin }
             };
         }
 
+        /// <summary>
+        /// Notifies the user of locked out status.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> NotifyUserOfLockedOutStatus(Domain.Entities.User.User user)
         {
             string emailBody = EmailTemplates.GetEmailTemplateForUnlockingAccountAwareness();
@@ -442,6 +475,12 @@ namespace LegalSearch.Infrastructure.Services.User
             return await _userManager.IsLockedOutAsync(user);
         }
 
+        /// <summary>
+        /// This method generates and sends 2fa token to a given solicitor's email.
+        /// </summary>
+        /// <param name="user">The user.</param>
+        /// <param name="role">The role.</param>
+        /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> Generate2faTokenForSolicitor(Domain.Entities.User.User user, string role)
         {
             // Generate and save the 2FA token
@@ -469,6 +508,10 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
+        /// <summary>
+        /// Handles the user lockout.
+        /// </summary>
+        /// <param name="user">The user.</param>
         private async Task HandleUserLockout(Domain.Entities.User.User user)
         {
             var failedAttempts = await _userManager.GetAccessFailedCountAsync(user);
@@ -492,6 +535,11 @@ namespace LegalSearch.Infrastructure.Services.User
             await _emailService.SendEmailAsync(emailPayload);
         }
 
+        /// <summary>
+        /// This method handles user onboarding.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
         public async Task<StatusResponse> OnboardNewUser(OnboardNewUserRequest request)
         {
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
@@ -522,7 +570,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (!userCreationStatus.Succeeded)
             {
-                var errMessage = userCreationStatus?.Errors?.ToArray()?[0]?.Description ?? $"Error creating user with email: {request.Email}";
+                var errMessage = userCreationStatus.GetStandardizedError() ?? $"Error creating user with email: {request.Email}";
                 _logger.LogError(errMessage);
                 return new StatusResponse(errMessage, ResponseCodes.BadRequest);
             }
@@ -588,6 +636,9 @@ namespace LegalSearch.Infrastructure.Services.User
             if (!isTokenValid)
                 return new ObjectResponse<LoginResponse>("Invalid Two-Factor Authentication code.", ResponseCodes.InvalidToken);
 
+            // Get the user's previous last login date
+            DateTime? previousLastLogin = user.LastLogin ?? TimeUtils.GetCurrentLocalTime();
+
             // update user's last login
             await UpdateUserLastLoginTime(user);
 
@@ -600,7 +651,7 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful
             return new ObjectResponse<LoginResponse>("Successfully authenticated user", ResponseCodes.Success)
             {
-                Data = new LoginResponse { Token = token, LastLoginDate = user.LastLogin, Role = roles[0], DisplayName = user.FullName }
+                Data = new LoginResponse { Token = token, LastLoginDate = previousLastLogin, Role = roles[0], DisplayName = user.FullName }
             };
         }
 

@@ -38,15 +38,15 @@ namespace LegalSearch.Infrastructure.Services.User
             _legalSearchRequestManager = legalSearchRequestManager;
         }
 
-        public async Task<StatusResponse> ActivateOrDeactivateSolicitor(ActivateOrDeactivateSolicitorRequest request)
+        public async Task<StatusResponse> ActivateOrDeactivateSolicitor(ActivateOrDeactivateSolicitorRequest activateOrDeactivateSolicitorRequest)
         {
             // get solicitor
-            var user = await _userManager.FindByIdAsync(request.SolicitorId.ToString());
+            var user = await _userManager.FindByIdAsync(activateOrDeactivateSolicitorRequest.SolicitorId.ToString());
 
             if (user == null)
                 return new StatusResponse("User not found", ResponseCodes.DataNotFound);
 
-            user.ProfileStatus = request.ActionType switch
+            user.ProfileStatus = activateOrDeactivateSolicitorRequest.ActionType switch
             {
                 ProfileStatusActionType.Activate => ProfileStatusType.Active.ToString(),
                 ProfileStatusActionType.DeActivate => ProfileStatusType.InActive.ToString(),
@@ -61,11 +61,11 @@ namespace LegalSearch.Infrastructure.Services.User
             return new StatusResponse("Solicitor status has been updated successfully", ResponseCodes.Success);
         }
 
-        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest request)
+        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest editSolicitorProfileRequest)
         {
             try
             {
-                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(request, request.SolicitorId);
+                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(editSolicitorProfileRequest, editSolicitorProfileRequest.SolicitorId);
 
                 if (isProfileUpdated)
                 {
