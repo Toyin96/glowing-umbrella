@@ -1,19 +1,16 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Enums.Role;
-using Microsoft.AspNetCore.Identity;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
     public class NotificationPersistenceService : INotificationService
     {
         private readonly INotificationManager _notificationManager;
-        private readonly UserManager<Domain.Entities.User.User> _userManager;
 
-        public NotificationPersistenceService(INotificationManager notificationManager, UserManager<Domain.Entities.User.User> userManager)
+        public NotificationPersistenceService(INotificationManager notificationManager)
         {
             _notificationManager = notificationManager;
-            _userManager = userManager;
         }
         public async Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
@@ -90,7 +87,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return notifications;
         }
 
-        public async Task NotifyUser(Guid initiatorUserId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Domain.Entities.Notification.Notification notification)
         {
             var notifications = DetermineNotificationsToPersist(notification);
 

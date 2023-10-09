@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.FCMB
 {
-    public class FCMBService : IFCMBService
+    public class FCMBService : IFcmbService
     {
         private readonly HttpClient _client;
         private readonly FCMBServiceAppConfig _fCMBServiceAppConfig;

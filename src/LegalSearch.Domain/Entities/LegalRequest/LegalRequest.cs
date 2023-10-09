@@ -5,16 +5,16 @@ namespace LegalSearch.Domain.Entities.LegalRequest
 {
     public class LegalRequest : BaseEntity
     {
-        public Guid InitiatorId { get; set; } // ID of staff on application.
+        public Guid? InitiatorId { get; set; } // ID of staff on application.
         public string? StaffId { get; set; } // Staff's ID from bank
         public string? RequestInitiator { get; set; } // staff's name
         public required string BranchId { get; set; }
-        public Guid AssignedSolicitorId { get; set; }
+        public Guid? AssignedSolicitorId { get; set; }
         public string? RequestType { get; set; }
         public RequestSourceType RequestSource { get; set; }
-        public Guid BusinessLocation { get; set; }
+        public Guid? BusinessLocation { get; set; }
         public string? LienId { get; set; }
-        public Guid RegistrationLocation { get; set; }
+        public Guid? RegistrationLocation { get; set; }
         public DateTime? RequestSubmissionDate { get; set; }
         public required string Status { get; set; }
         public required string CustomerAccountName { get; set; }

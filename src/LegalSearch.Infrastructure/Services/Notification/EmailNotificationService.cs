@@ -11,14 +11,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<EmailNotificationService> _logger;
-        private readonly AppDbContext _context;
 
         public EmailNotificationService(IHttpClientFactory httpClientFactory,
-            ILogger<EmailNotificationService> logger, AppDbContext context)
+            ILogger<EmailNotificationService> logger)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            _context = context;
         }
 
         public async Task<bool> SendEmailAsync(SendEmailRequest sendEmailRequest)
@@ -97,7 +95,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
         }
 
 
-        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Domain.Entities.Notification.Notification notification)
         {
             try
             {

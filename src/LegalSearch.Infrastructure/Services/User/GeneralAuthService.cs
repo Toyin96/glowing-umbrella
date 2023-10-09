@@ -31,16 +31,13 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly IAuthService _authService;
         private readonly ILogger<GeneralAuthService> _logger;
         private readonly IBranchRetrieveService _branchRetrieveService;
-        private readonly SignInManager<Domain.Entities.User.User> _signInManager;
-        private readonly IRoleService _roleService;
         private readonly IEmailService _emailService;
 
         public GeneralAuthService(UserManager<Domain.Entities.User.User> userManager,
             RoleManager<Role> roleManager, IJwtTokenService jwtTokenHelper,
             IStateRetrieveService stateRetrieveService, IAuthService authService,
             ILogger<GeneralAuthService> logger, IBranchRetrieveService branchRetrieveService,
-            SignInManager<Domain.Entities.User.User> signInManager,
-            IRoleService roleService, IEmailService emailService)
+            IEmailService emailService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -49,8 +46,6 @@ namespace LegalSearch.Infrastructure.Services.User
             _authService = authService;
             _logger = logger;
             _branchRetrieveService = branchRetrieveService;
-            _signInManager = signInManager;
-            _roleService = roleService;
             _emailService = emailService;
         }
         public async Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims)
@@ -172,13 +167,13 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (result.Succeeded)
             {
-                return await FinalizeSolicitorInitialOnboardingStage(state, defaultPassword, newSolicitor);
+                return await FinalizeSolicitorInitialOnboardingStage(state, newSolicitor);
             }
 
             return new ObjectResponse<SolicitorOnboardResponse>("Solicitor onboarding failed", ResponseCodes.Conflict);
         }
 
-        private async Task<ObjectResponse<SolicitorOnboardResponse>> FinalizeSolicitorInitialOnboardingStage(State state, string defaultPassword, Domain.Entities.User.User newSolicitor)
+        private async Task<ObjectResponse<SolicitorOnboardResponse>> FinalizeSolicitorInitialOnboardingStage(State state, Domain.Entities.User.User newSolicitor)
         {
             // Onboarding succeeded, now assign the roles to the solicitor
             var roleName = RoleType.Solicitor.ToString();
@@ -197,7 +192,6 @@ namespace LegalSearch.Infrastructure.Services.User
             var resetToken = await _userManager.GenerateUserTokenAsync(newSolicitor, "NumericTokenProvider", "ResetPassword");
             await _userManager.SetAuthenticationTokenAsync(newSolicitor, "NumericTokenProvider", "ResetToken", resetToken);
 
-            // TODO: Send the password reset token to the user's email
             string emailBody = EmailTemplates.GetEmailTemplateForNewlyOnboardedSolicitor();
 
             List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
@@ -223,11 +217,11 @@ namespace LegalSearch.Infrastructure.Services.User
                 {
                     SolicitorId = newSolicitor.Id,
                     FirstName = newSolicitor.FirstName,
-                    LastName = newSolicitor.LastName,
-                    Email = newSolicitor.Email,
-                    Address = newSolicitor.Firm.Address,
-                    PhoneNumber = newSolicitor.PhoneNumber,
-                    AccountNumber = newSolicitor.BankAccount,
+                    LastName = newSolicitor.LastName ?? string.Empty,
+                    Email = newSolicitor.Email ?? string.Empty,
+                    Address = newSolicitor!.Firm!.Address ?? string.Empty,
+                    PhoneNumber = newSolicitor.PhoneNumber ?? string.Empty,
+                    AccountNumber = newSolicitor.BankAccount ?? string.Empty,
                     Firm = newSolicitor.Firm.Name,
                     State = state.Name
                 }
@@ -455,7 +449,6 @@ namespace LegalSearch.Infrastructure.Services.User
             var twoFactorToken = await _userManager.GenerateTwoFactorTokenAsync(user, tokenProvider);
             await _userManager.SetAuthenticationTokenAsync(user, tokenProvider, "2fa", twoFactorToken);
 
-            //TODO: send 2fa token to user's email
             string emailBody = EmailTemplates.GetEmailTemplateForAuthenticating2FaCode();
 
             List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
@@ -622,7 +615,6 @@ namespace LegalSearch.Infrastructure.Services.User
             string unlockCode = GenerateUnlockCode();
             await SaveUnlockCodeInDatabase(user, unlockCode);
 
-            // TODO: Send an email to the user with the unlock code
             string emailBody = EmailTemplates.GetEmailTemplateForUnlockingAccount();
 
             List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>

@@ -17,7 +17,6 @@ using LegalSearch.Domain.Entities.LegalRequest;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Infrastructure.File.Report;
-using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -29,27 +28,23 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 {
     public class LegalSearchRequestService : ILegalSearchRequestService
     {
-        private readonly AppDbContext _appDbContext;
         private readonly ILogger<LegalSearchRequestService> _logger;
-        private readonly IFCMBService _fCMBService;
+        private readonly IFcmbService _fCMBService;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
         private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
         private readonly IEnumerable<INotificationService> _notificationService;
         private readonly FCMBServiceAppConfig _options;
         private readonly string _successStatusCode = "00";
-        private static Random random = new Random();
 
 
-        public LegalSearchRequestService(AppDbContext appDbContext,
-            ILogger<LegalSearchRequestService> logger, IFCMBService fCMBService,
+        public LegalSearchRequestService(ILogger<LegalSearchRequestService> logger, IFcmbService fCMBService,
             UserManager<Domain.Entities.User.User> userManager,
             ILegalSearchRequestManager legalSearchRequestManager,
             ISolicitorAssignmentManager solicitorAssignmentManager,
             IEnumerable<INotificationService> notificationService,
             IOptions<FCMBServiceAppConfig> options)
         {
-            _appDbContext = appDbContext;
             _logger = logger;
             _fCMBService = fCMBService;
             _userManager = userManager;
@@ -77,7 +72,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var legalSearchRequest = result.request;
 
                 // Get solicitor assignment record
-                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId, legalSearchRequest.Id);
+                var solicitorAssignmentRecord = await _solicitorAssignmentManager.GetSolicitorAssignmentBySolicitorId(legalSearchRequest!.AssignedSolicitorId ?? Guid.Empty, legalSearchRequest.Id);
 
                 // Check if legal search request is currently assigned to solicitor
                 if (solicitorAssignmentRecord == null)
@@ -252,22 +247,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
         }
 
-        private int GenerateUnique5DigitNumber()
-        {
-            try
-            {
-                int uniqueNumber = random.Next(10000, 100000);
-                _logger.LogInformation("Generated unique 5-digit number: {UniqueNumber}", uniqueNumber);
-                return uniqueNumber;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An exception occurred while generating a unique 5-digit number.");
-                throw; // Re-throw the exception for upper layers to handle
-            }
-        }
-
-        private AddLienToAccountRequest GenerateLegalSearchLienRequestPayload(UpdateFinacleLegalRequest legalSearchRequest)
+        private AddLienToAccountRequest GenerateLegalSearchLienRequestPayloadForFinacleRequest(UpdateFinacleLegalRequest legalSearchRequest)
         {
             try
             {
@@ -488,10 +468,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
 
                     var supportingDocuments = await ProcessSupportingDocuments(returnRequest.SupportingDocuments);
 
-                    supportingDocuments.ForEach(x =>
-                    {
-                        request!.SupportingDocuments.Add(x);
-                    });
+                    supportingDocuments.ForEach(x => request!.SupportingDocuments.Add(x));
 
                     _logger.LogInformation("Supporting documents added to the request.");
                 }
@@ -506,7 +483,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 request!.Status = nameof(RequestStatusType.BackToCso);
                 bool isRequestUpdated = await _legalSearchRequestManager.UpdateLegalSearchRequest(request!);
 
-                if (isRequestUpdated == false)
+                if (!isRequestUpdated)
                 {
                     _logger.LogError("An error occurred while updating the request.");
                     return new StatusResponse("An error occurred while sending request. Please try again later.", ResponseCodes.ServiceError);
@@ -621,10 +598,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 {
                     var supportingDocuments = await ProcessSupportingDocuments(submitLegalSearchReport.RegistrationDocuments);
 
-                    supportingDocuments.ForEach(x =>
-                    {
-                        request!.SupportingDocuments.Add(x);
-                    });
+                    supportingDocuments.ForEach(x => request!.SupportingDocuments.Add(x));
                 }
 
                 if (!string.IsNullOrEmpty(submitLegalSearchReport.Feedback))
@@ -659,7 +633,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO
-                await NotifyClient(request.AssignedSolicitorId, notification);
+                await NotifyClient(request.AssignedSolicitorId ?? Guid.Empty, notification);
 
                 _logger.LogInformation("Legal search report successfully submitted.");
                 return new StatusResponse("You have successfully submitted the report for this request", ResponseCodes.Success);
@@ -874,7 +848,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 _logger.LogInformation($"Sending notification to user with ID: {userId}");
 
                 // Send notification to client
-                _notificationService.ToList().ForEach(x => x.NotifyUser(userId, notification));
+                _notificationService.ToList().ForEach(x => x.NotifyUser(notification));
 
                 _logger.LogInformation("Notification sent successfully.");
             }
@@ -919,12 +893,10 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         {
             try
             {
-                _logger.LogInformation($"Performing name inquiry on account number: {accountNumber}");
-
                 // Validate customer's account status and balance
                 var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(accountNumber);
 
-                if (accountInquiryResponse == null || accountInquiryResponse?.Data == null)
+                if (accountInquiryResponse?.Data == null)
                 {
                     _logger.LogError("Something went wrong during account inquiry. Response is null or missing data.");
                     return new ObjectResponse<GetAccountInquiryResponse>("Something went wrong. Please try again.", ResponseCodes.ServiceError);
@@ -942,7 +914,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"An exception occurred inside PerformNameInquiryOnAccount for account number: {accountNumber}");
+                _logger.LogError(ex, $"An exception occurred inside PerformNameInquiryOnAccount at {TimeUtils.GetCurrentLocalTime}");
                 return new ObjectResponse<GetAccountInquiryResponse>("Sorry, something went wrong. Please try again later.", ResponseCodes.ServiceError);
             }
         }
@@ -1059,14 +1031,14 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             };
         }
 
-        public async Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest request, string userId)
+        public async Task<StatusResponse> UpdateFinacleRequestByCso(UpdateFinacleLegalRequest updateFinacleLegalRequest, string userId)
         {
             try
             {
                 _logger.LogInformation("Updating Finacle request by CSO.");
 
                 // Fetch legal search request 
-                var legalSearch = await _legalSearchRequestManager.GetLegalSearchRequest(request.RequestId);
+                var legalSearch = await _legalSearchRequestManager.GetLegalSearchRequest(updateFinacleLegalRequest.RequestId);
 
                 if (legalSearch == null)
                 {
@@ -1081,7 +1053,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 }
 
                 // Validate customer's account status and balance
-                var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(request.CustomerAccountNumber);
+                var accountInquiryResponse = await _fCMBService.MakeAccountInquiry(updateFinacleLegalRequest.CustomerAccountNumber);
 
                 // Process name inquiry response to see if the account has enough balance for this action
                 (bool isSuccess, string errorMessage) = ProcessAccountInquiryResponse(accountInquiryResponse!);
@@ -1094,7 +1066,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 }
 
                 // Place lien on account in question to cover the cost of the legal search
-                AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayload(request);
+                AddLienToAccountRequest lienRequest = GenerateLegalSearchLienRequestPayloadForFinacleRequest(updateFinacleLegalRequest);
 
                 // System attempts to place lien on customer's account
                 var addLienResponse = await _fCMBService.AddLien(lienRequest);
@@ -1113,7 +1085,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 var user = await _userManager.FindByIdAsync(userId);
 
                 // Update legal search record 
-                legalSearch = await UpdateLegalSearchRecord(legalSearch, request);
+                legalSearch = await UpdateLegalSearchRecord(legalSearch, updateFinacleLegalRequest);
 
                 // Assign lien ID, staff ID to legal search request
                 legalSearch.LienId = addLienResponse!.Data.LienId;

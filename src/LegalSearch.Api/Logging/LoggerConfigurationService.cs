@@ -29,7 +29,11 @@ namespace LegalSearch.Api.Logging
         {
         }
 
-        // Implementing the ConfigureLogger method
+        /// <summary>
+        /// Configures the logger based on the provided options.
+        /// </summary>
+        /// <param name="options">The logger configuration options.</param>
+        /// <returns></returns>
         public LoggerConfiguration ConfigureLogger(LoggerOptions options)
         {
             // Initialize Serilog logger configuration

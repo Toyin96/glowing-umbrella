@@ -42,7 +42,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 string message = loginResponse2.Item2;
                 AdLoginResponse loginResponse = loginResponse2.Item3;
 
-                ObjectResponse<AdLoginResponse> obj = new ObjectResponse<AdLoginResponse>(message, code)
+                ObjectResponse<AdLoginResponse> obj = new(message, code)
                 {
                     Data = loginResponse,
                 };
@@ -54,7 +54,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 HttpRequestException e = ex;
                 logger.LogError(e, "Error Signing In {Username} To AD", request.Email);
                 logger.LogError("Exception", e);
-                return new ObjectResponse<AdLoginResponse>("Error Occured", "999");
+                return new ObjectResponse<AdLoginResponse>("Error Occurred", "999");
             }
         }
 
@@ -63,9 +63,9 @@ namespace LegalSearch.Infrastructure.Services.User
             try
             {
                 XDocument xDocument = XDocument.Parse(loginResult);
-                XNamespace xNamespace = (XNamespace?)"http://tempuri.org/";
-                string text = xDocument.Descendants(xNamespace + "Response")?.FirstOrDefault()?.Value;
-                if (string.IsNullOrEmpty(text) || !(text == "00"))
+                XNamespace xNamespace = (XNamespace?)"https://tempuri.org/";
+                string? text = xDocument.Descendants(xNamespace + "Response")?.FirstOrDefault()?.Value;
+                if (string.IsNullOrEmpty(text) || text != "00")
                 {
                     logger.LogError("Failure response from Auth Service {Code}", text);
                     return ("999", "Failure Response From Auth Service", null);
@@ -89,7 +89,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     StaffId = staffId,
                     StaffName = staffName
                 };
-                logger.LogInformation("Login response object {Response}", StringExtensions.Serialize<AdLoginResponse>(adLoginResponse));
+                logger.LogInformation("Login response object {Response}", adLoginResponse.Serialize<AdLoginResponse>());
                 return ("00", "Successfully Signed In To Auth Service", adLoginResponse);
             }
             catch (XmlException ex)

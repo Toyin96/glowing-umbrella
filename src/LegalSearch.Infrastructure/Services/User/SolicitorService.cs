@@ -128,7 +128,7 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
-        public async Task<ObjectResponse<SolicitorProfileDto>?> ViewSolicitorProfile(Guid userId)
+        public async Task<ObjectResponse<SolicitorProfileDto>> ViewSolicitorProfile(Guid userId)
         {
             var solicitor = await _appDbContext.Users
                 .Include(x => x.Firm)

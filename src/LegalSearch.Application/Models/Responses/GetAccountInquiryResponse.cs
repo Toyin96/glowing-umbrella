@@ -38,7 +38,7 @@ namespace LegalSearch.Application.Models.Responses
         public string? PassportNumber { get; set; }
         public string? BranchCode { get; set; }
         public string? DateOfBirth { get; set; }
-        public object DateOfIncorporation { get; set; }
+        public object? DateOfIncorporation { get; set; }
         public string? SchemeCode { get; set; }
         public string? SbuCode { get; set; }
         public string? BrokerCode { get; set; }

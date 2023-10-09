@@ -41,7 +41,7 @@ namespace LegalSearch.Tests.Services
             var notification = new Domain.Entities.Notification.Notification();
 
             // Act
-            await _notificationService.NotifyUser(initiatorUserId, notification);
+            await _notificationService.NotifyUser(notification);
 
             // Assert
             _mockNotificationManager.Verify(x => x.AddMultipleNotifications(It.IsAny<List<Domain.Entities.Notification.Notification>>()), Times.Once);

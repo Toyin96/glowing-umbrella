@@ -6,7 +6,7 @@ using System.Data;
 
 namespace LegalSearch.Infrastructure.File.Report
 {
-    internal class ReportFileGenerator
+    internal static class ReportFileGenerator
     {
         public static void WriteLegalSearchReportToStreamForStaff(Stream outputStream, StaffRootResponsePayload reports)
         {
@@ -140,63 +140,66 @@ namespace LegalSearch.Infrastructure.File.Report
 
             var serial = 1;
 
-            foreach (var row in reports.LegalSearchRequests)
+            if (reports.LegalSearchRequests != null)
             {
+                foreach (var row in reports.LegalSearchRequests)
+                {
+                    dataTable.Rows.Add(
+                        serial++,
+                        row.RequestInitiator,
+                        row.RequestType,
+                        row.CustomerAccountName,
+                        row.RequestStatus,
+                        row.CustomerAccountNumber,
+                        row.BusinessLocation,
+                        row.BusinessLocationId,
+                        row.RegistrationLocation,
+                        row.RequestSubmissionDate.HasValue ? row.RequestSubmissionDate.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
+                        row.RegistrationLocationId,
+                        row.RegistrationNumber,
+                        row.DateCreated.ToString("MMM dd, yyyy HH:mm:ss"),
+                        row.DateDue.HasValue ? row.DateDue.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
+                        row.Solicitor,
+                        row.ReasonOfCancellation,
+                        row.DateOfCancellation.HasValue ? row.DateOfCancellation.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
+                        row.RegistrationDate.ToString("MMM dd, yyyy HH:mm:ss"),
+                        row.Region,
+                        row.RegionCode
+                    );
+                }
+
                 dataTable.Rows.Add(
                     serial++,
-                    row.RequestInitiator,
-                    row.RequestType,
-                    row.CustomerAccountName,
-                    row.RequestStatus,
-                    row.CustomerAccountNumber,
-                    row.BusinessLocation,
-                    row.BusinessLocationId,
-                    row.RegistrationLocation,
-                    row.RequestSubmissionDate.HasValue ? row.RequestSubmissionDate.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
-                    row.RegistrationLocationId,
-                    row.RegistrationNumber,
-                    row.DateCreated.ToString("MMM dd, yyyy HH:mm:ss"),
-                    row.DateDue.HasValue ? row.DateDue.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
-                    row.Solicitor,
-                    row.ReasonOfCancellation,
-                    row.DateOfCancellation.HasValue ? row.DateOfCancellation.Value.ToString("MMM dd, yyyy HH:mm:ss") : string.Empty,
-                    row.RegistrationDate.ToString("MMM dd, yyyy HH:mm:ss"),
-                    row.Region,
-                    row.RegionCode
-                );
+                    "", // Placeholder for RequestInitiator (string)
+                    "", // Placeholder for RequestType (string)
+                    "", // Placeholder for CustomerAccountName (string)
+                    "", // Placeholder for RequestStatus (string)
+                    "", // Placeholder for CustomerAccountNumber (string)
+                    "", // Placeholder for BusinessLocation (string)
+                    Guid.Empty, // Placeholder for BusinessLocationId (Guid)
+                    "", // Placeholder for RegistrationLocation (string)
+                    "", // Placeholder for RequestSubmissionDate (string)
+                    Guid.Empty, // Placeholder for RegistrationLocationId (Guid)
+                    "", // Placeholder for RegistrationNumber (string)
+                    "", // Placeholder for DateCreated (DateTime)
+                    "", // Placeholder for DateDue (DateTime)
+                    "", // Placeholder for Solicitor (string)
+                    "", // Placeholder for ReasonOfCancellation (string)
+                    "", // Placeholder for DateOfCancellation (DateTime)
+                    "", // Placeholder for RegistrationDate (DateTime)
+                    "", // Placeholder for Region
+                    Guid.Empty, // Placeholder for Region code
+                    reports.PendingRequests, // PendingRequests (int)
+                    reports.CompletedRequests, // CompletedRequests (int)
+                    reports.OpenRequests, // OpenRequests (int)
+                    reports.AverageProcessingTime, // AverageProcessingTime (string)
+                    reports.TotalRequests, // TotalRequests (int)
+                    reports.WithinSLACount, // WithinSLACount (int)
+                    reports.ElapsedSLACount, // ElapsedSLACount (int)
+                    reports.Within3HoursToSLACount, // Within3HoursToSLACount (int)
+                    reports.RequestsWithLawyersFeedbackCount // RequestsWithLawyersFeedbackCount (int)
+                    );
             }
-
-            dataTable.Rows.Add(
-                serial++,
-                "", // Placeholder for RequestInitiator (string)
-                "", // Placeholder for RequestType (string)
-                "", // Placeholder for CustomerAccountName (string)
-                "", // Placeholder for RequestStatus (string)
-                "", // Placeholder for CustomerAccountNumber (string)
-                "", // Placeholder for BusinessLocation (string)
-                Guid.Empty, // Placeholder for BusinessLocationId (Guid)
-                "", // Placeholder for RegistrationLocation (string)
-                "", // Placeholder for RequestSubmissionDate (string)
-                Guid.Empty, // Placeholder for RegistrationLocationId (Guid)
-                "", // Placeholder for RegistrationNumber (string)
-                "", // Placeholder for DateCreated (DateTime)
-                "", // Placeholder for DateDue (DateTime)
-                "", // Placeholder for Solicitor (string)
-                "", // Placeholder for ReasonOfCancellation (string)
-                "", // Placeholder for DateOfCancellation (DateTime)
-                "", // Placeholder for RegistrationDate (DateTime)
-                "", // Placeholder for Region
-                Guid.Empty, // Placeholder for Region code
-                reports.PendingRequests, // PendingRequests (int)
-                reports.CompletedRequests, // CompletedRequests (int)
-                reports.OpenRequests, // OpenRequests (int)
-                reports.AverageProcessingTime, // AverageProcessingTime (string)
-                reports.TotalRequests, // TotalRequests (int)
-                reports.WithinSLACount, // WithinSLACount (int)
-                reports.ElapsedSLACount, // ElapsedSLACount (int)
-                reports.Within3HoursToSLACount, // Within3HoursToSLACount (int)
-                reports.RequestsWithLawyersFeedbackCount // RequestsWithLawyersFeedbackCount (int)
-                );
 
             return dataTable;
         }

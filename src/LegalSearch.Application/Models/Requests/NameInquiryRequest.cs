@@ -2,7 +2,7 @@
 {
     public class NameInquiryRequest
     {
-        public string RequestId { get; set; }
-        public string AccountNumber { get; set; }
+        public required string RequestId { get; set; }
+        public required string AccountNumber { get; set; }
     }
 }

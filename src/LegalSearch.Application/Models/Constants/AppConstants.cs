@@ -2,8 +2,9 @@
 {
     public static class AppConstants
     {
-        public static readonly string DbConnectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING")
-            ?? "Data source=52.247.216.167,1433; Initial Catalog=legal-search-be; integrated security=false;MultipleActiveResultSets=true;Trusted_Connection=false;User Id=sa;Password=microsoft_;";
+        public static readonly string AdminEmail = "AdminSettings:Email";
+        public static readonly string AdminPassword = "AdminSettings:Password";
+        public static readonly string AdminFirstName = "AdminSettings:FirstName";
     }
 
     public static class ReportConstants

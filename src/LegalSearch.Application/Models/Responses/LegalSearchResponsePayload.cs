@@ -18,21 +18,21 @@ namespace LegalSearch.Application.Models.Responses
         public required string RegistrationNumber { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime? DateDue { get; set; }
-        public string Solicitor { get; set; }
+        public string? Solicitor { get; set; }
         public required string ReasonOfCancellation { get; set; }
         public DateTime? DateOfCancellation { get; set; }
         public DateTime RegistrationDate { get; set; }
-        public string Region { get; set; }
-        public Guid RegionCode { get; set; }
-        public ICollection<DiscussionDto> Discussions { get; set; } = new List<DiscussionDto>();
-        public ICollection<RegistrationDocumentDto> RegistrationDocuments { get; set; } = new List<RegistrationDocumentDto>();
-        public ICollection<RegistrationDocumentDto> SupportingDocuments { get; set; } = new List<RegistrationDocumentDto>();
+        public string? Region { get; set; }
+        public Guid? RegionCode { get; set; }
+        public ICollection<DiscussionDto>? Discussions { get; set; } = new List<DiscussionDto>();
+        public ICollection<RegistrationDocumentDto>? RegistrationDocuments { get; set; } = new List<RegistrationDocumentDto>();
+        public ICollection<RegistrationDocumentDto>? SupportingDocuments { get; set; } = new List<RegistrationDocumentDto>();
     }
 
     public class LegalSearchRootResponsePayload
     {
         public required List<LegalSearchResponsePayload> LegalSearchRequests { get; set; }
-        public List<MonthlyRequestData> RequestsByMonth { get; set; }
+        public List<MonthlyRequestData>? RequestsByMonth { get; set; }
         public int TotalRequestsCount { get; set; }
         public int AssignedRequestsCount { get; set; }
         public int CompletedRequestsCount { get; set; }
@@ -46,8 +46,8 @@ namespace LegalSearch.Application.Models.Responses
 
     public class MonthlyRequestData
     {
-        public string Name { get; set; }
-        public int New { get; set; }
-        public int Comp { get; set; }
+        public required string Name { get; set; }
+        public required int New { get; set; }
+        public required int Comp { get; set; }
     }
 }

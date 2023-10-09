@@ -2,7 +2,7 @@
 {
     public class UnlockAccountRequest
     {
-        public string Email { get; set; }
-        public string UnlockCode { get; set; }
+        public required string Email { get; set; }
+        public required string UnlockCode { get; set; }
     }
 }
