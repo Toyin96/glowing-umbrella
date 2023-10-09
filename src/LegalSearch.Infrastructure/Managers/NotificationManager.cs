@@ -1,7 +1,5 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Responses;
-using LegalSearch.Domain.Entities.LegalRequest;
-using LegalSearch.Domain.Entities.Notification;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;

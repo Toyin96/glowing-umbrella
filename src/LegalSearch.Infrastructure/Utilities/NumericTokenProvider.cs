@@ -1,9 +1,12 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System.Security.Cryptography;
 
 namespace LegalSearch.Infrastructure.Utilities
 {
     public class NumericTokenProvider<TUser> : IUserTwoFactorTokenProvider<TUser> where TUser : class
     {
+        private readonly RandomNumberGenerator _rng = RandomNumberGenerator.Create();
+
         public Task<bool> CanGenerateTwoFactorTokenAsync(UserManager<TUser> manager, TUser user)
         {
             return Task.FromResult(true);
@@ -11,8 +14,12 @@ namespace LegalSearch.Infrastructure.Utilities
 
         public Task<string> GenerateAsync(string purpose, UserManager<TUser> manager, TUser user)
         {
-            var token = new Random().Next(1000, 9999).ToString("D4"); // Generate a 4-digit numeric token
-            return Task.FromResult(token);
+            byte[] data = new byte[4];
+            _rng.GetBytes(data);  // Generate 4 random bytes
+
+            int randomNumber = BitConverter.ToInt32(data, 0) % 9000 + 1000; // Map the bytes to a 4-digit number
+
+            return Task.FromResult(randomNumber.ToString("D4"));
         }
 
         public Task<bool> ValidateAsync(string purpose, string token, UserManager<TUser> manager, TUser user)
@@ -24,5 +31,4 @@ namespace LegalSearch.Infrastructure.Utilities
             return Task.FromResult(false);
         }
     }
-
 }

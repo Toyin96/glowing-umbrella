@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using System.Reflection;
 
 namespace LegalSearch.Infrastructure
@@ -96,7 +95,6 @@ namespace LegalSearch.Infrastructure
                 .WithTransientLifetime());
 
             services.TryAddTransient<INotificationService, EmailNotificationService>();
-            services.TryAddTransient<INotificationService, NotificationHub>();
             services.TryAddTransient<INotificationService, NotificationPersistenceService>();
         }
     }

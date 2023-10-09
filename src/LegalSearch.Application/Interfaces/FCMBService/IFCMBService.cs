@@ -3,7 +3,7 @@ using LegalSearch.Application.Models.Responses;
 
 namespace LegalSearch.Application.Interfaces.FCMBService
 {
-    public interface IFCMBService
+    public interface IFcmbService
     {
         Task<GetAccountInquiryResponse?> MakeAccountInquiry(string accountNumber);
         Task<AddLienToAccountResponse?> AddLien(AddLienToAccountRequest addLienToAccountRequest);

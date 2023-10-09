@@ -1,8 +1,4 @@
-﻿using Fcmb.Shared.Auth.Models.Requests;
-using Fcmb.Shared.Models.Responses;
-using LegalSearch.Application.Models.Responses;
-using LegalSearch.Domain.Entities.User.Solicitor;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 
 namespace LegalSearch.Application.Interfaces.Auth
 {
@@ -10,7 +6,7 @@ namespace LegalSearch.Application.Interfaces.Auth
     {
         Task<bool> AssignRoleAsync(Domain.Entities.User.User user, string roleName);
         Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims);
-        Task<Domain.Entities.User.User> GetUserByEmailAsync(string email);
+        Task<Domain.Entities.User.User?> GetUserByEmailAsync(string email);
         Task<ClaimsIdentity> GetClaimsIdentityForUser(Domain.Entities.User.User user);
         Task<IList<string>> GetRolesForUserAsync(Domain.Entities.User.User user);
     }

@@ -3,6 +3,6 @@
     public class UserMiniDto
     {
         public Guid UserId { get; set; }
-        public string UserEmail { get; set; }
+        public string? UserEmail { get; set; }
     }
 }

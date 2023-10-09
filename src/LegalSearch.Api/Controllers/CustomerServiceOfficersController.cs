@@ -1,6 +1,5 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
-using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Responses;
@@ -49,7 +48,7 @@ namespace LegalSearch.Api.Controllers
             // Get userId 
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
-            var result = await _legalSearchRequestService.CreateNewRequest(request, userId);
+            var result = await _legalSearchRequestService.CreateNewRequest(request, userId!);
             return HandleResponse(result);
         }
 
@@ -68,7 +67,7 @@ namespace LegalSearch.Api.Controllers
             // Get userId 
             string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
 
-            var result = await _legalSearchRequestService.UpdateFinacleRequestByCso(request, userId);
+            var result = await _legalSearchRequestService.UpdateFinacleRequestByCso(request, userId!);
             return HandleResponse(result);
         }
 

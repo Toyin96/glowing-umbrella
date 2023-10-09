@@ -2,7 +2,7 @@
 {
     public class SolicitorRetrievalResponse
     {
-        public Guid SolicitorId { get; set; }
-        public string SolicitorEmail { get; set; }
+        public required Guid SolicitorId { get; set; }
+        public required string SolicitorEmail { get; set; }
     }
 }

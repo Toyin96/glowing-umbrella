@@ -10,16 +10,20 @@ using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Managers
 {
     internal class LegalSearchRequestManager : ILegalSearchRequestManager
     {
         private readonly AppDbContext _appDbContext;
+        private readonly ILogger<LegalSearchRequestManager> _logger;
 
-        public LegalSearchRequestManager(AppDbContext appDbContext)
+        public LegalSearchRequestManager(AppDbContext appDbContext, ILogger<LegalSearchRequestManager> logger)
         {
             _appDbContext = appDbContext;
+            _logger = logger;
         }
 
         public async Task<bool> AddNewLegalSearchRequest(LegalRequest legalRequest)
@@ -29,7 +33,7 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload request, Guid solicitorId)
+        public async Task<LegalSearchRootResponsePayload> GetLegalRequestsForSolicitor(SolicitorRequestAnalyticsPayload viewRequestAnalyticsPayload, Guid solicitorId)
         {
             // Step 1: Create the query to fetch legal requests
             IQueryable<LegalRequest> rawQuery = _appDbContext.LegalSearchRequests
@@ -62,22 +66,22 @@ namespace LegalSearch.Infrastructure.Managers
             var assignedRequestIds = solicitorAssignments.Select(assignment => assignment.RequestId).ToList();
 
             // Step 5: Apply filtering to the query from the request payload
-            if (request.StartPeriod.HasValue && request.EndPeriod.HasValue)
+            if (viewRequestAnalyticsPayload.StartPeriod.HasValue && viewRequestAnalyticsPayload.EndPeriod.HasValue)
             {
-                query = query.Where(x => x.CreatedAt >= request.StartPeriod && x.CreatedAt <= request.EndPeriod);
+                query = query.Where(x => x.CreatedAt >= viewRequestAnalyticsPayload.StartPeriod && x.CreatedAt <= viewRequestAnalyticsPayload.EndPeriod);
             }
-            else if (request.StartPeriod.HasValue)
+            else if (viewRequestAnalyticsPayload.StartPeriod.HasValue)
             {
-                query = query.Where(x => x.CreatedAt >= request.StartPeriod);
+                query = query.Where(x => x.CreatedAt >= viewRequestAnalyticsPayload.StartPeriod);
             }
-            else if (request.EndPeriod.HasValue)
+            else if (viewRequestAnalyticsPayload.EndPeriod.HasValue)
             {
-                query = query.Where(x => x.CreatedAt <= request.EndPeriod);
+                query = query.Where(x => x.CreatedAt <= viewRequestAnalyticsPayload.EndPeriod);
             }
 
-            if (request.RequestStatus.HasValue)
+            if (viewRequestAnalyticsPayload.RequestStatus.HasValue)
             {
-                query = FilterQueryBasedOnRequestStatus(request, solicitorId, query, assignedRequestIds);
+                query = FilterQueryBasedOnRequestStatus(viewRequestAnalyticsPayload, solicitorId, query, assignedRequestIds);
             }
             else
             {
@@ -85,7 +89,7 @@ namespace LegalSearch.Infrastructure.Managers
             }
 
             // Step 7: Apply pagination to the query as per the request 
-            query.Paginate(request);
+            query.Paginate(viewRequestAnalyticsPayload);
 
             // Step 8: Fetch the requested data
             var response = await query
@@ -138,19 +142,19 @@ namespace LegalSearch.Infrastructure.Managers
                 RequestInitiator = x.RequestInitiator!,
                 RequestType = x.RequestType!,
                 RegistrationDate = x.RegistrationDate,
-                Region = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Region.Name : string.Empty,
-                RegionCode = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Region.Id : Guid.Empty,
+                Region = x.BusinessLocation.HasValue && stateNames.ContainsKey(x.BusinessLocation.Value) ? stateNames[x.BusinessLocation.Value].Region.Name : string.Empty,
+                RegionCode = x.BusinessLocation.HasValue && stateNames.ContainsKey(x.BusinessLocation.Value) ? stateNames[x.BusinessLocation.Value].Region.Id : Guid.Empty,
                 RequestStatus = x.Status,
                 CustomerAccountName = x.CustomerAccountName,
                 CustomerAccountNumber = x.CustomerAccountNumber,
-                RegistrationNumber = x.RegistrationNumber,
-                BusinessLocation = stateNames.ContainsKey(x.BusinessLocation) ? stateNames[x.BusinessLocation].Name : string.Empty,
-                RegistrationLocation = stateNames.ContainsKey(x.RegistrationLocation) ? stateNames[x.RegistrationLocation].Name : string.Empty,
-                BusinessLocationId = x.BusinessLocation,
-                RegistrationLocationId = x.RegistrationLocation,
+                RegistrationNumber = x.RegistrationNumber ?? string.Empty,
+                BusinessLocation = x.BusinessLocation.HasValue && stateNames.ContainsKey(x.BusinessLocation.Value) ? stateNames[x.BusinessLocation.Value].Name : string.Empty,
+                RegistrationLocation = x.RegistrationLocation.HasValue && stateNames.ContainsKey(x.RegistrationLocation.Value) ? stateNames[x.RegistrationLocation.Value].Name : string.Empty,
+                BusinessLocationId = x.BusinessLocation.HasValue ? x.BusinessLocation.Value : Guid.Empty,
+                RegistrationLocationId = x.RegistrationLocation.HasValue ? x.RegistrationLocation.Value : Guid.Empty,
                 DateCreated = x.CreatedAt,
-                Solicitor = x.AssignedSolicitorId != Guid.Empty && solicitors.ContainsKey(x.AssignedSolicitorId) ? solicitors[x.AssignedSolicitorId] : string.Empty,
-                ReasonOfCancellation = x.ReasonForCancelling,
+                Solicitor = x.AssignedSolicitorId.HasValue && solicitors.ContainsKey(x.AssignedSolicitorId.Value) ? solicitors[x.AssignedSolicitorId.Value] : string.Empty,
+                ReasonOfCancellation = x.ReasonForCancelling ?? string.Empty,
                 DateOfCancellation = x.DateOfCancellation,
                 DateDue = x.DateDue.HasValue ? x.DateDue : DateTime.MinValue,
                 Discussions = x.Discussions.Select(x => new DiscussionDto { Conversation = x.Conversation }).ToList(),
@@ -159,18 +163,18 @@ namespace LegalSearch.Infrastructure.Managers
             }).ToList();
 
             // get the requests query 
-            var assignedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString() && x.AssignedSolicitorId == solicitorId);
-            var completedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.Completed.ToString() && x.AssignedSolicitorId == solicitorId);
-            var newRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString() && x.AssignedSolicitorId == solicitorId);
-            var rejectedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerRejected.ToString());
-            var returnedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.BackToCso.ToString() && x.AssignedSolicitorId == solicitorId);
+            IQueryable<LegalRequest>? assignedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerAccepted.ToString() && x.AssignedSolicitorId == solicitorId);
+            IQueryable<LegalRequest>? completedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.Completed.ToString() && x.AssignedSolicitorId == solicitorId);
+            IQueryable<LegalRequest>? newRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.AssignedToLawyer.ToString() && x.AssignedSolicitorId == solicitorId);
+            IQueryable<LegalRequest>? rejectedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.LawyerRejected.ToString());
+            IQueryable<LegalRequest>? returnedRequestsCountQuery = rawQuery.Where(x => x.Status == RequestStatusType.BackToCso.ToString() && x.AssignedSolicitorId == solicitorId);
 
             // Step 12: Calculate the counts for the three categories
-            var assignedRequestsCount = assignedRequestsCountQuery != null ? await assignedRequestsCountQuery.CountAsync() : 0;
-            var completedRequestsCount = completedRequestsCountQuery != null ? await completedRequestsCountQuery.CountAsync() : 0;
-            var rejectedRequestsCount = rejectedRequestsCountQuery != null ? await rejectedRequestsCountQuery.CountAsync() : 0;
-            var returnedRequestsCount = returnedRequestsCountQuery != null ? await returnedRequestsCountQuery.CountAsync() : 0;
-            var newRequestsCount = newRequestsCountQuery != null ? await newRequestsCountQuery.CountAsync() : 0;
+            int assignedRequestsCount = await assignedRequestsCountQuery.CountAsync();
+            int completedRequestsCount = await completedRequestsCountQuery.CountAsync();
+            int rejectedRequestsCount =  await rejectedRequestsCountQuery.CountAsync();
+            int returnedRequestsCount = await returnedRequestsCountQuery.CountAsync();
+            int newRequestsCount = await newRequestsCountQuery.CountAsync();
 
             // Calculate requests by month
             var requestsByMonth = CalculateRequestsByMonth(mappedResponse, TimeUtils.GetCurrentLocalTime());
@@ -210,7 +214,7 @@ namespace LegalSearch.Infrastructure.Managers
             foreach (var request in mappedResponse)
             {
                 var monthKey = request.DateCreated.ToString("MMM");
-                var monthEntry = requestsByMonth.FirstOrDefault(m => m.Name == monthKey);
+                var monthEntry = requestsByMonth.Find(m => m.Name == monthKey);
 
                 if (monthEntry != null)
                 {
@@ -246,7 +250,7 @@ namespace LegalSearch.Infrastructure.Managers
             foreach (var request in allRecords)
             {
                 var monthKey = request.DateCreated.ToString("MMM");
-                var monthEntry = requestsByMonth.FirstOrDefault(m => m.Name == monthKey);
+                var monthEntry = requestsByMonth.Find(m => m.Name == monthKey);
 
                 if (monthEntry != null)
                 {
@@ -456,7 +460,7 @@ namespace LegalSearch.Infrastructure.Managers
         }
 
 
-        private static async Task<List<LegalSearchResponsePayload>> GenerateLegalSearchResponsePayload(IQueryable<LegalRequest> query, Dictionary<Guid, State> stateDictionary, Dictionary<Guid, string> solicitors)
+        private async Task<List<LegalSearchResponsePayload>> GenerateLegalSearchResponsePayload(IQueryable<LegalRequest> query, Dictionary<Guid, State> stateDictionary, Dictionary<Guid, string> solicitors)
         {
             try
             {
@@ -469,18 +473,18 @@ namespace LegalSearch.Infrastructure.Managers
                     RegistrationDate = legalSearch.RegistrationDate,
                     RequestStatus = legalSearch.Status,
                     RequestSubmissionDate = legalSearch.RequestSubmissionDate,
-                    Solicitor = legalSearch.AssignedSolicitorId != Guid.Empty && solicitors.ContainsKey(legalSearch.AssignedSolicitorId) ? solicitors[legalSearch.AssignedSolicitorId] : string.Empty,
-                    RegistrationNumber = legalSearch.RegistrationNumber,
+                    Solicitor = legalSearch.AssignedSolicitorId.HasValue && solicitors.ContainsKey(legalSearch.AssignedSolicitorId.Value) ? solicitors[legalSearch.AssignedSolicitorId.Value] : string.Empty,
+                    RegistrationNumber = legalSearch.RegistrationNumber ?? string.Empty,
                     CustomerAccountName = legalSearch.CustomerAccountName,
                     CustomerAccountNumber = legalSearch.CustomerAccountNumber,
-                    Region = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Name : string.Empty,
-                    RegionCode = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Region.Id : Guid.Empty,
-                    BusinessLocation = stateDictionary.ContainsKey(legalSearch.BusinessLocation) ? stateDictionary[legalSearch.BusinessLocation].Name : string.Empty,
-                    RegistrationLocation = stateDictionary.ContainsKey(legalSearch.RegistrationLocation) ? stateDictionary[legalSearch.RegistrationLocation].Name : string.Empty,
-                    BusinessLocationId = legalSearch.BusinessLocation,
-                    RegistrationLocationId = legalSearch.RegistrationLocation,
+                    Region = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Region.Name : string.Empty,
+                    RegionCode = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Region.Id : Guid.Empty,
+                    BusinessLocation = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Name : string.Empty,
+                    RegistrationLocation = legalSearch.RegistrationLocation.HasValue && stateDictionary.ContainsKey(legalSearch.RegistrationLocation.Value) ? stateDictionary[legalSearch.RegistrationLocation.Value].Name : string.Empty,
+                    BusinessLocationId = legalSearch.BusinessLocation.HasValue ? legalSearch.BusinessLocation.Value : Guid.Empty,
+                    RegistrationLocationId = legalSearch.RegistrationLocation.HasValue ? legalSearch.RegistrationLocation.Value  : Guid.Empty,
                     DateCreated = legalSearch.CreatedAt,
-                    ReasonOfCancellation = legalSearch.ReasonForCancelling,
+                    ReasonOfCancellation = legalSearch.ReasonForCancelling ?? string.Empty,
                     DateOfCancellation = legalSearch.DateOfCancellation,
                     DateDue = legalSearch.DateDue,
                     RegistrationDocuments = legalSearch.RegistrationDocuments.Select(x => new RegistrationDocumentDto
@@ -502,9 +506,9 @@ namespace LegalSearch.Infrastructure.Managers
 
                 return data;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                _logger.LogError($"An error occurred inside GenerateLegalSearchResponsePayload. See reason: {JsonSerializer.Serialize(ex)}");
                 throw;
             }
         }

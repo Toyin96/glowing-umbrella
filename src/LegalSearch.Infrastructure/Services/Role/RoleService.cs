@@ -19,7 +19,7 @@ namespace LegalSearch.Infrastructure.Services.Roles
         private readonly ILogger<RoleService> _logger;
         private readonly AppDbContext _appDbContext;
 
-        public RoleService(RoleManager<Role> roleManager, 
+        public RoleService(RoleManager<Role> roleManager,
             ILogger<RoleService> logger, AppDbContext appDbContext)
         {
             _roleManager = roleManager;
@@ -75,13 +75,13 @@ namespace LegalSearch.Infrastructure.Services.Roles
             };
         }
 
-        public async Task<ObjectResponse<RoleResponse>> GetRoleByIdAsync(Guid Id)
+        public async Task<ObjectResponse<RoleResponse>> GetRoleByIdAsync(Guid ID)
         {
-            var role = await _appDbContext.Roles.FindAsync(Id);
+            var role = await _appDbContext.Roles.FindAsync(ID);
 
             if (role is null)
             {
-                _logger.LogInformation("Role with Id {Id} not found", Id);
+                _logger.LogInformation("Role with Id {Id} not found", ID);
 
                 return new ObjectResponse<RoleResponse>("Role Not Found", ResponseCodes.DataNotFound);
             }

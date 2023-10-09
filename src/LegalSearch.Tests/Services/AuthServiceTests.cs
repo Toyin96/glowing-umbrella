@@ -1,12 +1,7 @@
-﻿using Fcmb.Shared.Auth.Models.Requests;
-using LegalSearch.Infrastructure.Services.User;
-using LegalSearch.Tests.Mocks;
+﻿using LegalSearch.Infrastructure.Services.User;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
-using System.Net;
-using System.Text;
 
 namespace LegalSearch.Tests.Services
 {

@@ -1,15 +1,12 @@
 ﻿using FluentValidation;
-using FluentValidation.AspNetCore;
 using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
-using LegalSearch.Api.Filters;
 using LegalSearch.Api.HealthCheck;
 using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
-using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
-using LegalSearch.Application.Interfaces.Notification;
+using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Logging;
 using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Validations.Auth;
@@ -22,7 +19,6 @@ using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -63,11 +59,12 @@ namespace LegalSearch.Api
             // Register custom health checks
             services.AddHealthChecks()
                     .AddCheck<ApiHealthCheck>("api_health_check")
-                    .AddCheck<SecurityHealthCheck>("security_health_check")
                     .AddCheck<DatabaseHealthCheck>("database_health_check");
 
             // add logging capabilities
-            services.ConfigureLoggingCapability(configuration);
+            // Retrieve logger options from appsettings.json
+            var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
+            services.ConfigureLoggingCapability(configuration, loggerOptions);
 
             services.AddCors(options =>
             {
@@ -83,7 +80,7 @@ namespace LegalSearch.Api
             // added signalR capability
             services.AddSignalR(option => option.EnableDetailedErrors = true);
 
-            services.AddHttpClient<IFCMBService, FCMBService>();
+            services.AddHttpClient<IFcmbService, FCMBService>();
             services.AddOptions<FCMBServiceAppConfig>()
                     .BindConfiguration(nameof(FCMBServiceAppConfig))
                     .ValidateDataAnnotations()
@@ -105,9 +102,10 @@ namespace LegalSearch.Api
         }
 
         /// <summary>
-        /// Configure the HTTP request pipeline.
+        /// Configures the HTTP request pipeline.
         /// </summary>
-        /// <param name="app"></param>
+        /// <param name="app">The application.</param>
+        /// <param name="configuration">The configuration.</param>
         public static void ConfigureHttpRequestPipeline(this WebApplication app, IConfiguration configuration)
         {
             if (app.Environment.IsDevelopment())
@@ -121,8 +119,6 @@ namespace LegalSearch.Api
             app.UseGlobalExceptionHandler();
 
             app.UseRouting();
-
-            app.MapHub<NotificationHub>("/notificationHub");
 
             app.MapHealthChecks("/health", new HealthCheckOptions
             {
@@ -150,10 +146,7 @@ namespace LegalSearch.Api
                 }
             });
 
-            app.UseHealthChecksUI(options =>
-            {
-                options.UIPath = "/health-ui";
-            });
+            app.UseHealthChecksUI(options => options.UIPath = "/health-ui");
 
             // Call the static method to register recurring Hangfire jobs
             HangfireJobs.RegisterRecurringJobs();
@@ -193,11 +186,15 @@ namespace LegalSearch.Api
             });
         }
 
-        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration)
+        /// <summary>
+        /// Configures the logging capability.
+        /// </summary>
+        /// <param name="services">The services.</param>
+        /// <param name="configuration">The configuration.</param>
+        /// <param name="loggerOptions">The logger options.</param>
+        /// <exception cref="System.ArgumentNullException">loggerOptions - LoggerOptions is null. Check the configuration.</exception>
+        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration, LoggerOptions? loggerOptions)
         {
-            // Retrieve logger options from appsettings.json
-            var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
-
             // Check if loggerOptions is null
             if (loggerOptions == null)
             {
@@ -205,7 +202,7 @@ namespace LegalSearch.Api
             }
 
             // Configure the logger
-            var loggerConfigurationService = new LoggerConfigurationService(configuration);
+            var loggerConfigurationService = new LoggerConfigurationService();
             var loggerConfiguration = loggerConfigurationService.ConfigureLogger(loggerOptions);
 
             // Set the logger as the default logger for the application
@@ -218,6 +215,12 @@ namespace LegalSearch.Api
                 loggingBuilder.AddSerilog(dispose: true);
             });
         }
+
+        /// <summary>
+        /// Configures the hang fire.
+        /// </summary>
+        /// <param name="services">The services.</param>
+        /// <param name="configuration">The configuration.</param>
         private static void ConfigureHangFire(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHangfire(config =>
@@ -230,6 +233,11 @@ namespace LegalSearch.Api
             services.AddHangfireServer();
         }
 
+        /// <summary>
+        /// Configures the database.
+        /// </summary>
+        /// <param name="services">The services.</param>
+        /// <param name="configuration">The configuration.</param>
         private static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration)
         {
             // Add database context
@@ -243,6 +251,10 @@ namespace LegalSearch.Api
             });
         }
 
+        /// <summary>
+        /// Configures the swagger.
+        /// </summary>
+        /// <param name="services">The services.</param>
         private static void ConfigureSwagger(this IServiceCollection services)
         {
             services.AddSwaggerGen(c =>
@@ -279,7 +291,7 @@ namespace LegalSearch.Api
 
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-                    {securityScheme, new string[]{} }
+                    {securityScheme, Array.Empty<string>() }
                 });
 
                 c.OperationFilter<SwaggerFileUploadFilter>();
@@ -291,6 +303,11 @@ namespace LegalSearch.Api
             });
         }
 
+        /// <summary>
+        /// Updates the database.
+        /// </summary>
+        /// <param name="app">The application.</param>
+        /// <param name="configuration">The configuration.</param>
         private static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
         {
             using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
@@ -316,8 +333,17 @@ namespace LegalSearch.Api
         /// <returns></returns>
         public static async Task SeedAdmin(IConfiguration configuration, UserManager<User> userManager, RoleManager<Role> roleManager)
         {
-            // seed all roles in application on startup
-            foreach (RoleType roleType in Enum.GetValues(typeof(RoleType)))
+            await SeedRoles(roleManager);
+            await EnsureAdminRole(roleManager);
+
+            await CreateAdminUser(configuration, userManager);
+        }
+
+        private static async Task SeedRoles(RoleManager<Role> roleManager)
+        {
+            var roleTypes = Enum.GetValues(typeof(RoleType)).Cast<RoleType>();
+
+            foreach (var roleType in roleTypes)
             {
                 var roleName = roleType.ToString();
 
@@ -326,26 +352,43 @@ namespace LegalSearch.Api
                     await roleManager.CreateAsync(new Role { Name = roleName });
                 }
             }
+        }
 
+        private static async Task EnsureAdminRole(RoleManager<Role> roleManager)
+        {
+            var adminRoleName = RoleType.Admin.ToString();
 
-            if (!await roleManager.RoleExistsAsync(RoleType.Admin.ToString()))
+            if (!await roleManager.RoleExistsAsync(adminRoleName))
             {
-                await roleManager.CreateAsync(new Role { Name = nameof(RoleType.Admin) });
-            }
-
-            var adminUser = await userManager.FindByNameAsync(configuration["AdminSettings:Email"]);
-            if (adminUser == null)
-            {
-                adminUser = new User { FirstName = configuration["AdminSettings:FirstName"], UserName = configuration["AdminSettings:Email"], Email = configuration["AdminSettings:Email"] };
-                await userManager.CreateAsync(adminUser, configuration["AdminSettings:Password"]);
-            }
-
-            if (!await userManager.IsInRoleAsync(adminUser, nameof(RoleType.Admin)))
-            {
-                await userManager.AddToRoleAsync(adminUser, nameof(RoleType.Admin));
+                await roleManager.CreateAsync(new Role { Name = adminRoleName });
             }
         }
 
+        private static async Task CreateAdminUser(IConfiguration configuration, UserManager<User> userManager)
+        {
+            var adminEmail = configuration?[AppConstants.AdminEmail];
+            var adminPassword = configuration?[AppConstants.AdminPassword];
+            var adminFirstName = configuration?[AppConstants.AdminFirstName]; 
+
+            var adminUser = await userManager.FindByNameAsync(adminEmail);
+            if (adminUser == null)
+            {
+                adminUser = new User { FirstName = adminFirstName, UserName = adminEmail, Email = adminEmail };
+                await userManager.CreateAsync(adminUser, adminPassword);
+            }
+
+            if (!await userManager.IsInRoleAsync(adminUser, RoleType.Admin.ToString()))
+            {
+                await userManager.AddToRoleAsync(adminUser, RoleType.Admin.ToString());
+            }
+        }
+
+
+        /// <summary>
+        /// Registers the HTTP required services.
+        /// </summary>
+        /// <param name="services">The services.</param>
+        /// <param name="configuration">The configuration.</param>
         public static void RegisterHttpRequiredServices(this IServiceCollection services,
             IConfiguration configuration)
         {

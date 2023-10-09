@@ -1,12 +1,10 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Application.Models.Requests.Notification;
-using LegalSearch.Application.Models.Requests.User;
+using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Text.Json;
+using System.Net.Http;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
@@ -14,14 +12,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<EmailNotificationService> _logger;
-        private readonly AppDbContext _context;
 
-        public EmailNotificationService(IHttpClientFactory httpClientFactory, 
-            ILogger<EmailNotificationService> logger, AppDbContext context)
+        public EmailNotificationService(IHttpClientFactory httpClientFactory,
+            ILogger<EmailNotificationService> logger)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            _context = context;
         }
 
         public async Task<bool> SendEmailAsync(SendEmailRequest sendEmailRequest)
@@ -87,6 +83,10 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
                     _logger.LogInformation($"Response from calling send email endpoint: {responseContent}");
+
+                    // notify user too via mail
+                    notification.NotificationType = NotificationType.NewRequest;
+                    await NotifyUser(notification);
                 }
                 else
                 {
@@ -100,7 +100,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
         }
 
 
-        public async Task NotifyUser(Guid userId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Domain.Entities.Notification.Notification notification)
         {
             try
             {
@@ -137,14 +137,14 @@ namespace LegalSearch.Infrastructure.Services.Notification
         {
             return notification.NotificationType switch
             {
-                Domain.Enums.Notification.NotificationType.NewRequest => NotificationTemplates.NotifySolicitorOnRequestAssignment(),
-                Domain.Enums.Notification.NotificationType.AssignedToSolicitor => NotificationTemplates.GenerateNewRequestNotificationForSolicitor(),
-                Domain.Enums.Notification.NotificationType.OutstandingRequestAfter24Hours => NotificationTemplates.OutstandingRequestNotification(),
-                Domain.Enums.Notification.NotificationType.RequestWithElapsedSLA => NotificationTemplates.RequestwithElapsedSLANotification(),
-                Domain.Enums.Notification.NotificationType.RequestReturnedToCso => NotificationTemplates.RequestReturnedNotification(),
-                Domain.Enums.Notification.NotificationType.ManualSolicitorAssignment => NotificationTemplates.ManualSolicitorAssignmentNotification(),
-                Domain.Enums.Notification.NotificationType.CompletedRequest => NotificationTemplates.RequestCompletedNotification(),
-                Domain.Enums.Notification.NotificationType.UnAssignedRequest => NotificationTemplates.UnassignedRequestNotification(),
+                NotificationType.NewRequest => NotificationTemplates.GenerateNewRequestNotificationForSolicitor(),
+                NotificationType.AssignedToSolicitor => NotificationTemplates.GenerateNewRequestNotificationForSolicitor(),
+                NotificationType.OutstandingRequestAfter24Hours => NotificationTemplates.OutstandingRequestNotification(),
+                NotificationType.RequestWithElapsedSLA => NotificationTemplates.RequestwithElapsedSLANotification(),
+                NotificationType.RequestReturnedToCso => NotificationTemplates.RequestReturnedNotification(),
+                NotificationType.ManualSolicitorAssignment => NotificationTemplates.ManualSolicitorAssignmentNotification(),
+                NotificationType.CompletedRequest => NotificationTemplates.RequestCompletedNotification(),
+                NotificationType.UnAssignedRequest => NotificationTemplates.UnassignedRequestNotification(),
                 _ => string.Empty
             };
         }

@@ -10,7 +10,7 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public required byte[] FileContent { get; set; }
 
         // relationship
-        public LegalRequest LegalRequest { get; set; }
+        public LegalRequest? LegalRequest { get; set; }
         [ForeignKey("LegalRequest")]
         public Guid LegalRequestId { get; set; }
     }

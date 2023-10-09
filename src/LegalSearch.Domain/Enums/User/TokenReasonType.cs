@@ -4,6 +4,6 @@
     {
         PasswordReset = 1,
         EmailConfirmation,
-        AccountSignOn 
+        AccountSignOn
     }
 }

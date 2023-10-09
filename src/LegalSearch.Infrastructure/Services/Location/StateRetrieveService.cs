@@ -1,5 +1,4 @@
 ﻿using Fcmb.Shared.Models.Responses;
-using LegalSearch.Application.Interfaces.Auth;
 using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Responses;
@@ -46,7 +45,7 @@ namespace LegalSearch.Infrastructure.Services.Location
 
             return new ListResponse<RegionResponse>("Successfully Retrieved regions")
             {
-                Data = regions.Select(x => new RegionResponse { Name = x.Name, Id = x.Id}).ToList(),
+                Data = regions.Select(x => new RegionResponse { Name = x.Name, Id = x.Id }).ToList(),
                 Total = regions.Count
             };
         }
@@ -69,15 +68,15 @@ namespace LegalSearch.Infrastructure.Services.Location
 
         public async Task<ListResponse<StateResponse>> GetStatesUnderRegionAsync(Guid regionId)
         {
-             var states = await _appDbContext.States
-                               .AsNoTracking()
-                               .Where(x => x.RegionId == regionId)
-                               .Select(x => new StateResponse
-                               {
-                                   Id = x.Id,
-                                   Name = x.Name,
-                               })
-                               .ToListAsync();
+            var states = await _appDbContext.States
+                              .AsNoTracking()
+                              .Where(x => x.RegionId == regionId)
+                              .Select(x => new StateResponse
+                              {
+                                  Id = x.Id,
+                                  Name = x.Name,
+                              })
+                              .ToListAsync();
 
             if (states is null)
             {

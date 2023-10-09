@@ -4,11 +4,6 @@ using LegalSearch.Application.Interfaces.Location;
 using LegalSearch.Application.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Tests.Controllers
 {
@@ -46,7 +41,7 @@ namespace LegalSearch.Tests.Controllers
             // Arrange
             var regions = new List<RegionResponse>(); // Populate with test data
             _stateRetrieveServiceMock.Setup(x => x.GetRegionsAsync())
-                .ReturnsAsync(new ListResponse<RegionResponse> ("Operation was successful") { Data = regions });
+                .ReturnsAsync(new ListResponse<RegionResponse>("Operation was successful") { Data = regions });
 
             // Act
             var result = await _controller.GetRegionsAsync();

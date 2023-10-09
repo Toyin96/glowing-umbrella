@@ -22,10 +22,9 @@ namespace LegalSearch.Api.Controllers
         private readonly IGeneralAuthService<User> _solicitorAuthService;
 
         /// <summary>
-        /// Controller for handling authentication-related actions
+        /// Initializes a new instance of the <see cref="AuthController"/> class.
         /// </summary>
-        /// <param name="generalAuthService"></param>
-        /// <param name="userAuthService"></param>
+        /// <param name="generalAuthService">The general authentication service.</param>
         public AuthController(IGeneralAuthService<User> generalAuthService)
         {
             _solicitorAuthService = generalAuthService;
@@ -58,8 +57,8 @@ namespace LegalSearch.Api.Controllers
             [ProducesResponseType((int)HttpStatusCode.BadRequest)]
             public async Task<ActionResult<ObjectResponse<ReIssueTokenResponse>>> ReIssueToken()
             {
-                var userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
-                var response = await _solicitorAuthService.ReIssueToken(userId);
+                string? userId = User.Claims.FirstOrDefault(x => x.Type == nameof(ClaimType.UserId))?.Value;
+                var response = await _solicitorAuthService.ReIssueToken(userId!);
                 return HandleResponse(response);
             }
 

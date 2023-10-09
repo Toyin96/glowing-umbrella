@@ -22,15 +22,18 @@ namespace LegalSearch.Api.Logging
     /// <seealso cref="LegalSearch.Api.Logging.ILoggerConfigurationService" />
     public class LoggerConfigurationService : ILoggerConfigurationService
     {
-        private readonly IConfiguration _configuration;
-
-        // Constructor to inject IConfiguration
-        public LoggerConfigurationService(IConfiguration configuration)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="LoggerConfigurationService"/> class.
+        /// </summary>
+        public LoggerConfigurationService()
         {
-            _configuration = configuration;
         }
 
-        // Implementing the ConfigureLogger method
+        /// <summary>
+        /// Configures the logger based on the provided options.
+        /// </summary>
+        /// <param name="options">The logger configuration options.</param>
+        /// <returns></returns>
         public LoggerConfiguration ConfigureLogger(LoggerOptions options)
         {
             // Initialize Serilog logger configuration

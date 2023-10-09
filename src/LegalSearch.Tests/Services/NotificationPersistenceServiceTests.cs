@@ -9,14 +9,12 @@ namespace LegalSearch.Tests.Services
     public class NotificationPersistenceServiceTests
     {
         private Mock<INotificationManager> _mockNotificationManager;
-        private Mock<UserManager<Domain.Entities.User.User>> _mockUserManager;
         private INotificationService _notificationService;
 
         public NotificationPersistenceServiceTests()
         {
             _mockNotificationManager = new Mock<INotificationManager>();
-            _mockUserManager = MockUserManager.CreateMockUserManager<Domain.Entities.User.User>();
-            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object, _mockUserManager.Object);
+            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object);
         }
 
         [Fact]
@@ -41,7 +39,7 @@ namespace LegalSearch.Tests.Services
             var notification = new Domain.Entities.Notification.Notification();
 
             // Act
-            await _notificationService.NotifyUser(initiatorUserId, notification);
+            await _notificationService.NotifyUser(notification);
 
             // Assert
             _mockNotificationManager.Verify(x => x.AddMultipleNotifications(It.IsAny<List<Domain.Entities.Notification.Notification>>()), Times.Once);

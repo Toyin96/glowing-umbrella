@@ -1,6 +1,4 @@
-﻿using LegalSearch.Domain.Enums.Role;
-
-namespace LegalSearch.Application.Models.Requests.User
+﻿namespace LegalSearch.Application.Models.Requests.User
 {
     public record OnboardNewUserRequest : BaseUserRequest
     {

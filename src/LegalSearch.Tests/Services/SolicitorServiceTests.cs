@@ -46,6 +46,7 @@ namespace LegalSearch.Tests.Services
 
             var user = new Domain.Entities.User.User
             {
+                FirstName = "Test",
                 Id = request.SolicitorId,
                 ProfileStatus = ProfileStatusType.InActive.ToString()
             };
@@ -95,6 +96,7 @@ namespace LegalSearch.Tests.Services
 
             var user = new Domain.Entities.User.User
             {
+                FirstName = "Test",
                 Id = request.SolicitorId,
                 ProfileStatus = ProfileStatusType.InActive.ToString() // Set to inactive to test activation
             };
@@ -124,7 +126,7 @@ namespace LegalSearch.Tests.Services
                 FirmName = "Doe and Associates",
                 Email = "john.doe@example.com",
                 PhoneNumber = "1234567890",
-                State = Guid.NewGuid(), 
+                State = Guid.NewGuid(),
                 Address = "1234 Elm St, Springfield",
                 AccountNumber = "987654321"
             };

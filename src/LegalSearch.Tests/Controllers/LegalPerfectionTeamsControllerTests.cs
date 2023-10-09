@@ -6,12 +6,6 @@ using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses.Solicitor;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Tests.Controllers
 {

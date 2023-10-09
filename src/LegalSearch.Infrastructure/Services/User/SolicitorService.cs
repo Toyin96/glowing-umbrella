@@ -1,18 +1,13 @@
-﻿using Azure;
-using Azure.Core;
-using Fcmb.Shared.Models.Responses;
+﻿using Fcmb.Shared.Models.Responses;
 using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
-using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Requests.LegalPerfectionTeam;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Requests.User;
 using LegalSearch.Application.Models.Responses.Solicitor;
-using LegalSearch.Domain.Entities.Role;
-using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Domain.Enums.User;
@@ -32,7 +27,7 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
 
-        public SolicitorService(AppDbContext appDbContext, 
+        public SolicitorService(AppDbContext appDbContext,
             ISolicitorManager solicitorProfileManager, ILogger<SolicitorService> logger,
             UserManager<Domain.Entities.User.User> userManager, ILegalSearchRequestManager legalSearchRequestManager)
         {
@@ -43,15 +38,15 @@ namespace LegalSearch.Infrastructure.Services.User
             _legalSearchRequestManager = legalSearchRequestManager;
         }
 
-        public async Task<StatusResponse> ActivateOrDeactivateSolicitor(ActivateOrDeactivateSolicitorRequest request)
+        public async Task<StatusResponse> ActivateOrDeactivateSolicitor(ActivateOrDeactivateSolicitorRequest activateOrDeactivateSolicitorRequest)
         {
             // get solicitor
-            var user = await _userManager.FindByIdAsync(request.SolicitorId.ToString());
+            var user = await _userManager.FindByIdAsync(activateOrDeactivateSolicitorRequest.SolicitorId.ToString());
 
             if (user == null)
                 return new StatusResponse("User not found", ResponseCodes.DataNotFound);
 
-            user.ProfileStatus = request.ActionType switch
+            user.ProfileStatus = activateOrDeactivateSolicitorRequest.ActionType switch
             {
                 ProfileStatusActionType.Activate => ProfileStatusType.Active.ToString(),
                 ProfileStatusActionType.DeActivate => ProfileStatusType.InActive.ToString(),
@@ -66,11 +61,11 @@ namespace LegalSearch.Infrastructure.Services.User
             return new StatusResponse("Solicitor status has been updated successfully", ResponseCodes.Success);
         }
 
-        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest request)
+        public async Task<StatusResponse> EditSolicitorProfile(EditSolicitorProfileByLegalTeamRequest editSolicitorProfileRequest)
         {
             try
             {
-                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(request, request.SolicitorId);
+                bool isProfileUpdated = await _solicitorProfileManager.EditSolicitorProfile(editSolicitorProfileRequest, editSolicitorProfileRequest.SolicitorId);
 
                 if (isProfileUpdated)
                 {
@@ -133,7 +128,7 @@ namespace LegalSearch.Infrastructure.Services.User
             };
         }
 
-        public async Task<ObjectResponse<SolicitorProfileDto>?> ViewSolicitorProfile(Guid userId)
+        public async Task<ObjectResponse<SolicitorProfileDto>> ViewSolicitorProfile(Guid userId)
         {
             var solicitor = await _appDbContext.Users
                 .Include(x => x.Firm)
@@ -230,7 +225,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 })
                 .ToListAsync();
 
-            return solicitors ?? new List<SolicitorProfileDto> ();
+            return solicitors ?? new List<SolicitorProfileDto>();
         }
 
         private async Task<List<SolicitorProfileResponseDto>> MappedSolicitorFilter(ViewSolicitorsBasedOnRegionRequestFilter request)

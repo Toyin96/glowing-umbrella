@@ -4,7 +4,7 @@
     {
         AllRequest = 1,
         Completed,
-        PendingWithCso, 
+        PendingWithCso,
         PendingWithSolicitor, //assignedToLawyer
         CancelledRequest,
         UnAssigned

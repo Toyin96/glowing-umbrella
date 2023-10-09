@@ -22,7 +22,7 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
                 .WithMany(f => f.Users)
                 .HasForeignKey(u => u.FirmId)
                 .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

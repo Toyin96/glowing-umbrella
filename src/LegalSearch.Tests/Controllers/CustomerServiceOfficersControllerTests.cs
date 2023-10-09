@@ -1,15 +1,15 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Api.Controllers;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
-using LegalSearch.Application.Models.Requests.CSO;
+using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests;
-using LegalSearch.Application.Models.Responses.CSO;
+using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Responses;
+using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using LegalSearch.Application.Models.Constants;
-using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
 
 namespace LegalSearch.Tests.Controllers
@@ -44,7 +44,7 @@ namespace LegalSearch.Tests.Controllers
                     new FormFile(new MemoryStream(), 0, 0, "registrationDocument1", "registrationDocument1.pdf"),
                     new FormFile(new MemoryStream(), 0, 0, "registrationDocument2", "registrationDocument2.pdf")
                 },
-                        SupportingDocuments = new List<IFormFile>
+                SupportingDocuments = new List<IFormFile>
                 {
                     new FormFile(new MemoryStream(), 0, 0, "supportingDocument1", "supportingDocument1.pdf"),
                     new FormFile(new MemoryStream(), 0, 0, "supportingDocument2", "supportingDocument2.pdf")
@@ -171,7 +171,7 @@ namespace LegalSearch.Tests.Controllers
 
 
             _legalSearchRequestServiceMock.Setup(x => x.PerformNameInquiryOnAccount(accountNumber))
-                .ReturnsAsync(new ObjectResponse<GetAccountInquiryResponse>("Operation was successful", ResponseCodes.Success) { Data = mockGetAccountInquiryResponse});
+                .ReturnsAsync(new ObjectResponse<GetAccountInquiryResponse>("Operation was successful", ResponseCodes.Success) { Data = mockGetAccountInquiryResponse });
 
             // Act
             var result = await _controller.PerformNameInquiryOnAccount(accountNumber);

@@ -9,6 +9,11 @@ namespace LegalSearch.Api.Logging
     /// <seealso cref="Serilog.Formatting.ITextFormatter" />
     public class CustomTextFormatter : ITextFormatter
     {
+        /// <summary>
+        /// Format the log event into the output.
+        /// </summary>
+        /// <param name="logEvent">The event to format.</param>
+        /// <param name="output">The output.</param>
         public void Format(LogEvent logEvent, TextWriter output)
         {
             // Include log level

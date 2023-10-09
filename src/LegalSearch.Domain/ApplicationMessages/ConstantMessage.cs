@@ -10,6 +10,7 @@
         public const string RequestPendingWithSolicitorMessage = "You are yet to revert any comments on this request in the last 24 hours. Please find attached the details of the request below and treat as urgent";
         public const string RequestRoutedBackToCSOMessage = "The solicitor assigned to this request needs additional information. Please find attached the details of the request below and treat as urgent";
         public const string CompletedRequestMessage = "The solicitor assigned to this request has successfully completed the request. Please find attached the details of the request below";
+        public const string CompletedRequestMessageForSolicitor = "You have successfully completed the request. Please find attached the details of the request below";
     }
 
     public static class ConstantTitle

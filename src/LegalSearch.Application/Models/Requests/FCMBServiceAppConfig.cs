@@ -5,13 +5,13 @@ namespace LegalSearch.Application.Models.Requests
     public class FCMBServiceAppConfig
     {
         [Required]
-        public required string BaseUrl { get; set; }
+        public required string? BaseUrl { get; set; }
         [Required]
-        public required string ClientId { get; set; }
+        public required string? ClientId { get; set; }
         [Required]
-        public required string Password { get; set; }
+        public required string? Password { get; set; }
         [Required]
-        public required string SubscriptionKey { get; set; }
+        public required string? SubscriptionKey { get; set; }
         public required string SLAPeriod { get; set; }
         public required string LegalSearchPaymentRemarks { get; set; }
         public required string CurrencyCode { get; set; }

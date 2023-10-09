@@ -5,11 +5,6 @@ using LegalSearch.Application.Models.Requests;
 using LegalSearch.Application.Models.Responses;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LegalSearch.Tests.Controllers
 {

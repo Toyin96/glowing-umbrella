@@ -13,7 +13,7 @@ namespace LegalSearch.Domain.Entities.User
             UpdatedAt = DateTime.UtcNow;
         }
 
-        public string FirstName { get; set; }
+        public required string FirstName { get; set; }
         public string? LastName { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -28,10 +28,10 @@ namespace LegalSearch.Domain.Entities.User
         public string? StaffId { get; set; }
         public string? BranchId { get; set; }
         public string? SolId { get; set; }
-        public string FullName => $"{FirstName} {LastName}";
+        public string? FullName => $"{FirstName} {LastName}";
         public string? UnlockCode { get; set; }
         public DateTime? UnlockCodeExpiration { get; set; }
-        public string ProfileStatus { get; set; }
+        public string? ProfileStatus { get; set; }
 
         // configuring relationships
         [ForeignKey("Firm")]

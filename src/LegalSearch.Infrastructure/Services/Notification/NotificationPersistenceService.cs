@@ -1,21 +1,17 @@
 ﻿using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.ApplicationMessages;
+using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
-using LegalSearch.Infrastructure.Utilities;
-using Microsoft.AspNetCore.Identity;
-using System.Diagnostics;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
     public class NotificationPersistenceService : INotificationService
     {
         private readonly INotificationManager _notificationManager;
-        private readonly UserManager<Domain.Entities.User.User> _userManager;
 
-        public NotificationPersistenceService(INotificationManager notificationManager, UserManager<Domain.Entities.User.User> userManager)
+        public NotificationPersistenceService(INotificationManager notificationManager)
         {
             _notificationManager = notificationManager;
-            _userManager = userManager;
         }
         public async Task NotifyUsersInRole(string roleName, Domain.Entities.Notification.Notification notification, List<string?>? userEmails = null)
         {
@@ -26,14 +22,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
 
         public List<Domain.Entities.Notification.Notification> DetermineNotificationsToPersist(Domain.Entities.Notification.Notification notification)
         {
-            var notifications = new List<Domain.Entities.Notification.Notification>() { notification};
+            var notifications = new List<Domain.Entities.Notification.Notification>() { notification };
 
             var initiatorNotification = new Domain.Entities.Notification.Notification();
 
             switch (notification.NotificationType)
             {
-                case Domain.Enums.Notification.NotificationType.NewRequest:
-                    break;
                 case Domain.Enums.Notification.NotificationType.AssignedToSolicitor:
                     initiatorNotification.Title = ConstantTitle.NewRequestAssignmentTitleForSolicitor;
                     initiatorNotification.NotificationType = notification.NotificationType;
@@ -64,6 +58,12 @@ namespace LegalSearch.Infrastructure.Services.Notification
                     initiatorNotification.MetaData = notification.MetaData;
                     break;
                 case Domain.Enums.Notification.NotificationType.ManualSolicitorAssignment:
+                case Domain.Enums.Notification.NotificationType.NewRequest:
+                    initiatorNotification.Title = ConstantTitle.NewRequestAssignmentTitle;
+                    initiatorNotification.NotificationType = NotificationType.NewRequest;
+                    initiatorNotification.RecipientUserId = notification.RecipientUserId;
+                    initiatorNotification.Message = ConstantMessage.NewRequestAssignmentMessage;
+                    initiatorNotification.MetaData = notification.MetaData;
                     break;
                 case Domain.Enums.Notification.NotificationType.CompletedRequest:
                     initiatorNotification.Title = ConstantTitle.CompletedRequestTitleForCso;
@@ -92,7 +92,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
             return notifications;
         }
 
-        public async Task NotifyUser(Guid initiatorUserId, Domain.Entities.Notification.Notification notification)
+        public async Task NotifyUser(Domain.Entities.Notification.Notification notification)
         {
             var notifications = DetermineNotificationsToPersist(notification);
 
