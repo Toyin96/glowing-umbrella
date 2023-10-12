@@ -323,7 +323,7 @@ namespace LegalSearch.Infrastructure.Services.User
                     var staffToken = _jwtTokenHelper.GenerateJwtToken(staffIdentityClaims);
 
                     // generate staff's login response
-                    LoginResponse loginResponse = GenerateLoginResponseForStaff(user, staffToken, role.First(), branch.Address);
+                    LoginResponse loginResponse = GenerateLoginResponseForStaff(user, staffToken, role[0], branch.Address);
 
                     // update user's last login
                     await UpdateUserLastLoginTime(user);
@@ -518,7 +518,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (failedAttempts == 3) // Adjust based on your configuration
             {
-                await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.UtcNow.AddMinutes(15)); // Lock for 15 minutes
+                await _userManager.SetLockoutEndDateAsync(user, TimeUtils.GetCurrentLocalTime().AddMinutes(15)); // Lock for 15 minutes
             }
         }
 

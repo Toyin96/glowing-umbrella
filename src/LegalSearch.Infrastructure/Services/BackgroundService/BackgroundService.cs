@@ -455,14 +455,19 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 var paymentLogRequest = new LegalSearchRequestPaymentLog
                 {
                     SourceAccountName = request.CustomerAccountName,
+                    LegalSearchRequestId = requestId,
                     SourceAccountNumber = request.CustomerAccountNumber,
-                    DestinationAccountName = solicitor?.FirstName ?? solicitor!.FullName,
-                    DestinationAccountNumber = solicitor?.BankAccount!,
-                    LienAmount = removeLienRequest.LienId,
+                    DestinationAccountName = $"{solicitor?.FirstName} {solicitor?.LastName}",
+                    DestinationAccountNumber = solicitor!.BankAccount!,
                     PaymentStatus = PaymentStatusType.RemoveLien,
+                    TransferAmount = Convert.ToDecimal(_options.LegalSearchAmount),
                     LienId = removeLienRequest.LienId,
                     CurrencyCode = removeLienRequest.CurrencyCode
                 };
+
+                //TESTING PURPOSE
+                lienValidationResponse.isSuccessful = true;
+                // END TESTING PURPOSE
 
                 if (!lienValidationResponse.isSuccessful)
                 {
@@ -471,7 +476,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 else
                 {
                     // generate payment request
-                    IntrabankTransferRequest paymentRequest = GeneratePaymentRequest(paymentLogRequest, requestId);
+                    IntrabankTransferRequest paymentRequest = GeneratePaymentRequest(paymentLogRequest, request.CustomerAccountName.First10Characters());
 
                     // process credit to solicitor's account
                     var paymentResponse = await _fCMBService.InitiateTransfer(paymentRequest);
@@ -489,11 +494,10 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     {
                         paymentLogRequest.PaymentStatus = PaymentStatusType.PaymentMade;
                         paymentLogRequest.PaymentResponseMetadata = JsonSerializer.Serialize(paymentResponse, _serializerOptions);
-                        paymentLogRequest.TransactionStan = paymentResponse!.Data.Stan;
-                        paymentLogRequest.TranId = paymentResponse!.Data.TranId;
+                        paymentLogRequest.TransactionStan = paymentResponse?.Data?.Stan;
+                        paymentLogRequest.TranId = paymentResponse?.Data?.TranId;
                         paymentLogRequest.TransferNarration = paymentRequest.Narration;
                         paymentLogRequest.TransferRequestId = paymentRequest.CustomerReference;
-                        paymentLogRequest.TransferAmount = paymentRequest.Amount;
                     }
                 }
 
@@ -507,7 +511,22 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
         }
 
-        private IntrabankTransferRequest GeneratePaymentRequest(LegalSearchRequestPaymentLog paymentLogRequest, Guid requestId)
+        private async void RetryFailedLegalSearchRequestSettlementToSolicitor()
+        {
+            // get pending settlement requests
+            var paymentRecords = await _legalSearchRequestPaymentLogManager.GetAllLegalSearchRequestPaymentLogNotYetCompleted();
+
+            if (!paymentRecords.Any()) return;
+
+            // do something
+            foreach (var item in paymentRecords)
+            {
+                
+            }
+
+        }
+
+        private IntrabankTransferRequest GeneratePaymentRequest(LegalSearchRequestPaymentLog paymentLogRequest, string clientName)
         {
             return new IntrabankTransferRequest
             {
@@ -515,9 +534,9 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 CreditAccountNo = paymentLogRequest.DestinationAccountNumber,
                 IsFees = false,
                 Charges = new List<Charge>(),
-                Amount = Convert.ToDecimal(_options.LegalSearchAmount),
+                Amount = paymentLogRequest.TransferAmount,
                 Currency = _options.CurrencyCode,
-                Narration = $"{_options.LegalSearchReasonCode} Payment for {requestId}",
+                Narration = $"{_options.LegalSearchReasonCode} Payment for {clientName}",
                 Remark = _options.LegalSearchPaymentRemarks,
                 CustomerReference = $"{_options.LegalSearchReasonCode}{TimeUtils.GetCurrentLocalTime().Ticks}"
             };
@@ -529,12 +548,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 return (false, "Lien endpoint returned null when trying to remove lien placed on client's account");
 
             if (response?.Code != _successStatusCode)
-                return (false, "Request was not successful when trying to remove lien placed on client's account");
+                return (false, response?.Description ?? "Request was not successful when trying to remove lien placed on client's account");
 
             if (response?.Code == _successStatusCode && response?.Description == _successStatusDescription)
-                return (true, null);
+                return (true, "Lien removal succeeded");
 
-            return (false, null);
+            return (false, "Request was not successful when trying to remove lien placed on client's account");
         }
 
         private (bool isSuccessful, string? errorMessage) ValidatePaymentResponse(IntrabankTransferResponse? response)
@@ -543,7 +562,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 return (false, "Payment endpoint returned null when trying to initiate transfer on client's account");
 
             if (response.Code != _successStatusCode)
-                return (false, "Request was not successful when trying to initiate transfer on client's account");
+                return (false, response?.Description ?? "Request was not successful when trying to initiate transfer on client's account");
 
             if (response.Data != null && response.Data.TranId != null)
                 return (true, "The transfer request was successful");

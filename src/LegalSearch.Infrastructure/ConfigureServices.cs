@@ -92,10 +92,10 @@ namespace LegalSearch.Infrastructure
             services.Scan(scan => scan.FromCallingAssembly().AddClasses(classes => classes
                     .Where(type => (type.Name.EndsWith("Service") || type.Name.EndsWith("Manager")) && type.GetInterfaces().Length > 0), false)
                 .AsSelfWithInterfaces()
-                .WithTransientLifetime());
+                .WithScopedLifetime());
 
-            services.TryAddTransient<INotificationService, EmailNotificationService>();
-            services.TryAddTransient<INotificationService, NotificationPersistenceService>();
+            services.TryAddScoped<INotificationService, EmailNotificationService>();
+            services.TryAddScoped<INotificationService, NotificationPersistenceService>();
         }
     }
 }

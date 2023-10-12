@@ -2,6 +2,7 @@
 using LegalSearch.Infrastructure.Services.Notification;
 using LegalSearch.Tests.Mocks;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace LegalSearch.Tests.Services
@@ -9,12 +10,13 @@ namespace LegalSearch.Tests.Services
     public class NotificationPersistenceServiceTests
     {
         private Mock<INotificationManager> _mockNotificationManager;
+        private Mock<ILogger<NotificationPersistenceService>> _mockLogger;
         private INotificationService _notificationService;
 
         public NotificationPersistenceServiceTests()
         {
-            _mockNotificationManager = new Mock<INotificationManager>();
-            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object);
+            _mockNotificationManager = new Mock<INotificationManager>();            
+            _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object, _mockLogger.Object);
         }
 
         [Fact]
