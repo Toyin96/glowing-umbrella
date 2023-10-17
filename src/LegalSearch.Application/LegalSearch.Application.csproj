@@ -28,8 +28,4 @@
       <ProjectReference Include="..\LegalSearch.Domain\LegalSearch.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Validations\CSO\" />
-    </ItemGroup>
-
 </Project>
