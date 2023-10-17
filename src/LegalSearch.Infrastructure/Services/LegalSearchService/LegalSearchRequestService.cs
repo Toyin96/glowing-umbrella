@@ -35,7 +35,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
         private readonly ILegalSearchRequestManager _legalSearchRequestManager;
         private readonly ISolicitorAssignmentManager _solicitorAssignmentManager;
         private readonly IEnumerable<INotificationService> _notificationService;
-        private readonly FCMBServiceAppConfig _options;
+        private readonly FCMBConfig _options;
         private readonly string _successStatusCode = "00";
         private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
 
@@ -45,7 +45,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
             ILegalSearchRequestManager legalSearchRequestManager,
             ISolicitorAssignmentManager solicitorAssignmentManager,
             IEnumerable<INotificationService> notificationService,
-            IOptions<FCMBServiceAppConfig> options)
+            IOptions<FCMBConfig> options)
         {
             _logger = logger;
             _fCMBService = fCMBService;
@@ -285,17 +285,17 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                 if (accountInquiryResponse == null)
                     return (false, "Something went wrong. Please try again");
 
-                if (accountInquiryResponse is not null && accountInquiryResponse.Code != _successStatusCode)
+                if (accountInquiryResponse.Code != _successStatusCode)
                     return (false, accountInquiryResponse.Description);
 
-                if (accountInquiryResponse is not null && accountInquiryResponse.Code == _successStatusCode
+                if (accountInquiryResponse.Code == _successStatusCode
                     && accountInquiryResponse.Data.AvailableBalance < legalSearchAmount)
                 {
                     _logger.LogInformation("Account inquiry successful. Customer does not have enough money to perform this action.");
                     return (true, "Customer does not have enough money to perform this action");
                 }
 
-                if (accountInquiryResponse is not null && accountInquiryResponse.Code == _successStatusCode
+                if (accountInquiryResponse.Code == _successStatusCode
                     && accountInquiryResponse.Data.AvailableBalance >= legalSearchAmount)
                 {
                     _logger.LogInformation("Account inquiry successful. Name & balance inquiry was successful.");
@@ -346,8 +346,9 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     documents.ForEach(x =>
                     {
                         newLegalSearchRequest.SupportingDocuments.Add(x);
-                        _logger.LogInformation("Supporting document added to the legal search request.");
                     });
+
+                    _logger.LogInformation("Done adding supporting document to the legal search request.");
                 }
             }
             catch (Exception ex)
@@ -649,7 +650,7 @@ namespace LegalSearch.Infrastructure.Services.LegalSearchService
                     MetaData = JsonSerializer.Serialize(request, _serializerOptions)
                 };
 
-                // Push legalSearchRequest to credit solicitor's account upon completion of legalSearchRequest
+                // Push legalSearchRequest to credit solicitor's account upon submitting report for legalSearchRequest
                 BackgroundJob.Enqueue<IBackgroundService>(x => x.InitiatePaymentToSolicitorJob(submitLegalSearchReport.RequestId));
 
                 // notify the Initiating CSO

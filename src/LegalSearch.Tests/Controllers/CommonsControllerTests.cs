@@ -1,4 +1,5 @@
-﻿using Fcmb.Shared.Models.Responses;
+﻿using DocumentFormat.OpenXml.EMMA;
+using Fcmb.Shared.Models.Responses;
 using LegalSearch.Api.Controllers;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
@@ -8,6 +9,7 @@ using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;
 using LegalSearch.Application.Models.Responses.Solicitor;
+using LegalSearch.Domain.Enums.LegalRequest;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Net;
@@ -272,6 +274,98 @@ namespace LegalSearch.Tests.Controllers
             var statusResponse = Assert.IsType<StatusResponse>(okResult.Value);
             Assert.Equal("00", statusResponse.Code);
             Assert.Equal("Success", statusResponse.Description);
+        }
+
+        [Fact]
+        public async Task GenerateRequestAnalyticsReportForStaff_Success_ReturnsFileData()
+        {
+            // Arrange
+            var mockService = new Mock<ILegalSearchRequestService>();
+            var expectedFileData = new byte[] { 1, 2, 3 };  // Sample byte array representing the file content
+
+            // Mock the service call
+            mockService
+                .Setup(service => service.GenerateRequestAnalyticsReportForStaff(It.IsAny<StaffDashboardAnalyticsRequest>()))
+                .ReturnsAsync(new ObjectResponse<byte[]>("")
+                {
+                    Code = ResponseCodes.Success,
+                    Data = expectedFileData
+                });
+
+            // Act
+            var result = await mockService.Object.GenerateRequestAnalyticsReportForStaff(new StaffDashboardAnalyticsRequest());
+
+            // Assert
+            Assert.Equal(ResponseCodes.Success, result.Code);
+            Assert.Equal(expectedFileData, result.Data);
+        }
+
+        [Fact]
+        public async Task GenerateRequestAnalyticsReportForSolicitor_Success_ReturnsFileData()
+        {
+            // Arrange
+            var mockService = new Mock<ILegalSearchRequestService>();
+            var expectedFileData = new byte[] { 1, 2, 3 };  // Sample byte array representing the file content
+
+            // Mock the service call
+            mockService
+                .Setup(service => service.GenerateRequestAnalyticsReportForSolicitor(It.IsAny<SolicitorRequestAnalyticsPayload>(), It.IsAny<Guid>()))
+                .ReturnsAsync(new ObjectResponse<byte[]>("Operation was successful")
+                {
+                    Code = ResponseCodes.Success,
+                    Data = expectedFileData
+                });
+
+            // Act
+            var result = await mockService.Object.GenerateRequestAnalyticsReportForSolicitor(new SolicitorRequestAnalyticsPayload
+            {
+                ReportFormatType = ReportFormatType.Excel
+            }, Guid.NewGuid());
+
+            // Assert
+            Assert.Equal(ResponseCodes.Success, result.Code);
+            Assert.Equal(expectedFileData, result.Data);
+        }
+
+        [Fact]
+        public async Task GenerateRequestAnalyticsReportForStaff_Error_ReturnsError()
+        {
+            // Arrange
+            var mockService = new Mock<ILegalSearchRequestService>();
+
+            // Mock the service call to return an error response
+            mockService
+                .Setup(service => service.GenerateRequestAnalyticsReportForStaff(It.IsAny<StaffDashboardAnalyticsRequest>()))
+                .ReturnsAsync(new ObjectResponse<byte[]>("An error occurred while generating the report.", ResponseCodes.ServiceError));
+
+            // Act
+            var result = await mockService.Object.GenerateRequestAnalyticsReportForStaff(new StaffDashboardAnalyticsRequest());
+
+            // Assert
+            Assert.Equal(ResponseCodes.ServiceError, result.Code);
+            Assert.Equal("An error occurred while generating the report.", result.Description);
+        }
+
+        [Fact]
+        public async Task GenerateRequestAnalyticsReportForSolicitor_Error_ReturnsError()
+        {
+            // Arrange
+            var mockService = new Mock<ILegalSearchRequestService>();
+
+            // Mock the service call to return an error response
+            mockService
+                .Setup(service => service.GenerateRequestAnalyticsReportForSolicitor(It.IsAny<SolicitorRequestAnalyticsPayload>(), It.IsAny<Guid>()))
+                .ReturnsAsync(new ObjectResponse<byte[]>("An error occurred while generating the report.", ResponseCodes.ServiceError));
+
+            // Act
+            var result = await mockService.Object.GenerateRequestAnalyticsReportForSolicitor(new SolicitorRequestAnalyticsPayload
+            {
+                ReportFormatType = ReportFormatType.Excel
+            }, Guid.NewGuid());
+
+            // Assert
+            Assert.Equal(ResponseCodes.ServiceError, result.Code);
+            Assert.Equal("An error occurred while generating the report.", result.Description);
         }
     }
 }

@@ -11,7 +11,6 @@ namespace LegalSearch.Domain.Entities.LegalRequest
         public required string DestinationAccountName { get; set; }
         public required string DestinationAccountNumber { get; set; }
         public required string LienId { get; set; }
-        public required string LienAmount { get; set; }
         public required string CurrencyCode { get; set; }
         public PaymentStatusType PaymentStatus { get; set; }
         public string? TransferRequestId { get; set; }
