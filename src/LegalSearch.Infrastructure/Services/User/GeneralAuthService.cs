@@ -285,7 +285,7 @@ namespace LegalSearch.Infrastructure.Services.User
         /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
         {
-            ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+            //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
             var solIds = new List<string>() { "198", "259", "052", "048", "111", "061" };
             int rand = new Random(solIds.Count).Next(0, solIds.Count);
             user.SolId = solIds[rand];
