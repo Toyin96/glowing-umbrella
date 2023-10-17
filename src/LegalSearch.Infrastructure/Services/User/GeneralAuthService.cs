@@ -19,6 +19,7 @@ using LegalSearch.Domain.Enums.User;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
 namespace LegalSearch.Infrastructure.Services.User
@@ -33,12 +34,13 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly ILogger<GeneralAuthService> _logger;
         private readonly IBranchRetrieveService _branchRetrieveService;
         private readonly IEmailService _emailService;
+        private readonly FCMBConfig _options;
 
         public GeneralAuthService(UserManager<Domain.Entities.User.User> userManager,
             RoleManager<Role> roleManager, IJwtTokenService jwtTokenHelper,
             IStateRetrieveService stateRetrieveService, IAuthService authService,
             ILogger<GeneralAuthService> logger, IBranchRetrieveService branchRetrieveService,
-            IEmailService emailService)
+            IEmailService emailService, IOptions<FCMBConfig> options)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -48,6 +50,7 @@ namespace LegalSearch.Infrastructure.Services.User
             _logger = logger;
             _branchRetrieveService = branchRetrieveService;
             _emailService = emailService;
+            _options = options.Value;
         }
         public async Task<bool> AddClaimsAsync(string email, IEnumerable<Claim> claims)
         {
@@ -197,6 +200,7 @@ namespace LegalSearch.Infrastructure.Services.User
 
             List<KeyValuePair<string, string>> keys = new List<KeyValuePair<string, string>>
                 {
+                    new KeyValuePair<string, string>("{{frontendBaseUrl}}", _options.FrontendBaseUrl),
                     new KeyValuePair<string, string>("{{username}}", newSolicitor.FirstName),
                     new KeyValuePair<string, string>("{{email}}", newSolicitor.Email!),
                     new KeyValuePair<string, string>("{{role}}", role.Name!),
