@@ -28,5 +28,11 @@ namespace LegalSearch.Infrastructure.Managers
 
             return paymentRecords  ?? Enumerable.Empty<LegalSearchRequestPaymentLog>();
         }
+
+        public async Task<bool> UpdateLegalSearchRequestPaymentLog(LegalSearchRequestPaymentLog legalSearchRequestPaymentLog)
+        {
+            _appDbContext.LegalSearchRequestPaymentLogs.Update(legalSearchRequestPaymentLog);
+            return await _appDbContext.SaveChangesAsync() > 0;
+        }
     }
 }

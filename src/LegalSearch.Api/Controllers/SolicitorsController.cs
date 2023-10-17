@@ -2,7 +2,6 @@
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
-using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.CSO;

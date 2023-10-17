@@ -1,4 +1,4 @@
-﻿using LegalSearch.Infrastructure.Services.User;
+﻿using Fcmb.Shared.Auth.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;

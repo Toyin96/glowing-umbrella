@@ -1,7 +1,7 @@
-﻿using FluentValidation;
-using Hangfire;
+﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
+using LegalSearch.Api.Filters;
 using LegalSearch.Api.HealthCheck;
 using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
@@ -9,14 +9,12 @@ using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Logging;
 using LegalSearch.Application.Models.Requests;
-using LegalSearch.Application.Validations.Auth;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.BackgroundJobs;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.FCMB;
-using LegalSearch.Infrastructure.Services.Notification;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
@@ -25,12 +23,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
 namespace LegalSearch.Api
 {
+    [ExcludeFromCodeCoverage]
     public static class ConfigureServices
     {
         /// <summary>
@@ -42,7 +42,7 @@ namespace LegalSearch.Api
         {
             services.AddControllers(options =>
             {
-                //options.Filters.Add<FluentValidationFilter>();
+                options.Filters.Add<RequestValidationFilter>();
             }).AddJsonOptions(x =>
             {
                 x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -81,8 +81,8 @@ namespace LegalSearch.Api
             services.AddSignalR(option => option.EnableDetailedErrors = true);
 
             services.AddHttpClient<IFcmbService, FCMBService>();
-            services.AddOptions<FCMBServiceAppConfig>()
-                    .BindConfiguration(nameof(FCMBServiceAppConfig))
+            services.AddOptions<FCMBConfig>()
+                    .BindConfiguration(nameof(FCMBConfig))
                     .ValidateDataAnnotations()
                     .ValidateOnStart();
 
@@ -93,8 +93,6 @@ namespace LegalSearch.Api
 
             //Configure hangfire
             services.ConfigureHangFire(configuration);
-
-            services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>(ServiceLifetime.Transient);
 
             //Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddEndpointsApiExplorer();
@@ -394,9 +392,9 @@ namespace LegalSearch.Api
         {
             services.AddHttpClient("notificationClient", client =>
             {
-                client.BaseAddress = new Uri(configuration["FCMBServiceAppConfig:EmailServiceBaseAddress"]);
+                client.BaseAddress = new Uri(configuration["FCMBConfig:EmailConfig:EmailUrl"]);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("client_id", configuration["FCMBServiceAppConfig:ClientId"]);
+                client.DefaultRequestHeaders.Add("client_id", configuration["FCMBConfig:ClientId"]);
             });
         }
     }

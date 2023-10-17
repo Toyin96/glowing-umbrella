@@ -4,11 +4,16 @@ using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.User;
 using LegalSearch.Application.Models.Constants;
 using LegalSearch.Application.Models.Requests.Solicitor;
+using LegalSearch.Application.Models.Responses.Solicitor;
+using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Net;
 using System.Security.Claims;
+using LegalSearch.Domain.Enums.LegalRequest;
+using LegalSearch.Application.Models.Responses.CSO;
 
 namespace LegalSearch.Tests.Controllers
 {
@@ -137,6 +142,256 @@ namespace LegalSearch.Tests.Controllers
             Assert.Equal(statusResponse, response);
 
             _legalSearchRequestServiceMock.Verify(x => x.SubmitRequestReport(submitRequest, It.IsAny<Guid>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GenerateRequestAnalyticsReport_Returns_SuccessResult()
+        {
+            // Arrange
+            var controller = new SolicitorsController(_legalSearchRequestServiceMock.Object, _solicitorServiceMock.Object);
+
+            // Mock the User object and its claims
+            var claims = new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, "sampleUserId"),
+            new Claim(nameof(ClaimType.UserId), Guid.NewGuid().ToString())
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuthType");
+            var user = new ClaimsPrincipal(identity);
+
+            // Set the user for the controller's HttpContext
+            var httpContext = new Mock<HttpContext>();
+            httpContext.Setup(c => c.User).Returns(user);
+
+            // Assign the mocked HttpContext to the controller
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext.Object
+            };
+
+            var request = new SolicitorRequestAnalyticsPayload
+            {
+                ReportFormatType = ReportFormatType.Excel
+            };
+
+            // Mock service response
+            var mockResponse = new ObjectResponse<byte[]>("Success", ResponseCodes.Success)
+            {
+                Data = new byte[] { 1, 2, 3 } // Replace with appropriate test data
+            };
+
+            _legalSearchRequestServiceMock.Setup(x => x.GenerateRequestAnalyticsReportForSolicitor(It.IsAny<SolicitorRequestAnalyticsPayload>(), It.IsAny<Guid>()))
+                                           .ReturnsAsync(mockResponse);
+
+            // Act
+            var result = await controller.GenerateRequestAnalyticsReport(request);
+
+            // Assert
+            var fileResult = Assert.IsType<FileContentResult>(result.Result);
+            var response = Assert.IsType<byte[]>(fileResult.FileContents);
+            Assert.Equal(mockResponse.Data, response);
+        }
+
+        [Fact]
+        public async Task ViewRequestAnalytics_Returns_SuccessResult()
+        {
+            // Arrange
+            var controller = new SolicitorsController(_legalSearchRequestServiceMock.Object, _solicitorServiceMock.Object);
+
+            // Mock the User object and its claims
+            var claims = new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, "sampleUserId"),
+            new Claim(nameof(ClaimType.UserId), Guid.NewGuid().ToString())
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuthType");
+            var user = new ClaimsPrincipal(identity);
+
+            // Set the user for the controller's HttpContext
+            var httpContext = new Mock<HttpContext>();
+            httpContext.Setup(c => c.User).Returns(user);
+
+            // Assign the mocked HttpContext to the controller
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext.Object
+            };
+
+            var request = new SolicitorRequestAnalyticsPayload
+            {
+                ReportFormatType = ReportFormatType.Excel
+            };
+
+            // Mock service response
+            var mockResponse = new ObjectResponse<LegalSearchRootResponsePayload>("Success", ResponseCodes.Success)
+            {
+                Data = new LegalSearchRootResponsePayload
+                {
+                    LegalSearchRequests = new List<LegalSearchResponsePayload>
+                    {
+                        new LegalSearchResponsePayload
+                        {
+                            Id = Guid.NewGuid(),
+                            RequestInitiator = "John Doe",
+                            RequestType = "Sample Request Type",
+                            CustomerAccountName = "Customer A",
+                            RequestStatus = "Pending",
+                            CustomerAccountNumber = "123456",
+                            BusinessLocation = "Business Location A",
+                            BusinessLocationId = Guid.NewGuid(),
+                            RegistrationLocation = "Registration Location A",
+                            RequestSubmissionDate = DateTime.Now,
+                            RegistrationLocationId = Guid.NewGuid(),
+                            RegistrationNumber = "REG123",
+                            DateCreated = DateTime.Now,
+                            DateDue = DateTime.Now.AddDays(7),
+                            Solicitor = "Solicitor A",
+                            ReasonOfCancellation = "Not applicable",
+                            DateOfCancellation = null, // Set appropriate cancellation date if needed
+                            RegistrationDate = DateTime.Now,
+                            Region = "Region A",
+                            RegionCode = Guid.NewGuid(),
+                            Discussions = new List<DiscussionDto>
+                            {
+                                new DiscussionDto {  Conversation = "sample text 1" },
+                                new DiscussionDto {  Conversation = "sample text 2" }
+                            },
+                            RegistrationDocuments = new List<RegistrationDocumentDto>
+                            {
+                                new RegistrationDocumentDto { FileName = "Document 1", FileType = "pdf", FileContent =  new byte[]{ 1, 2, 3} },
+                                new RegistrationDocumentDto { FileName = "Document 2", FileType = "pdf", FileContent =  new byte[]{ 1, 2, 3}}
+                            },
+                            SupportingDocuments = new List<RegistrationDocumentDto>
+                            {
+                                new RegistrationDocumentDto { FileName = "Supporting Document 1" , FileType = "pdf", FileContent =  new byte[]{ 1, 2, 3}},
+                                new RegistrationDocumentDto { FileName = "Supporting Document 2", FileType = "pdf", FileContent =  new byte[]{ 1, 2, 3} }
+                            }
+                        }
+                    },
+                }
+            };
+
+            _legalSearchRequestServiceMock.Setup(x => x.GetLegalRequestsForSolicitor(It.IsAny<SolicitorRequestAnalyticsPayload>(), It.IsAny<Guid>()))
+                .ReturnsAsync(mockResponse);
+
+            // Act
+            var result = await controller.ViewRequestAnalytics(request);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var response = Assert.IsType<ObjectResponse<LegalSearchRootResponsePayload>>(okResult.Value);
+            Assert.Equal(ResponseCodes.Success, response.Code);
+            Assert.Equal(mockResponse, response);
+        }
+
+        [Fact]
+        public async Task EditProfile_Returns_SuccessResult()
+        {
+            // Arrange
+            var controller = new SolicitorsController(_legalSearchRequestServiceMock.Object, _solicitorServiceMock.Object);
+
+            // Mock the User object and its claims
+            var claims = new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, "sampleUserId"),
+            new Claim(nameof(ClaimType.UserId), Guid.NewGuid().ToString())
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuthType");
+            var user = new ClaimsPrincipal(identity);
+
+            // Set the user for the controller's HttpContext
+            var httpContext = new Mock<HttpContext>();
+            httpContext.Setup(c => c.User).Returns(user);
+
+            // Assign the mocked HttpContext to the controller
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext.Object
+            };
+
+            var request = new EditSolicitorProfileByLegalTeamRequest
+            {
+                SolicitorId = Guid.NewGuid(),
+                FirstName = "John",
+                LastName = "Doe",
+                FirmName = "Sample Firm",
+                Email = "john.doe@example.com",
+                PhoneNumber = "1234567890",
+                State = Guid.NewGuid(),
+                Address = "1234 Elm St, Some City, Some Country",
+                AccountNumber = "ACC123456"
+            };
+
+            // Mock service response
+            var mockResponse = new StatusResponse("Success", ResponseCodes.Success);
+            _solicitorServiceMock.Setup(x => x.EditSolicitorProfile(It.IsAny<EditSolicitorProfileByLegalTeamRequest>()))
+                .ReturnsAsync(mockResponse);
+
+            // Act
+            var result = await controller.EditProfile(request);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var response = Assert.IsType<StatusResponse>(okResult.Value);
+            Assert.Equal(ResponseCodes.Success, response.Code);
+            Assert.Equal(mockResponse, response);
+        }
+
+        [Fact]
+        public async Task ViewProfile_Returns_SuccessResult()
+        {
+            // Arrange
+            var controller = new SolicitorsController(_legalSearchRequestServiceMock.Object, _solicitorServiceMock.Object);
+
+            // Mock the User object and its claims
+            var claims = new[]
+            {
+            new Claim(ClaimTypes.NameIdentifier, "sampleUserId"),
+            new Claim(nameof(ClaimType.UserId), Guid.NewGuid().ToString())
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuthType");
+            var user = new ClaimsPrincipal(identity);
+
+            // Set the user for the controller's HttpContext
+            var httpContext = new Mock<HttpContext>();
+            httpContext.Setup(c => c.User).Returns(user);
+
+            // Assign the mocked HttpContext to the controller
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = httpContext.Object
+            };
+
+            // Mock service response
+            var mockResponse = new ObjectResponse<SolicitorProfileDto>("Success", ResponseCodes.Success)
+            {
+                Data = new SolicitorProfileDto
+                {
+                    SolicitorId = Guid.NewGuid(),
+                    FirstName = "John",
+                    LastName = "Doe",
+                    Firm = "Sample Firm",
+                    SolicitorRegion = "South West",
+                    SolicitorEmail = "john.doe@example.com",
+                    SolicitorPhoneNumber = "1234567890",
+                    SolicitorState = "Lagos",
+                    Status = "Active",
+                    SolicitorAddress = "1234 Elm St, Some City, Some Country",
+                    BankAccountNumber = "ACC123456"
+                }
+            };
+            _solicitorServiceMock.Setup(x => x.ViewSolicitorProfile(It.IsAny<Guid>()))
+                .ReturnsAsync(mockResponse);
+
+            // Act
+            var result = await controller.ViewProfile();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result.Result);
+            var response = Assert.IsType<ObjectResponse<SolicitorProfileDto>>(okResult.Value);
+            Assert.Equal(HttpStatusCode.OK, (HttpStatusCode)okResult.StatusCode);
+            Assert.Equal(ResponseCodes.Success, response.Code);
+            Assert.Equal(mockResponse, response);
         }
     }
 }

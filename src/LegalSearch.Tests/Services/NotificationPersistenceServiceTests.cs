@@ -15,7 +15,8 @@ namespace LegalSearch.Tests.Services
 
         public NotificationPersistenceServiceTests()
         {
-            _mockNotificationManager = new Mock<INotificationManager>();            
+            _mockNotificationManager = new Mock<INotificationManager>();
+            _mockLogger = new Mock<ILogger<NotificationPersistenceService>>();  // Initialize _mockLogger
             _notificationService = new NotificationPersistenceService(_mockNotificationManager.Object, _mockLogger.Object);
         }
 

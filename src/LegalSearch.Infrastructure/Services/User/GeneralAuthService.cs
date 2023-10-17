@@ -1,5 +1,6 @@
 ﻿using Fcmb.Shared.Auth.Models.Requests;
 using Fcmb.Shared.Auth.Models.Responses;
+using Fcmb.Shared.Auth.Services;
 using Fcmb.Shared.Models.Responses;
 using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.Auth;
@@ -27,8 +28,8 @@ namespace LegalSearch.Infrastructure.Services.User
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly RoleManager<Role> _roleManager;
         private readonly IJwtTokenService _jwtTokenHelper;
-        private readonly IStateRetrieveService _stateRetrieveService;
         private readonly IAuthService _authService;
+        private readonly IStateRetrieveService _stateRetrieveService;
         private readonly ILogger<GeneralAuthService> _logger;
         private readonly IBranchRetrieveService _branchRetrieveService;
         private readonly IEmailService _emailService;
@@ -284,7 +285,7 @@ namespace LegalSearch.Infrastructure.Services.User
         /// <returns></returns>
         private async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
         {
-            //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
+            ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
             var solIds = new List<string>() { "198", "259", "052", "048", "111", "061" };
             int rand = new Random(solIds.Count).Next(0, solIds.Count);
             user.SolId = solIds[rand];
@@ -405,7 +406,10 @@ namespace LegalSearch.Infrastructure.Services.User
 
             if (!isUserAuthenticatedSuccessfully)
             {
-                // Increment failed attempts and potentially lock the account
+                // Increment access failure count
+                await _userManager.AccessFailedAsync(user);
+
+                // check failed attempts and potentially lock the account
                 await HandleUserLockout(user);
 
                 // Invalid password

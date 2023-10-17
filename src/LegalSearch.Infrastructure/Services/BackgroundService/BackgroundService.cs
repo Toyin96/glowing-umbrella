@@ -1,4 +1,5 @@
-﻿using LegalSearch.Application.Interfaces.BackgroundService;
+﻿using Azure.Core;
+using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Application.Interfaces.FCMBService;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Interfaces.Location;
@@ -41,7 +42,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly IZonalManagerService _zonalManagerService;
         private readonly IEmailService _emailService;
         private readonly ILogger<BackgroundService> _logger;
-        private readonly FCMBServiceAppConfig _options;
+        private readonly FCMBConfig _options;
         private readonly string _successStatusCode = "00";
         private readonly string _successStatusDescription = "SUCCESS";
         private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions { ReferenceHandler = ReferenceHandler.Preserve };
@@ -51,7 +52,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             ISolicitorManager solicitorManager,
             IStateRetrieveService stateRetrieveService,
             ILegalSearchRequestManager legalSearchRequestManager,
-            IFcmbService fCMBService, IOptions<FCMBServiceAppConfig> options,
+            IFcmbService fCMBService, IOptions<FCMBConfig> options,
             ILegalSearchRequestPaymentLogManager legalSearchRequestPaymentLogManager,
             UserManager<Domain.Entities.User.User> userManager,
             IZonalManagerService zonalManagerService,
@@ -438,92 +439,194 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             {
                 _logger.LogInformation($"Process started for request with ID: {requestId} inside InitiatePaymentToSolicitorJob");
 
-                // step 1: Get request
                 var request = await _legalSearchRequestManager.GetLegalSearchRequest(requestId);
-                var solicitor = await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == request!.AssignedSolicitorId);
 
-                // step 2: Generate remove lien request payload
-                RemoveLienFromAccountRequest removeLienRequest = GenerateRemoveLienRequest(request!.CustomerAccountNumber, request.LienId!);
+                if (request is null)
+                {
+                    _logger.LogInformation("Could not find request with ID: {0} when trying to initiate settlement payment", requestId);
+                    return;
+                }
 
-                // step 3: Push request to remove lien from customer's account
+                var solicitor = await GetSolicitorById(request.AssignedSolicitorId);
+
+                if (solicitor is null)
+                {
+                    _logger.LogInformation("Could not find solicitor with ID: {0} when trying to initiate settlement payment", request.AssignedSolicitorId);
+                    return;
+                }
+
+                var removeLienRequest = GenerateRemoveLienRequest(request!.CustomerAccountNumber, request!.LienId!);
+
                 var response = await _fCMBService.RemoveLien(removeLienRequest);
-
-                // step 4: Validate remove lien endpoint response
                 var lienValidationResponse = ValidateRemoveLien(response);
 
-                // step 5: Make decision on the outcome of response validation
-                var paymentLogRequest = new LegalSearchRequestPaymentLog
-                {
-                    SourceAccountName = request.CustomerAccountName,
-                    LegalSearchRequestId = requestId,
-                    SourceAccountNumber = request.CustomerAccountNumber,
-                    DestinationAccountName = $"{solicitor?.FirstName} {solicitor?.LastName}",
-                    DestinationAccountNumber = solicitor!.BankAccount!,
-                    PaymentStatus = PaymentStatusType.RemoveLien,
-                    TransferAmount = Convert.ToDecimal(_options.LegalSearchAmount),
-                    LienId = removeLienRequest.LienId,
-                    CurrencyCode = removeLienRequest.CurrencyCode
-                };
+                var paymentLogRequest = CreatePaymentRequest(request, solicitor, removeLienRequest, lienValidationResponse);
 
-                //TESTING PURPOSE
-                lienValidationResponse.isSuccessful = true;
-                // END TESTING PURPOSE
+                await UpdatePaymentRequest(paymentLogRequest, request, lienValidationResponse);
 
-                if (!lienValidationResponse.isSuccessful)
-                {
-                    paymentLogRequest.PaymentResponseMetadata = lienValidationResponse.errorMessage;
-                }
-                else
-                {
-                    // generate payment request
-                    IntrabankTransferRequest paymentRequest = GeneratePaymentRequest(paymentLogRequest, request.CustomerAccountName.First10Characters());
-
-                    // process credit to solicitor's account
-                    var paymentResponse = await _fCMBService.InitiateTransfer(paymentRequest);
-
-                    // validate payment response
-                    var paymentResponseValidation = ValidatePaymentResponse(paymentResponse);
-
-                    if (!paymentResponseValidation.isSuccessful)
-                    {
-                        // update record
-                        paymentLogRequest.PaymentStatus = PaymentStatusType.MakePayment;
-                        paymentLogRequest.PaymentResponseMetadata = paymentResponseValidation.errorMessage;
-                    }
-                    else
-                    {
-                        paymentLogRequest.PaymentStatus = PaymentStatusType.PaymentMade;
-                        paymentLogRequest.PaymentResponseMetadata = JsonSerializer.Serialize(paymentResponse, _serializerOptions);
-                        paymentLogRequest.TransactionStan = paymentResponse?.Data?.Stan;
-                        paymentLogRequest.TranId = paymentResponse?.Data?.TranId;
-                        paymentLogRequest.TransferNarration = paymentRequest.Narration;
-                        paymentLogRequest.TransferRequestId = paymentRequest.CustomerReference;
-                    }
-                }
-
-                // log payment record
                 await _legalSearchRequestPaymentLogManager.AddLegalSearchRequestPaymentLog(paymentLogRequest);
             }
             catch (Exception ex)
             {
-
-                Console.WriteLine($"An exception was thrown inside AssignOrdersAsync. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
+                Console.WriteLine($"An exception was thrown inside InitiatePaymentToSolicitorJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
         }
 
-        private async void RetryFailedLegalSearchRequestSettlementToSolicitor()
+        private async Task<Domain.Entities.User.User?> GetSolicitorById(Guid? solicitorId)
         {
-            // get pending settlement requests
-            var paymentRecords = await _legalSearchRequestPaymentLogManager.GetAllLegalSearchRequestPaymentLogNotYetCompleted();
+            if (solicitorId is null)
+                return null;
 
-            if (!paymentRecords.Any()) return;
+            return await _appDbContext.Users.FirstOrDefaultAsync(x => x.Id == solicitorId);
+        }
 
-            // do something
-            foreach (var item in paymentRecords)
+        private LegalSearchRequestPaymentLog CreatePaymentRequest(LegalRequest request, Domain.Entities.User.User solicitor, RemoveLienFromAccountRequest removeLienRequest, (bool isSuccessful, string? errorMessage) lienValidationResponse)
+        {
+            return new LegalSearchRequestPaymentLog
             {
-                
+                SourceAccountName = request.CustomerAccountName,
+                LegalSearchRequestId = request.Id,
+                SourceAccountNumber = request.CustomerAccountNumber,
+                DestinationAccountName = $"{solicitor?.FirstName} {solicitor?.LastName}",
+                DestinationAccountNumber = solicitor!.BankAccount!,
+                PaymentStatus = lienValidationResponse.isSuccessful ? PaymentStatusType.RemoveLien : PaymentStatusType.MakePayment,
+                TransferAmount = Convert.ToDecimal(_options.LegalSearchAmount),
+                LienId = removeLienRequest.LienId,
+                CurrencyCode = removeLienRequest.CurrencyCode
+            };
+        }
+
+        private async Task UpdatePaymentRequest(LegalSearchRequestPaymentLog paymentLogRequest, LegalRequest? request, (bool isSuccessful, string? errorMessage) lienValidationResponse)
+        {
+            if (!lienValidationResponse.isSuccessful)
+            {
+                paymentLogRequest.PaymentResponseMetadata = lienValidationResponse.errorMessage;
+            }
+            else
+            {
+                var paymentRequest = GeneratePaymentRequest(paymentLogRequest, request!.CustomerAccountName!.First10Characters());
+                await ProcessPaymentToSolicitorAccount(paymentLogRequest, paymentRequest);
+            }
+        }
+
+        private async Task ProcessPaymentToSolicitorAccount(LegalSearchRequestPaymentLog paymentLogRequest, IntrabankTransferRequest paymentRequest)
+        {
+            var paymentResponse = await _fCMBService.InitiateTransfer(paymentRequest);
+            var paymentResponseValidation = ValidatePaymentResponse(paymentResponse);
+
+            if (!paymentResponseValidation.isSuccessful)
+            {
+                paymentLogRequest.PaymentStatus = PaymentStatusType.MakePayment;
+                paymentLogRequest.PaymentResponseMetadata = paymentResponseValidation.errorMessage;
+            }
+            else
+            {
+                paymentLogRequest.PaymentStatus = PaymentStatusType.PaymentMade;
+                paymentLogRequest.PaymentResponseMetadata = JsonSerializer.Serialize(paymentResponse, _serializerOptions);
+                paymentLogRequest.TransactionStan = paymentResponse?.Data?.Stan;
+                paymentLogRequest.TranId = paymentResponse?.Data?.TranId;
+                paymentLogRequest.TransferNarration = paymentRequest.Narration;
+                paymentLogRequest.TransferRequestId = paymentRequest.CustomerReference;
+            }
+        }
+
+        public async Task RetryFailedLegalSearchRequestSettlementToSolicitor()
+        {
+            try
+            {
+                // get pending settlement requests
+                var paymentLogRecords = await _legalSearchRequestPaymentLogManager.GetAllLegalSearchRequestPaymentLogNotYetCompleted();
+
+                if (!paymentLogRecords.Any())
+                {
+                    _logger.LogInformation("No eligible records found for settlement.");
+                    return;
+                }
+
+                _logger.LogInformation($"Found {paymentLogRecords.Count()} eligible records for settlement");
+
+                // push eligible records for settlement
+                foreach (var paymentLogRecord in paymentLogRecords)
+                {
+                    _logger.LogInformation($"About to retry payment settlement for {paymentLogRecord.DestinationAccountName}");
+                    await ReProcessSolicitorSettlement(paymentLogRecord);
+                }
+
+                _logger.LogInformation($"Successfully pushed {paymentLogRecords.Count()} records for settlement");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred during retrying failed legal search request settlement to solicitor.", ex);
+            }
+        }
+
+
+        private async Task ReProcessSolicitorSettlement(LegalSearchRequestPaymentLog legalSearchRequestPaymentLog)
+        {
+            switch (legalSearchRequestPaymentLog.PaymentStatus)
+            {
+                case PaymentStatusType.RemoveLien:
+                    await ReProcessRemoveLien(legalSearchRequestPaymentLog);
+                    break;
+                case PaymentStatusType.MakePayment:
+                    await ReProcessMakePayment(legalSearchRequestPaymentLog);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private async Task ReProcessRemoveLien(LegalSearchRequestPaymentLog paymentLog)
+        {
+            // Generate remove lien request payload again
+            var removeLienRequest = GenerateRemoveLienRequest(paymentLog.SourceAccountNumber, paymentLog.LienId);
+
+            // Push request to remove lien from customer's account again
+            var response = await _fCMBService.RemoveLien(removeLienRequest);
+
+            // Validate remove lien endpoint response again
+            var lienValidationResponse = ValidateRemoveLien(response);
+
+            // Get Legal Request record
+            var request = await _legalSearchRequestManager.GetLegalSearchRequest(paymentLog.LegalSearchRequestId);
+
+            // Handle missing request
+            if (request is null)
+            {
+                _logger.LogWarning("Could not find request with ID: {0} when trying to initiate settlement payment", paymentLog.LegalSearchRequestId);
+                return;
             }
 
+            // Get the assigned solicitor
+            var solicitor = await GetSolicitorById(request.AssignedSolicitorId);
+
+            // Handle missing solicitor
+            if (solicitor is null)
+            {
+                _logger.LogInformation("Could not find solicitor with ID: {0} when trying to initiate settlement payment", request.AssignedSolicitorId);
+                return;
+            }
+
+            // Create and update payment log request
+            var updatedPaymentLogRequest = await CreateAndUpdatePaymentLogRequest(request, lienValidationResponse, paymentLog);
+
+            // Update the payment log accordingly based on the lien validation response and/or payment response
+            await _legalSearchRequestPaymentLogManager.UpdateLegalSearchRequestPaymentLog(updatedPaymentLogRequest);
+        }
+
+        private async Task ReProcessMakePayment(LegalSearchRequestPaymentLog paymentLog)
+        {
+            var paymentRequest = GeneratePaymentRequest(paymentLog, paymentLog.SourceAccountName);
+            await ProcessPaymentToSolicitorAccount(paymentLog, paymentRequest);
+            await _legalSearchRequestPaymentLogManager.UpdateLegalSearchRequestPaymentLog(paymentLog);
+        }
+
+        private async Task<LegalSearchRequestPaymentLog> CreateAndUpdatePaymentLogRequest(LegalRequest request, (bool isSuccessful, string? errorMessage) lienValidationResponse, LegalSearchRequestPaymentLog paymentLog)
+        {
+            // Update payment log request
+            await UpdatePaymentRequest(paymentLog, request, lienValidationResponse);
+
+            return paymentLog;
         }
 
         private IntrabankTransferRequest GeneratePaymentRequest(LegalSearchRequestPaymentLog paymentLogRequest, string clientName)

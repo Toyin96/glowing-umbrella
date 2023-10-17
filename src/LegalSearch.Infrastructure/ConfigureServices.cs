@@ -1,4 +1,5 @@
-﻿using Fcmb.Shared.Models.Constants;
+﻿using Fcmb.Shared.Auth.Services;
+using Fcmb.Shared.Models.Constants;
 using LegalSearch.Application.Interfaces.Notification;
 using LegalSearch.Domain.Entities.Role;
 using LegalSearch.Domain.Entities.User;
@@ -9,10 +10,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace LegalSearch.Infrastructure
 {
+    [ExcludeFromCodeCoverage]
     public static class ConfigureServices
     {
         /// <summary>
@@ -73,16 +76,11 @@ namespace LegalSearch.Infrastructure
         {
             services.AddHttpClient(HttpConstants.AuthHttpClient, client =>
             {
-                var baseUrl = configuration["FCMBConfig:BaseUrl"]!;
-                // todo: look into more secure way of handling these sensitive info...
-                var clientId = configuration["FCMBConfig:ClientId"];
-                var subscriptionKey = configuration["FCMBConfig:SubscriptionKey"];
+                var baseUrl = configuration["FCMBConfig:AuthConfig:AuthUrl"]!;
 
                 client.BaseAddress = new Uri(baseUrl);
                 client.DefaultRequestHeaders.Clear();
                 client.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
-                client.DefaultRequestHeaders.Add("client_id", clientId);
-                client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
             });
         }
 
@@ -92,9 +90,10 @@ namespace LegalSearch.Infrastructure
             services.Scan(scan => scan.FromCallingAssembly().AddClasses(classes => classes
                     .Where(type => (type.Name.EndsWith("Service") || type.Name.EndsWith("Manager")) && type.GetInterfaces().Length > 0), false)
                 .AsSelfWithInterfaces()
-                .WithScopedLifetime());
+                .WithTransientLifetime());
 
             services.TryAddScoped<INotificationService, EmailNotificationService>();
+            services.TryAddScoped<IAuthService, AuthService>();
             services.TryAddScoped<INotificationService, NotificationPersistenceService>();
         }
     }
