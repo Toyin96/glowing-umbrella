@@ -3,21 +3,28 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
     public class NotificationManager : INotificationManager
     {
         private readonly AppDbContext _appDbContext;
+        private readonly IServiceProvider _serviceProvider;
 
-        public NotificationManager(AppDbContext appDbContext)
+        public NotificationManager(AppDbContext appDbContext, IServiceProvider serviceProvider)
         {
             _appDbContext = appDbContext;
+            _serviceProvider = serviceProvider;
         }
         public async Task<bool> AddMultipleNotifications(List<Domain.Entities.Notification.Notification> requests)
         {
-            await _appDbContext.Notifications.AddRangeAsync(requests);
-            return await _appDbContext.SaveChangesAsync() > 0;
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                dbContext.Notifications.AddRange(requests);
+                return await dbContext.SaveChangesAsync() > 0;
+            }
         }
 
         public async Task<bool> AddNotification(Domain.Entities.Notification.Notification notification)
@@ -42,6 +49,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
                                                               IsRead = x.IsRead,
                                                               MetaData = x.MetaData
                                                           })
+                                                          .OrderByDescending(x => x.DateCreated)
                                                           .ToListAsync();
 
             return pendingNotifications ?? Enumerable.Empty<NotificationResponse>();
@@ -75,6 +83,7 @@ namespace LegalSearch.Infrastructure.Services.Notification
                 IsRead = x.IsRead,
                 MetaData = x.MetaData
             })
+            .OrderByDescending(x => x.DateCreated)
             .ToListAsync();
 
             return pendingNotifications ?? Enumerable.Empty<NotificationResponse>();

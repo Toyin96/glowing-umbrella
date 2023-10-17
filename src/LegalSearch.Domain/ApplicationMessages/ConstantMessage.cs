@@ -4,6 +4,7 @@
     {
         public const string ReminderNotificationMessageOnPendingAssignedRequestForCso = "The solicitor assigned to this request just got a reminder nudging him/her to complete the request on time.";
         public const string NewRequestAssignmentMessage = "You have been assigned a new request. Please find attached the details of the request below";
+        public const string NewRequestAssignmentMessageForStaff = "You have been successfully assigned this request to a solicitor. Please find attached the details of the request below";
         public const string AssignedRequestMessageForSolicitor = "You have been assigned a new request. Please find attached the details of the request below";
         public const string AssignedRequestMessageForCso = "Your request has been assigned to a solicitor. You will receive updates from them regarding the progress of your request.";
         public const string UnAssignedRequestMessage = "The system is unable to route this request to a solicitor. Please find attached the details of the request below";

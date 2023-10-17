@@ -160,6 +160,7 @@ namespace LegalSearch.Infrastructure.Managers
 
             var requestIds = await _appDbContext.SolicitorAssignments
                                                 .Where(a => a.IsAccepted && a.IsCurrentlyAssigned
+                                                && !a.HasCompletedLegalSearchRequest // this filter excludes completed requests
                                                 && a.AssignedAt <= elapsedTime)
                                                 .Select(a => a.RequestId)
                                                 .Distinct()

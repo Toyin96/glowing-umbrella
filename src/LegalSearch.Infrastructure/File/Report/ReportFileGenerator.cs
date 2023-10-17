@@ -111,15 +111,15 @@ namespace LegalSearch.Infrastructure.File.Report
             dataTable.Columns.Add("BusinessLocation", typeof(string));
             dataTable.Columns.Add("BusinessLocationId", typeof(Guid));
             dataTable.Columns.Add("RegistrationLocation", typeof(string));
-            dataTable.Columns.Add("RequestSubmissionDate", typeof(string)); // Change to string for custom formatting
-            dataTable.Columns.Add("RegistrationLocationId", typeof(string)); // Change to string for consistency
+            dataTable.Columns.Add("RequestSubmissionDate", typeof(string));
+            dataTable.Columns.Add("RegistrationLocationId", typeof(string));
             dataTable.Columns.Add("RegistrationNumber", typeof(string));
-            dataTable.Columns.Add("DateCreated", typeof(string)); // Change to string for custom formatting
-            dataTable.Columns.Add("DateDue", typeof(string)); // Change to string for custom formatting
+            dataTable.Columns.Add("DateCreated", typeof(string));
+            dataTable.Columns.Add("DateDue", typeof(string));
             dataTable.Columns.Add("Solicitor", typeof(string));
             dataTable.Columns.Add("ReasonOfCancellation", typeof(string));
-            dataTable.Columns.Add("DateOfCancellation", typeof(string)); // Change to string for custom formatting
-            dataTable.Columns.Add("RegistrationDate", typeof(string)); // Change to string for custom formatting
+            dataTable.Columns.Add("DateOfCancellation", typeof(string));
+            dataTable.Columns.Add("RegistrationDate", typeof(string));
             dataTable.Columns.Add("Region", typeof(string));
             dataTable.Columns.Add("RegionCode", typeof(Guid));
             dataTable.Columns.Add("TotalRequestsCount", typeof(int));

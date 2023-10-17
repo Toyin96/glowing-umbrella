@@ -20,11 +20,19 @@ namespace LegalSearch.Infrastructure.Managers
             return await _appDbContext.SaveChangesAsync() > 0;
         }
 
-        public Task<List<LegalSearchRequestPaymentLog>> GetAllLegalSearchRequestPaymentLogPendingOnLienStage()
+        public async Task<IEnumerable<LegalSearchRequestPaymentLog>> GetAllLegalSearchRequestPaymentLogNotYetCompleted()
         {
-            return _appDbContext.LegalSearchRequestPaymentLogs
-                .Where(x => x.PaymentStatus == PaymentStatusType.RemoveLien)
+            var paymentRecords = await _appDbContext.LegalSearchRequestPaymentLogs
+                .Where(x => x.PaymentStatus != PaymentStatusType.PaymentMade)
                 .ToListAsync();
+
+            return paymentRecords  ?? Enumerable.Empty<LegalSearchRequestPaymentLog>();
+        }
+
+        public async Task<bool> UpdateLegalSearchRequestPaymentLog(LegalSearchRequestPaymentLog legalSearchRequestPaymentLog)
+        {
+            _appDbContext.LegalSearchRequestPaymentLogs.Update(legalSearchRequestPaymentLog);
+            return await _appDbContext.SaveChangesAsync() > 0;
         }
     }
 }

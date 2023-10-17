@@ -1,4 +1,5 @@
 ﻿using LegalSearch.Application.Models.Responses;
+using System;
 
 namespace LegalSearch.Application.Interfaces.Notification
 {
