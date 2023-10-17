@@ -33,7 +33,7 @@
 
                 <p>Please follow the steps below to update your password:</p>
                 <ol>
-                    <li><a href=""http://localhost:5173/reset-password?token={{token}}&email={{email}}"">Click text</a> to proceed to the application.</li>
+                    <li><a href=""{{frontendBaseUrl}}/reset-password?token={{token}}&email={{email}}"">Click text</a> to proceed to the application.</li>
                     <li>Next, enter your new password to change your password.</li>
                 </ol>
 
