@@ -1,15 +1,15 @@
-﻿using Fcmb.Shared.Models.Constants;
+﻿using LegalSearch.Application.Models.Constants;
 using System.ComponentModel.DataAnnotations;
 
 namespace LegalSearch.Application.Models.Requests
 {
     public abstract record BaseUserRequest
     {
-        [Required(ErrorMessage = "Please Provide First Name"), RegularExpression(RegexConstants.FullNameRegex, ErrorMessage = "Please Provide A Valid First Name.")]
+        [Required(ErrorMessage = "Please Provide First Name"), RegularExpression(RegexConstants.NameRegex, ErrorMessage = "Please Provide A Valid First Name.")]
         [StringLength(100, ErrorMessage = "First Name Cannot Be More Than Length Of 100")]
         public required string FirstName { get; init; }
 
-        [Required(ErrorMessage = "Please Provide Last Name"), RegularExpression(RegexConstants.FullNameRegex, ErrorMessage = "Please Provide A Valid Last Name.")]
+        [Required(ErrorMessage = "Please Provide Last Name"), RegularExpression(RegexConstants.NameRegex, ErrorMessage = "Please Provide A Valid Last Name.")]
         [StringLength(100, ErrorMessage = "Last Name Cannot Be More Than Length Of 100")]
         public string? LastName { get; init; }
 

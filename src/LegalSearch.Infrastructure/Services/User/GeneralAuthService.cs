@@ -295,7 +295,7 @@ namespace LegalSearch.Infrastructure.Services.User
             user.SolId = solIds[rand];
 
             if (/*result.Code is ResponseCodes.Success*/true)
-            {
+                {
                 // get staff branch's name
                 var branch = await _branchRetrieveService.GetBranchBySolId(user.SolId!);
 

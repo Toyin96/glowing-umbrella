@@ -42,7 +42,7 @@ namespace LegalSearch.Api
         {
             services.AddControllers(options =>
             {
-                options.Filters.Add<RequestValidationFilter>();
+                //options.Filters.Add<RequestValidationFilter>();
             }).AddJsonOptions(x =>
             {
                 x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;

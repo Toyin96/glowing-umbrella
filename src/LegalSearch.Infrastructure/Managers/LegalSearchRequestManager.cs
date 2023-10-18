@@ -1,4 +1,5 @@
-﻿using Fcmb.Shared.Utilities;
+﻿using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Fcmb.Shared.Utilities;
 using LegalSearch.Application.Interfaces.LegalSearchRequest;
 using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
@@ -11,6 +12,7 @@ using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Managers
@@ -172,7 +174,7 @@ namespace LegalSearch.Infrastructure.Managers
             // Step 12: Calculate the counts for the three categories
             int assignedRequestsCount = await assignedRequestsCountQuery.CountAsync();
             int completedRequestsCount = await completedRequestsCountQuery.CountAsync();
-            int rejectedRequestsCount =  await rejectedRequestsCountQuery.CountAsync();
+            int rejectedRequestsCount = await rejectedRequestsCountQuery.CountAsync();
             int returnedRequestsCount = await returnedRequestsCountQuery.CountAsync();
             int newRequestsCount = await newRequestsCountQuery.CountAsync();
 
@@ -350,51 +352,72 @@ namespace LegalSearch.Infrastructure.Managers
 
             var query = rawQuery;
 
-            // Step 2: Apply filtering based on the request payload
-            query = ApplyFilters(request, query);
+            // Step 2: Apply filtering based on the request payload and pagination
+            query = ApplyFilters(request, query).Paginate(request);
 
-            // Step 3: Apply pagination to the query as per the request 
-            query = query.Paginate(request);
+            // Step 3: Get distinct state IDs for locations
+            var locationGuids = GetDistinctLocationGuids(query);
 
-            // Step 4: Get distinct state IDs
-            var locationGuids = query.Select(x => x.BusinessLocation)
-                                    .Union(query.Select(x => x.RegistrationLocation))
-                                    .Distinct()
-                                    .ToList();
+            // Step 4: Create a dictionary of states based on the locationGuids
+            var stateDictionary = await GetStateDictionary(locationGuids);
 
-            // Step 5: Create a dictionary of states based on the locationGuids
-            var stateDictionary = await _appDbContext.States
-                .Include(x => x.Region)
-                .Where(location => locationGuids.Contains(location.Id))
-                .ToDictionaryAsync(location => location.Id, location => location);
-
-            var solicitorIds = query
-                .Where(x => x.AssignedSolicitorId != Guid.Empty)
-                .Select(x => x.AssignedSolicitorId)
-                .Distinct()
-                .ToList();
-
-
-            var solicitors = _appDbContext.Users.Where(x => solicitorIds.Contains(x.Id)).ToDictionary(x => x.Id, x => $"{x.FirstName} {x.LastName}");
+            // Step 5: Create a dictionary of solicitors based on assigned solicitor IDs
+            var solicitors = GetSolicitors(query);
 
             // Step 6: Fetch the requested data
-            List<LegalSearchResponsePayload> response = await GenerateLegalSearchResponsePayload(query, stateDictionary, solicitors);
+            List<LegalSearchResponsePayload> response;
 
-            if (request.BranchId != null)
+            if (request.RegionId != null && Guid.TryParse(request.RegionId, out Guid regionId))
             {
-                rawQuery = rawQuery.Where(x => x.BranchId == request.BranchId);
+                // Step 6: Filter the query based on the region if specified
+                var legalRequests = await query.ToListAsync();
+
+                var regionQuery = GetRegionQuery(legalRequests, stateDictionary, regionId);
+
+                response = await GenerateLegalSearchResponsePayload(regionQuery, stateDictionary, solicitors);
+            }
+            else
+            {
+                response = await GenerateLegalSearchResponsePayload(query, stateDictionary, solicitors);
             }
 
-            var allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary, solicitors);
+            // Step 7: Apply branch filter if a specific branch is specified in the request
+            rawQuery = ApplyBranchFilter(request, rawQuery);
+            List<LegalSearchResponsePayload> allRecords;
 
-            // Step 7: Calculate counts
+            if (request.RegionId != null && Guid.TryParse(request.RegionId, out Guid regionCode))
+            {
+                // Materialize the data into memory and then filter
+                var legalRequests = await rawQuery.ToListAsync();
+
+                // Step 8: Filter the raw query based on the region if specified
+                var regionQuery = GetRegionQuery(legalRequests, stateDictionary, regionCode);
+                allRecords = await GenerateLegalSearchResponsePayload(regionQuery, stateDictionary, solicitors);
+            }
+            else
+            {
+                allRecords = await GenerateLegalSearchResponsePayload(rawQuery, stateDictionary, solicitors);
+            }
+
+            // Step 9: Calculate counts for different request statuses
             var counts = await CalculateCounts(response, query, allRecords);
 
-            // step 8: Generate the requests bar chart
+            // Step 10: Generate the requests bar chart for the staff
             var requestsByMonth = CalculateRequestsByMonthForStaff(allRecords, TimeUtils.GetCurrentLocalTime());
 
-            // Step 9: Create the final payload
-            var finalPayload = new StaffRootResponsePayload
+            // Step 11: Calculate average processing time for all records
+            var averageProcessingTime = CalculateAverageProcessingTime(allRecords);
+
+            // Step 12: Create the final payload with all relevant data
+            var finalPayload = CreateFinalPayload(counts, requestsByMonth, response, averageProcessingTime);
+
+            return finalPayload;
+        }
+
+        private StaffRootResponsePayload CreateFinalPayload((int totalRequests, int withinSLACount, int elapsedSLACount, int within3HoursToDueCount, int requestsWithLawyersFeedbackCount, int pendingRequestsCount, int completedRequestsCount,
+            int openRequestsCount) counts, List<MonthlyRequestData> requestsByMonth, List<LegalSearchResponsePayload> response, string averageProcessingTime)
+        {
+            return new StaffRootResponsePayload
             {
                 CompletedRequests = counts.completedRequestsCount,
                 OpenRequests = counts.openRequestsCount,
@@ -405,16 +428,50 @@ namespace LegalSearch.Infrastructure.Managers
                 WithinSLACount = counts.withinSLACount,
                 ElapsedSLACount = counts.elapsedSLACount,
                 Within3HoursToSLACount = counts.within3HoursToDueCount,
-                RequestsWithLawyersFeedbackCount = counts.requestsWithLawyersFeedbackCount
+                RequestsWithLawyersFeedbackCount = counts.requestsWithLawyersFeedbackCount,
+                AverageProcessingTime = averageProcessingTime
             };
+        }
 
-            // Step 10: Calculate average processing time
-            var averageProcessingTime = CalculateAverageProcessingTime(allRecords);
+        private IQueryable<LegalRequest> ApplyBranchFilter(StaffDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
+        {
+            if (request.BranchId != null)
+            {
+                query = query.Where(x => x.BranchId == request.BranchId);
+            }
+            return query;
+        }
 
-            // Step 11: Add average processing time to the final payload
-            finalPayload.AverageProcessingTime = averageProcessingTime;
+        private List<LegalRequest> GetRegionQuery(List<LegalRequest> query, Dictionary<Guid, State> stateDictionary, Guid regionId)
+        {
+            return query.Where(x => x.BusinessLocation.HasValue && stateDictionary.ContainsKey(x.BusinessLocation.Value)
+                                    && stateDictionary[x.BusinessLocation.Value].RegionId == regionId).ToList();
+        }
 
-            return finalPayload;
+        private IQueryable<Guid?> GetDistinctLocationGuids(IQueryable<LegalRequest> query)
+        {
+            return query.Select(x => x.BusinessLocation)
+                        .Union(query.Select(x => x.RegistrationLocation))
+                        .Distinct();
+        }
+
+        private Dictionary<Guid, string> GetSolicitors(IQueryable<LegalRequest> query)
+        {
+            var solicitorIds = query
+                .Where(x => x.AssignedSolicitorId != Guid.Empty)
+                .Select(x => x.AssignedSolicitorId)
+                .Distinct()
+                .ToList();
+
+            return _appDbContext.Users.Where(x => solicitorIds.Contains(x.Id)).ToDictionary(x => x.Id, x => $"{x.FirstName} {x.LastName}");
+        }
+
+        private async Task<Dictionary<Guid, State>> GetStateDictionary(IQueryable<Guid?> locationGuids)
+        {
+            return await _appDbContext.States
+                                    .Include(x => x.Region)
+                                    .Where(location => locationGuids.Contains(location.Id))
+                                    .ToDictionaryAsync(location => location.Id, location => location);
         }
 
         private string CalculateProcessingTime(LegalSearchResponsePayload record)
@@ -482,7 +539,7 @@ namespace LegalSearch.Infrastructure.Managers
                     BusinessLocation = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Name : string.Empty,
                     RegistrationLocation = legalSearch.RegistrationLocation.HasValue && stateDictionary.ContainsKey(legalSearch.RegistrationLocation.Value) ? stateDictionary[legalSearch.RegistrationLocation.Value].Name : string.Empty,
                     BusinessLocationId = legalSearch.BusinessLocation.HasValue ? legalSearch.BusinessLocation.Value : Guid.Empty,
-                    RegistrationLocationId = legalSearch.RegistrationLocation.HasValue ? legalSearch.RegistrationLocation.Value  : Guid.Empty,
+                    RegistrationLocationId = legalSearch.RegistrationLocation.HasValue ? legalSearch.RegistrationLocation.Value : Guid.Empty,
                     DateCreated = legalSearch.CreatedAt,
                     ReasonOfCancellation = legalSearch.ReasonForCancelling ?? string.Empty,
                     DateOfCancellation = legalSearch.DateOfCancellation,
@@ -503,6 +560,58 @@ namespace LegalSearch.Infrastructure.Managers
                     { Conversation = x.Conversation }).ToList(),
                 })
                 .ToListAsync();
+
+                return data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An error occurred inside GenerateLegalSearchResponsePayload. See reason: {JsonSerializer.Serialize(ex)}");
+                throw;
+            }
+        }
+
+        private async Task<List<LegalSearchResponsePayload>> GenerateLegalSearchResponsePayload(List<LegalRequest> query, Dictionary<Guid, State> stateDictionary, Dictionary<Guid, string> solicitors)
+        {
+            try
+            {
+                var data = await Task.Run(() =>
+                                query.Select(legalSearch => new LegalSearchResponsePayload
+                                {
+                                    Id = legalSearch.Id,
+                                    RequestInitiator = legalSearch.RequestInitiator!,
+                                    RequestType = legalSearch.RequestType!,
+                                    RegistrationDate = legalSearch.RegistrationDate,
+                                    RequestStatus = legalSearch.Status,
+                                    RequestSubmissionDate = legalSearch.RequestSubmissionDate,
+                                    Solicitor = legalSearch.AssignedSolicitorId.HasValue && solicitors.ContainsKey(legalSearch.AssignedSolicitorId.Value) ? solicitors[legalSearch.AssignedSolicitorId.Value] : string.Empty,
+                                    RegistrationNumber = legalSearch.RegistrationNumber ?? string.Empty,
+                                    CustomerAccountName = legalSearch.CustomerAccountName,
+                                    CustomerAccountNumber = legalSearch.CustomerAccountNumber,
+                                    Region = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Region.Name : string.Empty,
+                                    RegionCode = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Region.Id : Guid.Empty,
+                                    BusinessLocation = legalSearch.BusinessLocation.HasValue && stateDictionary.ContainsKey(legalSearch.BusinessLocation.Value) ? stateDictionary[legalSearch.BusinessLocation.Value].Name : string.Empty,
+                                    RegistrationLocation = legalSearch.RegistrationLocation.HasValue && stateDictionary.ContainsKey(legalSearch.RegistrationLocation.Value) ? stateDictionary[legalSearch.RegistrationLocation.Value].Name : string.Empty,
+                                    BusinessLocationId = legalSearch.BusinessLocation.HasValue ? legalSearch.BusinessLocation.Value : Guid.Empty,
+                                    RegistrationLocationId = legalSearch.RegistrationLocation.HasValue ? legalSearch.RegistrationLocation.Value : Guid.Empty,
+                                    DateCreated = legalSearch.CreatedAt,
+                                    ReasonOfCancellation = legalSearch.ReasonForCancelling ?? string.Empty,
+                                    DateOfCancellation = legalSearch.DateOfCancellation,
+                                    DateDue = legalSearch.DateDue,
+                                    RegistrationDocuments = legalSearch.RegistrationDocuments.Select(x => new RegistrationDocumentDto
+                                    {
+                                        FileContent = x.FileContent,
+                                        FileName = x.FileName,
+                                        FileType = x.FileType
+                                    }).ToList(),
+                                    SupportingDocuments = legalSearch.SupportingDocuments.Select(x => new RegistrationDocumentDto
+                                    {
+                                        FileContent = x.FileContent,
+                                        FileName = x.FileName,
+                                        FileType = x.FileType
+                                    }).ToList(),
+                                    Discussions = legalSearch.Discussions.Select(x => new DiscussionDto
+                                    { Conversation = x.Conversation }).ToList(),
+                                }).ToList());
 
                 return data;
             }

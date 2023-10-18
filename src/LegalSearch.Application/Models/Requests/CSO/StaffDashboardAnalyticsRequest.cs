@@ -9,5 +9,6 @@ namespace LegalSearch.Application.Models.Requests.CSO
         public CsoRequestStatusType? CsoRequestStatusType { get; set; }
         [JsonIgnore]
         public string? BranchId { get; set; }
+        public string? RegionId { get; set; }
     }
 }
