@@ -1,6 +1,6 @@
 ﻿namespace LegalSearch.Application.Models.Responses.ZSM
 {
-    public class ZonalServiceManagerReportModel
+    public class ReportModel
     {
         public int RequestsPendingWithCsoCount { get; set; }
         public int RequestsPendingWithSolicitorCount { get; set; }

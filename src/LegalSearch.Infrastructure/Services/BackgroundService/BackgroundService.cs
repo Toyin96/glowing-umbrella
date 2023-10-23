@@ -13,7 +13,9 @@ using LegalSearch.Application.Models.Responses;
 using LegalSearch.Application.Models.Responses.ZSM;
 using LegalSearch.Domain.ApplicationMessages;
 using LegalSearch.Domain.Entities.LegalRequest;
+using LegalSearch.Domain.Entities.User;
 using LegalSearch.Domain.Entities.User.Solicitor;
+using LegalSearch.Domain.Enums;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
@@ -23,6 +25,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Linq;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -40,6 +44,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
         private readonly ILegalSearchRequestPaymentLogManager _legalSearchRequestPaymentLogManager;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
         private readonly IZonalManagerService _zonalManagerService;
+        private readonly ICustomerManagerService _customerManagerService;
         private readonly IEmailService _emailService;
         private readonly ILogger<BackgroundService> _logger;
         private readonly FCMBConfig _options;
@@ -56,6 +61,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             ILegalSearchRequestPaymentLogManager legalSearchRequestPaymentLogManager,
             UserManager<Domain.Entities.User.User> userManager,
             IZonalManagerService zonalManagerService,
+            ICustomerManagerService customerManagerService,
             IEmailService emailService,
             ILogger<BackgroundService> logger)
         {
@@ -68,6 +74,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             _legalSearchRequestPaymentLogManager = legalSearchRequestPaymentLogManager;
             _userManager = userManager;
             _zonalManagerService = zonalManagerService;
+            _customerManagerService = customerManagerService;
             _emailService = emailService;
             _logger = logger;
             _options = options.Value;
@@ -93,7 +100,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An exception occurred in AssignRequestToSolicitorsJob: {ex.Message}");
+                _logger.LogError($"An exception occurred in AssignRequestToSolicitorsJob: {ex.Message}");
             }
         }
 
@@ -183,7 +190,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An exception was thrown inside CheckAndRerouteRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
+                _logger.LogError($"An exception was thrown inside CheckAndRerouteRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
         }
 
@@ -240,7 +247,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             catch (Exception ex)
             {
 
-                Console.WriteLine($"An exception was thrown inside PushRequestToNextSolicitorInOrder. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
+                _logger.LogError($"An exception was thrown inside PushRequestToNextSolicitorInOrder. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
         }
 
@@ -363,7 +370,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             catch (Exception ex)
             {
 
-                Console.WriteLine($"An exception was thrown inside NotificationReminderForUnAttendedRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
+                _logger.LogError($"An exception was thrown inside NotificationReminderForUnAttendedRequestsJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
         }
 
@@ -468,7 +475,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An exception was thrown inside InitiatePaymentToSolicitorJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
+                _logger.LogError($"An exception was thrown inside InitiatePaymentToSolicitorJob. See:::{JsonSerializer.Serialize(ex, _serializerOptions)}");
             }
         }
 
@@ -807,13 +814,14 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                         .Select(x => x.SolId)
                         .ToListAsync();
 
+                    // ZSM has no branch associated to it
                     if (!branchIds.Any()) continue;
 
                     var requests = _appDbContext.LegalSearchRequests
                         .Where(x => branchIds.Contains(x.BranchId)
-                                    && x.CreatedAt.Date <= TimeUtils.GetCurrentLocalTime().Date);
+                                    && x.CreatedAt.Date == TimeUtils.GetCurrentLocalTime().Date);
 
-                    if (!requests.Any()) continue; // skipping for current ZSM because there are no matching requests
+                    //if (!requests.Any()) continue; // skipping for current ZSM because there are no matching requests
 
                     var zsmReportModel = await ProcessRequestsForZonalServiceManager(requests);
 
@@ -822,12 +830,12 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 catch (Exception ex)
                 {
                     // Handle the exception (log, notify, etc.)
-                    Console.WriteLine($"Error processing Zonal Service Manager {zonalServiceManager.Id}: {ex.Message}");
+                    _logger.LogError($"Error processing Zonal Service Manager {zonalServiceManager.Id}: {ex.Message}");
                 }
             }
         }
 
-        private async Task<ZonalServiceManagerReportModel> ProcessRequestsForZonalServiceManager(IQueryable<LegalRequest> requests)
+        private async Task<ReportModel> ProcessRequestsForZonalServiceManager(IQueryable<LegalRequest> requests)
         {
             try
             {
@@ -846,9 +854,10 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                     Task.Run(() => requestList.Count(x => x.Status == RequestStatusType.Completed.ToString())),
                 };
 
+                // Wait for all tasks to be completed
                 await Task.WhenAll(countsTasks);
 
-                return new ZonalServiceManagerReportModel
+                return new ReportModel
                 {
                     RequestsPendingWithSolicitorCount = countsTasks[0].Result,
                     RequestsPendingWithCsoCount = countsTasks[1].Result,
@@ -858,13 +867,13 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing requests for Zonal Service Manager: {ex.Message}");
+                _logger.LogError($"Error processing requests for Zonal Service Manager: {ex.Message}");
                 throw; // Re-throw the exception to propagate it
             }
         }
 
 
-        private async Task SendReportToZonalServiceManager(ZonalServiceManagerMiniDto zonalServiceManager, ZonalServiceManagerReportModel zsmReportModel)
+        private async Task SendReportToZonalServiceManager(ZonalServiceManagerMiniDto zonalServiceManager, ReportModel zsmReportModel)
         {
             var emailTemplate = EmailTemplates.GetDailyReportEmailTemplateForZsm();
 
@@ -887,6 +896,29 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             await _emailService.SendEmailAsync(emailModel);
         }
 
+        private async Task SendReportToCustomerServiceManager(CustomerServiceManagerMiniDto customerServiceManager, ReportModel zsmReportModel)
+        {
+            var emailTemplate = EmailTemplates.GetDailyReportEmailTemplateForCsm();
+
+            var keys = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("{{date}}", TimeUtils.GetCurrentLocalTime().ToString("D")),
+                new KeyValuePair<string, string>("{{CustomerServiceManagerName}}", customerServiceManager.Name),
+                new KeyValuePair<string, string>("{{CompletedRequestCount}}", zsmReportModel.CompletedRequestsCount.ToString()),
+                new KeyValuePair<string, string>("{{RequestsPendingWithSolicitorCount}}", zsmReportModel.RequestsPendingWithSolicitorCount.ToString()),
+                new KeyValuePair<string, string>("{{RequestsPendingWithCsoCount}}", zsmReportModel.RequestsPendingWithCsoCount.ToString()),
+                new KeyValuePair<string, string>("{{RequestsWithElapsedSlaCount}}", zsmReportModel.RequestsWithElapsedSlaCount.ToString())
+            };
+
+            emailTemplate = await emailTemplate.UpdatePlaceHolders(keys);
+
+            // generate email model
+            var emailModel = GenerateEmailModel(emailTemplate, customerServiceManager);
+
+            // send email
+            await _emailService.SendEmailAsync(emailModel);
+        }
+
         private SendEmailRequest GenerateEmailModel(string emailTemplate, ZonalServiceManagerMiniDto zonalServiceManager)
         {
             return new SendEmailRequest
@@ -899,5 +931,59 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             };
         }
 
+        private SendEmailRequest GenerateEmailModel(string emailTemplate, CustomerServiceManagerMiniDto zonalServiceManager)
+        {
+            return new SendEmailRequest
+            {
+                From = "ebusiness@fcmb.com",
+                Body = emailTemplate,
+                To = zonalServiceManager.EmailAddress,
+                Bcc = !string.IsNullOrWhiteSpace(zonalServiceManager.AlternateEmailAddress) ? new List<string> { zonalServiceManager.AlternateEmailAddress } : new List<string>(),
+                Subject = "Legal Search Daily Summary Report"
+            };
+        }
+
+        public async Task GenerateDailySummaryForCustomerServiceManagers()
+        {
+            var customerServiceManagers = await _customerManagerService.GetCustomerServiceManagers();
+
+            if (!customerServiceManagers.Data.Any()) return;
+
+
+            // TODO: Remove after testing
+            customerServiceManagers.Data.ToList().ForEach(x =>
+            {
+                x.EmailAddress = "onagoruwam@gmail.com";
+            });
+
+            foreach (var customerServiceManager in customerServiceManagers.Data)
+            {
+                try
+                {
+                    // Get CSOs under CSM
+                    var claim = new Claim(nameof(ClaimType.SolId), customerServiceManager.SolId);
+                    
+                    var customerServiceOfficers = await _userManager.GetUsersForClaimAsync(claim);
+
+                    // ZSM has no branch associated to it
+                    if (!customerServiceOfficers.Any()) continue;
+
+                    // Extract all CSOs IDs under CSM
+                    List<Guid> csoIds = customerServiceOfficers.Select(x => x.Id).ToList();
+
+                    var requests = _appDbContext.LegalSearchRequests
+                        .Where(x => x.InitiatorId.HasValue && csoIds.Contains(x.InitiatorId.Value)
+                                    && x.CreatedAt.Date == TimeUtils.GetCurrentLocalTime().Date);
+
+                    var reportModel = await ProcessRequestsForZonalServiceManager(requests);
+
+                    await SendReportToCustomerServiceManager(customerServiceManager, reportModel);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error processing Customer Service Manager {customerServiceManager.SolId}: {ex.Message}");
+                }
+            }
+        }
     }
 }

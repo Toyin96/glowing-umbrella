@@ -380,6 +380,7 @@ namespace LegalSearch.Infrastructure.Services.User
                 DisplayName = user.FullName,
                 Branch = branch,
                 Role = role,
+                Id = user.Id,
                 LastLoginDate = user.LastLogin,
                 SolId = user.SolId!
             };
@@ -445,7 +446,7 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful
             return new ObjectResponse<LoginResponse>("Successfully authenticated user", ResponseCodes.Success)
             {
-                Data = new LoginResponse { Token = token, Role = roles[0], LastLoginDate = previousLastLogin }
+                Data = new LoginResponse { Token = token, Role = roles[0], LastLoginDate = previousLastLogin, Id = user.Id }
             };
         }
 
@@ -659,7 +660,8 @@ namespace LegalSearch.Infrastructure.Services.User
             // Login successful
             return new ObjectResponse<LoginResponse>("Successfully authenticated user", ResponseCodes.Success)
             {
-                Data = new LoginResponse { Token = token, LastLoginDate = previousLastLogin, Role = roles[0], DisplayName = user.FullName }
+                Data = new LoginResponse { Token = token, LastLoginDate = previousLastLogin, Role = roles[0], 
+                    DisplayName = user.FullName, Id = user.Id }
             };
         }
 

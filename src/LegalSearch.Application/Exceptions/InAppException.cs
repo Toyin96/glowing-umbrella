@@ -6,21 +6,21 @@ namespace LegalSearch.Application.Exceptions
     [Serializable]
     public class InAppException : Exception
     {
-        protected InAppException(string message) : base(message)
+        public InAppException(string message) : base(message)
         {
 
         }
 
-        protected InAppException(string message, Exception inner) : base(message, inner)
+        public InAppException(string message, Exception inner) : base(message, inner)
         {
         }
 
-        protected InAppException(string message, params object[] args)
+        public InAppException(string message, params object[] args)
             : base(String.Format(CultureInfo.CurrentCulture, message, args))
         {
         }
 
-        protected InAppException(SerializationInfo info, StreamingContext context) : base(info, context)
+        public InAppException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
     }

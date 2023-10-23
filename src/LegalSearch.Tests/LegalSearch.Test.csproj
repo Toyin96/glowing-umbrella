@@ -36,5 +36,9 @@
       <HintPath>..\LegalSearch.Infrastructure\Libraries\Fcmb.Shared.Auth.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="CoverageReports\" />
+  </ItemGroup>
 	
 </Project>

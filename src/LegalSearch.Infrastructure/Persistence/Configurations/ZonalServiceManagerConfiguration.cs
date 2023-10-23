@@ -8,7 +8,7 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<ZonalServiceManager> builder)
         {
-            //builder.HasKey(x => x.Id);
+            //builder.HasKey(x => x.SolId);
             //builder.HasMany(x => x.Branches)
             //       .WithOne(x => x.ZonalServiceManager)
             //       .IsRequired(false)
