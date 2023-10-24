@@ -157,7 +157,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="services"></param>
         /// <param name="configuration"></param>
-        private static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             // Configure JWT Authentication
             var jwtSettings = configuration.GetSection("JwtSettings");
@@ -306,7 +306,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="app">The application.</param>
         /// <param name="configuration">The configuration.</param>
-        private static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
+        public static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
         {
             using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
             {
@@ -352,7 +352,7 @@ namespace LegalSearch.Api
             }
         }
 
-        private static async Task EnsureAdminRole(RoleManager<Role> roleManager)
+        public static async Task EnsureAdminRole(RoleManager<Role> roleManager)
         {
             var adminRoleName = RoleType.Admin.ToString();
 
@@ -362,7 +362,7 @@ namespace LegalSearch.Api
             }
         }
 
-        private static async Task CreateAdminUser(IConfiguration configuration, UserManager<User> userManager)
+        public static async Task CreateAdminUser(IConfiguration configuration, UserManager<User> userManager)
         {
             var adminEmail = configuration?[AppConstants.AdminEmail];
             var adminPassword = configuration?[AppConstants.AdminPassword];

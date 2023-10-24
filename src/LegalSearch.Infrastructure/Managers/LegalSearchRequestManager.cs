@@ -639,9 +639,32 @@ namespace LegalSearch.Infrastructure.Managers
                 query = FilterQueryBasedOnCsoRequestStatus(request, query);
             }
 
+            if (request.SearchType.HasValue)
+            {
+                query = FilterQueryBasedOnSearchType(request, query);
+            }
+
             if (request.BranchId != null)
             {
                 query = query.Where(x => x.BranchId == request.BranchId);
+            }
+
+            return query;
+        }
+
+        private IQueryable<LegalRequest> FilterQueryBasedOnSearchType(StaffDashboardAnalyticsRequest request, IQueryable<LegalRequest> query)
+        {
+            // Exclude these statuses from all cases
+            query = query.Where(x => x.Status != RequestStatusType.BackToCso.ToString() && x.Status != RequestStatusType.Cancelled.ToString());
+
+            switch (request.SearchType)
+            {
+                case SearchType.WithinTAT:
+                    query = query.Where(x => x.DateDue.HasValue && x.DateDue.Value >= TimeUtils.GetCurrentLocalTime());
+                    break;
+                case SearchType.OutsideTAT:
+                    query = query.Where(x => x.DateDue.HasValue && x.DateDue.Value < TimeUtils.GetCurrentLocalTime());
+                    break;
             }
 
             return query;
