@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalSearch.Infrastructure.Managers
 {
-    internal class CustomerServiceDbManager : ICustomerServiceManager
+    public class CustomerServiceDbManager : ICustomerServiceManager
     {
         private readonly AppDbContext _appDbContext;
 

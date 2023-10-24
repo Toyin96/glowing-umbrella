@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalSearch.Infrastructure.Managers
 {
-    internal class LegalSearchRequestPaymentLogManager : ILegalSearchRequestPaymentLogManager
+    public class LegalSearchRequestPaymentLogManager : ILegalSearchRequestPaymentLogManager
     {
         private readonly AppDbContext _appDbContext;
 
