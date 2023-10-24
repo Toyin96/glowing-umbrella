@@ -7,4 +7,12 @@
         public string? AlternateEmailAddress { get; set; }
         public required string Name { get; set; }
     }
+
+    public class CustomerServiceManagerMiniDto
+    {
+        public required string SolId { get; set; }
+        public required string EmailAddress { get; set; }
+        public string? AlternateEmailAddress { get; set; }
+        public required string Name { get; set; }
+    }
 }

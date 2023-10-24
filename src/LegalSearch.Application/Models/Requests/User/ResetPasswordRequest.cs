@@ -13,4 +13,14 @@ namespace LegalSearch.Application.Models.Requests.User
         public required string Email { get; set; }
         public required string Token { get; set; }
     }
+
+    public class ChangePasswordRequest
+    {
+        [Required]
+        [DataType(DataType.Password)]
+        public required string OldPassword { get; set; }
+        [DataType(DataType.Password)]
+        public required string NewPassword { get; set; }
+        public required string Email { get; set; }
+    }
 }

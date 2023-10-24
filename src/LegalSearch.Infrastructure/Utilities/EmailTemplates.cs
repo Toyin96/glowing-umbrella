@@ -164,5 +164,57 @@
 ";
             return text;
         }
+
+        public static string GetDailyReportEmailTemplateForCsm()
+        {
+            var text = @"
+<!DOCTYPE html>
+<html lang=""en"">
+<head>
+    <meta charset=""UTF-8"">
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Daily Summary Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class=""container"">
+        <div class=""content"">
+            <p>Dear {{CustomerServiceManagerName}},</p>
+            <p>Here is a recap of today, {{date}},</p>
+            <ul>
+                <li>Completed requests: {{CompletedRequestCount}}</li>
+                <li>Total pending requests with Solicitors: {{RequestsPendingWithSolicitorCount}}</li>
+                <li>Total pending requests with Customer Service Officers: {{RequestsPendingWithCsoCount}}</li>
+                <li>Total pending requests that have exceeded SLA (3 days): {{RequestsWithElapsedSlaCount}}</li>
+            </ul>
+            <p>Best regards,<br>LegalSearch Team</p>
+        </div>
+    </div>
+</body>
+</html>
+
+";
+            return text;
+        }
+
     }
 }

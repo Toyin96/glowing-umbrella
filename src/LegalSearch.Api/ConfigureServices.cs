@@ -42,7 +42,7 @@ namespace LegalSearch.Api
         {
             services.AddControllers(options =>
             {
-                options.Filters.Add<RequestValidationFilter>();
+                //options.Filters.Add<RequestValidationFilter>();
             }).AddJsonOptions(x =>
             {
                 x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -64,7 +64,7 @@ namespace LegalSearch.Api
             // add logging capabilities
             // Retrieve logger options from appsettings.json
             var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
-            services.ConfigureLoggingCapability(configuration, loggerOptions);
+            services.ConfigureLoggingCapability(loggerOptions);
 
             services.AddCors(options =>
             {
@@ -157,7 +157,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="services"></param>
         /// <param name="configuration"></param>
-        private static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             // Configure JWT Authentication
             var jwtSettings = configuration.GetSection("JwtSettings");
@@ -188,10 +188,9 @@ namespace LegalSearch.Api
         /// Configures the logging capability.
         /// </summary>
         /// <param name="services">The services.</param>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="loggerOptions">The logger options.</param>
         /// <exception cref="System.ArgumentNullException">loggerOptions - LoggerOptions is null. Check the configuration.</exception>
-        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration, LoggerOptions? loggerOptions)
+        private static void ConfigureLoggingCapability(this IServiceCollection services, LoggerOptions? loggerOptions)
         {
             // Check if loggerOptions is null
             if (loggerOptions == null)
@@ -306,7 +305,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="app">The application.</param>
         /// <param name="configuration">The configuration.</param>
-        private static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
+        public static void UpdateDatabase(IApplicationBuilder app, IConfiguration configuration)
         {
             using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
             {
@@ -352,7 +351,7 @@ namespace LegalSearch.Api
             }
         }
 
-        private static async Task EnsureAdminRole(RoleManager<Role> roleManager)
+        public static async Task EnsureAdminRole(RoleManager<Role> roleManager)
         {
             var adminRoleName = RoleType.Admin.ToString();
 
@@ -362,7 +361,7 @@ namespace LegalSearch.Api
             }
         }
 
-        private static async Task CreateAdminUser(IConfiguration configuration, UserManager<User> userManager)
+        public static async Task CreateAdminUser(IConfiguration configuration, UserManager<User> userManager)
         {
             var adminEmail = configuration?[AppConstants.AdminEmail];
             var adminPassword = configuration?[AppConstants.AdminPassword];
