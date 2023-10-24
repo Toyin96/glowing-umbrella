@@ -329,7 +329,6 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             return randomValue % maxValue;
         }
 
-
         private async Task NotifyLegalPerfectionTeam(LegalRequest request)
         {
             // form notification request
@@ -567,7 +566,6 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
         }
 
-
         private async Task ReProcessSolicitorSettlement(LegalSearchRequestPaymentLog legalSearchRequestPaymentLog)
         {
             switch (legalSearchRequestPaymentLog.PaymentStatus)
@@ -620,7 +618,6 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             // Update the payment log accordingly based on the lien validation response and/or payment response
             await _legalSearchRequestPaymentLogManager.UpdateLegalSearchRequestPaymentLog(updatedPaymentLogRequest);
         }
-
         private async Task ReProcessMakePayment(LegalSearchRequestPaymentLog paymentLog)
         {
             var paymentRequest = GeneratePaymentRequest(paymentLog, paymentLog.SourceAccountName);
@@ -871,7 +868,6 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
                 throw; // Re-throw the exception to propagate it
             }
         }
-
 
         private async Task SendReportToZonalServiceManager(ZonalServiceManagerMiniDto zonalServiceManager, ReportModel zsmReportModel)
         {

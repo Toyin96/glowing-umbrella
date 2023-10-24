@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
@@ -813,6 +814,42 @@ namespace LegalSearch.Infrastructure.Services.User
             var token = _jwtTokenHelper.GenerateJwtToken(claims);
 
             return new ObjectResponse<ReIssueTokenResponse>("Token generated successfully", ResponseCodes.Success) { Data = new ReIssueTokenResponse { Token = token } };
+        }
+
+        public async Task<StatusResponse> ChangePassword(ChangePasswordRequest request)
+        {
+            try
+            {
+                // Find the user by email
+                var user = await _userManager.FindByEmailAsync(request.Email);
+
+                if (user == null)
+                    return new StatusResponse("Invalid email", ResponseCodes.InvalidCredentials);
+
+                if (user.OnboardingStatus == OnboardingStatusType.Initial)
+                    return new StatusResponse("Kindly reset your default password", ResponseCodes.Forbidden);
+
+                var isUserAuthenticatedSuccessfully = await _userManager.CheckPasswordAsync(user, request.OldPassword);
+
+                if (!isUserAuthenticatedSuccessfully)
+                    return new StatusResponse("The credentials you provided is incorrect", ResponseCodes.Forbidden);
+
+                // Reset the password
+                var changePasswordResult = await _userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
+
+                if (!changePasswordResult.Succeeded)
+                    return new StatusResponse(changePasswordResult.GetStandardizedError() ?? "Password reset failed.", ResponseCodes.Conflict);
+
+                // Update user in the database
+                await _userManager.UpdateAsync(user);
+
+                return new StatusResponse("Password has been changed successfully.", ResponseCodes.Success);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"An exception was thrown inside ChangePassword. See details: {JsonSerializer.Serialize(ex)}");
+                return new StatusResponse("Password could not be changed at this time. Please try again.", ResponseCodes.ServiceError);
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ namespace LegalSearch.Application.Interfaces.Auth
         Task<StatusResponse> UnlockCode(UnlockAccountRequest request);
         Task<ObjectResponse<LoginResponse>> Verify2fa(TwoFactorVerificationRequest request);
         Task<StatusResponse> ResetPassword(ResetPasswordRequest request);
+        Task<StatusResponse> ChangePassword(ChangePasswordRequest request);
         Task<StatusResponse> OnboardNewUser(OnboardNewUserRequest request);
     }
 }

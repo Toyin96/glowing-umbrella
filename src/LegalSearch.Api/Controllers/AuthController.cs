@@ -119,6 +119,21 @@ namespace LegalSearch.Api.Controllers
         }
 
         /// <summary>
+        /// Allows existing users change their current password to a new one.
+        /// </summary>
+        /// <param name="request">The request.</param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("Solicitor/ChangePassword")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.BadRequest)]
+        public async Task<ActionResult<StatusResponse>> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var response = await _solicitorAuthService.ChangePassword(request);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
         /// Onboards a new user into the system. Requires admin authentication.
         /// </summary>
         /// <param name="request">The request containing information for onboarding a new user.</param>
