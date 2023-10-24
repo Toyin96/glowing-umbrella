@@ -1,10 +1,11 @@
 ﻿using Hangfire;
 using LegalSearch.Application.Interfaces.BackgroundService;
 using LegalSearch.Infrastructure.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LegalSearch.Infrastructure.BackgroundJobs
 {
-
+    [ExcludeFromCodeCoverage]
     public static class HangfireJobs
     {
         public static void RegisterRecurringJobs()

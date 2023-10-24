@@ -17,7 +17,7 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Managers
 {
-    internal class LegalSearchRequestManager : ILegalSearchRequestManager
+    public class LegalSearchRequestManager : ILegalSearchRequestManager
     {
         private readonly AppDbContext _appDbContext;
         private readonly ILogger<LegalSearchRequestManager> _logger;

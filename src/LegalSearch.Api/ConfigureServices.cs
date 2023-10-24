@@ -64,7 +64,7 @@ namespace LegalSearch.Api
             // add logging capabilities
             // Retrieve logger options from appsettings.json
             var loggerOptions = configuration.GetSection("Logging").Get<LoggerOptions>();
-            services.ConfigureLoggingCapability(configuration, loggerOptions);
+            services.ConfigureLoggingCapability(loggerOptions);
 
             services.AddCors(options =>
             {
@@ -188,10 +188,9 @@ namespace LegalSearch.Api
         /// Configures the logging capability.
         /// </summary>
         /// <param name="services">The services.</param>
-        /// <param name="configuration">The configuration.</param>
         /// <param name="loggerOptions">The logger options.</param>
         /// <exception cref="System.ArgumentNullException">loggerOptions - LoggerOptions is null. Check the configuration.</exception>
-        private static void ConfigureLoggingCapability(this IServiceCollection services, IConfiguration configuration, LoggerOptions? loggerOptions)
+        private static void ConfigureLoggingCapability(this IServiceCollection services, LoggerOptions? loggerOptions)
         {
             // Check if loggerOptions is null
             if (loggerOptions == null)

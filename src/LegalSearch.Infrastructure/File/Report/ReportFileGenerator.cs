@@ -6,7 +6,7 @@ using System.Data;
 
 namespace LegalSearch.Infrastructure.File.Report
 {
-    internal static class ReportFileGenerator
+    public static class ReportFileGenerator
     {
         public static void WriteLegalSearchReportToStreamForStaff(Stream outputStream, StaffRootResponsePayload reports)
         {
@@ -32,7 +32,7 @@ namespace LegalSearch.Infrastructure.File.Report
             workbook.SaveAs(outputStream);
         }
 
-        private static DataTable GenerateLegalSearchDataTableForSolicitor(LegalSearchRootResponsePayload reports)
+        public static DataTable GenerateLegalSearchDataTableForSolicitor(LegalSearchRootResponsePayload reports)
         {
             var dataTable = new DataTable(ReportConstants.LegalSearchReport);
             ProcessLegalSearchRootResponsePayloadColumns(dataTable);
@@ -133,7 +133,7 @@ namespace LegalSearch.Infrastructure.File.Report
             dataTable.Columns.Add("Within3HoursToDueCount", typeof(int));
         }
 
-        private static DataTable GenerateLegalSearchDataTableForStaffReport(StaffRootResponsePayload reports)
+        public static DataTable GenerateLegalSearchDataTableForStaffReport(StaffRootResponsePayload reports)
         {
             var dataTable = new DataTable(ReportConstants.LegalSearchReport);
             ProcessStaffRootResponsePayloadColumns(dataTable);
