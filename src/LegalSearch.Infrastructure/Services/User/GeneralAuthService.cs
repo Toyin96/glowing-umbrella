@@ -288,7 +288,7 @@ namespace LegalSearch.Infrastructure.Services.User
         /// <param name="role">The role.</param>
         /// <param name="request">The request.</param>
         /// <returns></returns>
-        private async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
+        public async Task<ObjectResponse<LoginResponse>> StaffLoginFlow(Domain.Entities.User.User user, IList<string> role, LoginRequest request)
         {
             //ObjectResponse<AdLoginResponse> result = await _authService.LoginAsync(request);
             var solIds = new List<string>() { "198", "259", "052", "048", "111", "061" };
@@ -393,7 +393,7 @@ namespace LegalSearch.Infrastructure.Services.User
         /// <param name="user">The user.</param>
         /// <param name="password">The password.</param>
         /// <returns></returns>
-        private async Task<ObjectResponse<LoginResponse>> InAppUserLoginFlow(Domain.Entities.User.User user, string password)
+        public async Task<ObjectResponse<LoginResponse>> InAppUserLoginFlow(Domain.Entities.User.User user, string password)
         {
             if (user == null)
             {
@@ -456,7 +456,7 @@ namespace LegalSearch.Infrastructure.Services.User
         /// </summary>
         /// <param name="user">The user.</param>
         /// <returns></returns>
-        private async Task<ObjectResponse<LoginResponse>> NotifyUserOfLockedOutStatus(Domain.Entities.User.User user)
+        public async Task<ObjectResponse<LoginResponse>> NotifyUserOfLockedOutStatus(Domain.Entities.User.User user)
         {
             string emailBody = EmailTemplates.GetEmailTemplateForUnlockingAccountAwareness();
 
@@ -491,10 +491,10 @@ namespace LegalSearch.Infrastructure.Services.User
         /// <param name="user">The user.</param>
         /// <param name="role">The role.</param>
         /// <returns></returns>
-        private async Task<ObjectResponse<LoginResponse>> Generate2faTokenForSolicitor(Domain.Entities.User.User user, string role)
+        public async Task<ObjectResponse<LoginResponse>> Generate2faTokenForSolicitor(Domain.Entities.User.User user, string role)
         {
             // Generate and save the 2FA token
-            var tokenProvider = TokenOptions.DefaultPhoneProvider; // You can use the appropriate token provider
+            var tokenProvider = TokenOptions.DefaultPhoneProvider; 
             var twoFactorToken = await _userManager.GenerateTwoFactorTokenAsync(user, tokenProvider);
             await _userManager.SetAuthenticationTokenAsync(user, tokenProvider, "2fa", twoFactorToken);
 

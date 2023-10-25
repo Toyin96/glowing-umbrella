@@ -59,5 +59,31 @@ namespace LegalSearch.Test.Infrastructure.Utils
             // Assert
             Assert.Equal(expectedElapsedTime.Hour, actualElapsedTime.Hour);
         }
+
+        [Fact]
+        public void GetCronExpressionForElevenThirtyPmDailyWAT_ShouldReturnValidCronExpression()
+        {
+            // Arrange
+            string expectedCronExpression = "30 23 * * *";
+
+            // Act
+            string actualCronExpression = TimeUtils.GetCronExpressionForElevenThirtyPmDailyWAT;
+
+            // Assert
+            Assert.Equal(expectedCronExpression, actualCronExpression);
+        }
+
+        [Fact]
+        public void GetCronExpressionForElevenFourtyPmDailyWAT_ShouldReturnValidCronExpression()
+        {
+            // Arrange
+            string expectedCronExpression = "40 23 * * *";
+
+            // Act
+            string actualCronExpression = TimeUtils.GetCronExpressionForElevenFourtyPmDailyWAT;
+
+            // Assert
+            Assert.Equal(expectedCronExpression, actualCronExpression);
+        }
     }
 }

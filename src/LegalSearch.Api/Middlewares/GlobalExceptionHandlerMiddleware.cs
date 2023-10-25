@@ -1,6 +1,4 @@
 ﻿using Fcmb.Shared.Models.Responses;
-using Fcmb.Shared.Utilities;
-using LegalSearch.Application.Exceptions;
 using LegalSearch.Application.Models.Constants;
 using Microsoft.AspNetCore.Diagnostics;
 using Newtonsoft.Json;
