@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.User
 {
-    internal class CustomerManagerService : ICustomerManagerService
+    public class CustomerManagerService : ICustomerManagerService
     {
         private readonly ICustomerServiceManager _customerServiceManager;
         private readonly ILogger<CustomerManagerService> _logger;
@@ -31,7 +31,7 @@ namespace LegalSearch.Infrastructure.Services.User
             }
             catch (Exception ex)
             {
-                _logger.LogError($"An exception occurred inside GetCustomerServiceManagers. See reason: {JsonSerializer.Serialize(ex)}");
+                _logger.LogError($"An exception occurred inside GetCustomerServiceManagers. Exception Message: {ex.Message}");
                 throw;
             }
         }

@@ -315,7 +315,7 @@ namespace LegalSearch.Infrastructure.Services.BackgroundService
             }
         }
 
-        private static int GetRandomNumber(RandomNumberGenerator rng, int maxValue)
+        public static int GetRandomNumber(RandomNumberGenerator rng, int maxValue)
         {
             if (maxValue < 1)
             {

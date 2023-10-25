@@ -10,6 +10,11 @@ namespace LegalSearch.Domain.Entities.Role
             UpdatedAt = DateTime.UtcNow;
         }
 
+        public Role(string roleName) : base(roleName)
+        {
+            Name = roleName;
+        }
+
         public List<RolePermission> Permissions { get; set; } = new();
 
         public DateTime UpdatedAt { get; set; }
