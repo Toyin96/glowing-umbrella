@@ -7,7 +7,7 @@ namespace LegalSearch.Domain.Entities.User
     {
         public required string Name { get; set; }
         public required string EmailAddress { get; set; }
-        public required string AlternateEmailAddress { get; set; }
+        public string? AlternateEmailAddress { get; set; }
         public ICollection<Branch> Branches { get; set; } = new List<Branch>();
     }
 }

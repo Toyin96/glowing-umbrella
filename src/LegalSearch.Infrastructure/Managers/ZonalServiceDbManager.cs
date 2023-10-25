@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalSearch.Infrastructure.Managers
 {
-    internal class ZonalServiceDbManager : IZonalServiceManager
+    public class ZonalServiceDbManager : IZonalServiceManager
     {
         private readonly AppDbContext _context;
 

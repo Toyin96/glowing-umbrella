@@ -12,6 +12,9 @@ namespace LegalSearch.Infrastructure.Utilities
             // Check if the IdentityResult is null, return null in that case
             if (identityResult == null) return null;
 
+            // Check if the IdentityResult is success
+            if (identityResult.Succeeded) return null;
+
             // Check if there are any errors in the IdentityResult
             if (identityResult.Errors.Any())
             {

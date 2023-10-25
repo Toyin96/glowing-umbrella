@@ -5,7 +5,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
-namespace LegalSearch.Test.Managers
+namespace LegalSearch.Test.Infrastructure.Managers
 {
     public class LegalSearchRequestPaymentLogManagerTests
     {
@@ -14,7 +14,7 @@ namespace LegalSearch.Test.Managers
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDatabase")
+                .UseInMemoryDatabase(databaseName: "TestDatabase1")
                 .Options;
 
             using (var dbContext = new AppDbContext(options))
@@ -44,9 +44,20 @@ namespace LegalSearch.Test.Managers
 
                 // Assert
                 Assert.True(result);
-                var addedPaymentLog = dbContext.LegalSearchRequestPaymentLogs.Single();
-                // Verify that the payment log was added to the database
-                Assert.Equal(paymentLog.SourceAccountName, addedPaymentLog.SourceAccountName);
+
+                var addedPaymentLog = dbContext.LegalSearchRequestPaymentLogs.SingleOrDefault();
+
+                if (addedPaymentLog != null)
+                {
+                    // Verify that the payment log was added to the database
+                    Assert.Equal(paymentLog.SourceAccountName, addedPaymentLog.SourceAccountName);
+                }
+                else
+                {
+                    // Handle the case where there's no matching element in the database.
+                    // This can occur when there are no elements or when there are multiple elements.
+                    Assert.True(false, "No matching element found in the database.");
+                }
             }
         }
 
@@ -56,7 +67,7 @@ namespace LegalSearch.Test.Managers
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDatabase")
+                .UseInMemoryDatabase(databaseName: "TestDatabase2")
                 .Options;
 
             using (var dbContext = new AppDbContext(options))
@@ -104,7 +115,7 @@ namespace LegalSearch.Test.Managers
         {
             // Arrange
             var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: "TestDatabase")
+                .UseInMemoryDatabase(databaseName: "TestDatabase3")
                 .Options;
 
             using (var dbContext = new AppDbContext(options))
