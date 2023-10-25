@@ -17,10 +17,11 @@ namespace LegalSearch.Infrastructure.Utilities
             byte[] data = new byte[4];
             _rng.GetBytes(data);  // Generate 4 random bytes
 
-            int randomNumber = BitConverter.ToInt32(data, 0) % 9000 + 1000; // Map the bytes to a 4-digit number
+            int randomNumber = Math.Abs(BitConverter.ToInt32(data, 0)) % 9000 + 1000; // Map the bytes to a 4-digit number
 
             return Task.FromResult(randomNumber.ToString("D4"));
         }
+
 
         public Task<bool> ValidateAsync(string purpose, string token, UserManager<TUser> manager, TUser user)
         {
