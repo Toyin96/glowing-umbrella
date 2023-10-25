@@ -17,6 +17,7 @@ using LegalSearch.Domain.Enums.Notification;
 using LegalSearch.Domain.Enums.Role;
 using LegalSearch.Infrastructure.Persistence;
 using LegalSearch.Infrastructure.Services.BackgroundService;
+using LegalSearch.Infrastructure.Services.FCMB;
 using LegalSearch.Tests.Mocks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection;
 using Moq;
 using System;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace LegalSearch.Test.Services
@@ -811,6 +813,45 @@ namespace LegalSearch.Test.Services
             // Assert
             // Verify that NotifyUser was called with the notification payload
             legalRequestManagerMock.Verify(service => service.GetLegalSearchRequest(It.IsAny<Guid>()), Times.Once);
+        }
+
+        [Fact]
+        public void GetRandomNumber_MaxValueLessThanOne_ThrowsException()
+        {
+            // Arrange
+            var rng = new RNGCryptoServiceProvider();
+            var maxValue = 0;
+
+            // Act & Assert
+            Assert.Throws<ArgumentOutOfRangeException>(() => BackgroundService.GetRandomNumber(rng, maxValue));
+        }
+
+        [Fact]
+        public void GetRandomNumber_ReturnsRandomNumberWithinRange()
+        {
+            // Arrange
+            var rng = new RNGCryptoServiceProvider();
+            var maxValue = 10;
+
+            // Act
+            int randomValue = BackgroundService.GetRandomNumber(rng, maxValue);
+
+            // Assert
+            Assert.InRange(randomValue, 0, maxValue - 1);
+        }
+
+        [Fact]
+        public void GetRandomNumber_ReturnsRandomNumberWithMaxValueOne()
+        {
+            // Arrange
+            var rng = new RNGCryptoServiceProvider();
+            var maxValue = 1;
+
+            // Act
+            int randomValue = BackgroundService.GetRandomNumber(rng, maxValue);
+
+            // Assert
+            Assert.Equal(0, randomValue);
         }
     }
 }
