@@ -15,7 +15,6 @@ using System.Reflection;
 
 namespace LegalSearch.Infrastructure
 {
-    [ExcludeFromCodeCoverage]
     public static class ConfigureServices
     {
         /// <summary>
