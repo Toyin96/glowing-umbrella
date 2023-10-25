@@ -37,12 +37,12 @@ namespace LegalSearch.Infrastructure
             services.ConfigureHttpClients(configuration);
         }
 
-        private static void ConfigureHttpClients(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureHttpClients(this IServiceCollection services, IConfiguration configuration)
         {
             ConfigureAuthHttpClient(services, configuration);
         }
 
-        private static void ConfigureIdentity(this IServiceCollection services)
+        public static void ConfigureIdentity(this IServiceCollection services)
         {
             static void SetupIdentityOptions(IdentityOptions x)
             {
@@ -72,7 +72,7 @@ namespace LegalSearch.Infrastructure
                     .AddTokenProvider<NumericTokenProvider<User>>("NumericTokenProvider"); // default token provider for 2fa
         }
 
-        private static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureAuthHttpClient(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHttpClient(HttpConstants.AuthHttpClient, client =>
             {
@@ -84,7 +84,7 @@ namespace LegalSearch.Infrastructure
             });
         }
 
-        private static void AutoInjectService(this IServiceCollection services)
+        public static void AutoInjectService(this IServiceCollection services)
         {
             //Register Services with Interface
             services.Scan(scan => scan.FromCallingAssembly().AddClasses(classes => classes

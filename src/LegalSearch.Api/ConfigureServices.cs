@@ -1,7 +1,6 @@
 ﻿using Hangfire;
 using HangfireBasicAuthenticationFilter;
 using HealthChecks.UI.Client;
-using LegalSearch.Api.Filters;
 using LegalSearch.Api.HealthCheck;
 using LegalSearch.Api.Logging;
 using LegalSearch.Api.Middlewares;
@@ -23,14 +22,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
 namespace LegalSearch.Api
 {
-    [ExcludeFromCodeCoverage]
     public static class ConfigureServices
     {
         /// <summary>
@@ -190,7 +187,7 @@ namespace LegalSearch.Api
         /// <param name="services">The services.</param>
         /// <param name="loggerOptions">The logger options.</param>
         /// <exception cref="System.ArgumentNullException">loggerOptions - LoggerOptions is null. Check the configuration.</exception>
-        private static void ConfigureLoggingCapability(this IServiceCollection services, LoggerOptions? loggerOptions)
+        public static void ConfigureLoggingCapability(this IServiceCollection services, LoggerOptions? loggerOptions)
         {
             // Check if loggerOptions is null
             if (loggerOptions == null)
@@ -218,7 +215,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="services">The services.</param>
         /// <param name="configuration">The configuration.</param>
-        private static void ConfigureHangFire(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureHangFire(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddHangfire(config =>
             {
@@ -235,7 +232,7 @@ namespace LegalSearch.Api
         /// </summary>
         /// <param name="services">The services.</param>
         /// <param name="configuration">The configuration.</param>
-        private static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration)
+        public static void ConfigureDatabase(this IServiceCollection services, IConfiguration configuration)
         {
             // Add database context
             services.AddDbContext<AppDbContext>(options =>
@@ -252,7 +249,7 @@ namespace LegalSearch.Api
         /// Configures the swagger.
         /// </summary>
         /// <param name="services">The services.</param>
-        private static void ConfigureSwagger(this IServiceCollection services)
+        public static void ConfigureSwagger(this IServiceCollection services)
         {
             services.AddSwaggerGen(c =>
             {
@@ -336,7 +333,7 @@ namespace LegalSearch.Api
             await CreateAdminUser(configuration, userManager);
         }
 
-        private static async Task SeedRoles(RoleManager<Role> roleManager)
+        public static async Task SeedRoles(RoleManager<Role> roleManager)
         {
             var roleTypes = Enum.GetValues(typeof(RoleType)).Cast<RoleType>();
 
