@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Linq.Expressions;
 
-namespace LegalSearch.Test.Managers
+namespace LegalSearch.Test.Infrastructure.Managers
 {
     public class LegalSearchRequestManagerTests
     {
@@ -66,7 +66,7 @@ namespace LegalSearch.Test.Managers
                 {
                     ReportFormatType = ReportFormatType.Pdf
                 };
-                var solicitorId = Guid.NewGuid(); 
+                var solicitorId = Guid.NewGuid();
 
                 // Act
                 var response = await manager.GetLegalRequestsForSolicitor(viewRequestAnalyticsPayload, solicitorId);

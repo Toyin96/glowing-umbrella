@@ -4,7 +4,7 @@ using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
-namespace LegalSearch.Test.Managers
+namespace LegalSearch.Test.Infrastructure.Managers
 {
     public class CustomerServiceDbManagerTests
     {
