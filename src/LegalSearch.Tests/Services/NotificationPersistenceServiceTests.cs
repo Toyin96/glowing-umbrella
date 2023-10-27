@@ -38,7 +38,6 @@ namespace LegalSearch.Tests.Services
         public async Task NotifyUser_ValidInput_ShouldCallAddMultipleNotifications()
         {
             // Arrange
-            var initiatorUserId = Guid.NewGuid();
             var notification = new Domain.Entities.Notification.Notification();
 
             // Act

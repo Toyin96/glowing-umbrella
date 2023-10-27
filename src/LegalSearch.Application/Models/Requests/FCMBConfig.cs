@@ -5,6 +5,7 @@ namespace LegalSearch.Application.Models.Requests
     public class FCMBConfig
     {
         public required string BaseUrl { get; set; }
+        public required string ApplicationBaseUrl { get; set; }
         public required string ClientId { get; set; }
         public required string SecretKey { get; set; }
         public required string FrontendBaseUrl { get; set; }

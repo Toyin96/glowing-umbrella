@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
+﻿using LegalSearch.Application.Models.Requests;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 namespace LegalSearch.Api.HealthCheck
 {
@@ -8,14 +10,16 @@ namespace LegalSearch.Api.HealthCheck
     public class ApiHealthCheck : IHealthCheck
     {
         private readonly HttpClient _httpClient;
+        private readonly FCMBConfig _options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApiHealthCheck"/> class.
         /// </summary>
         /// <param name="httpClient">The HttpClient instance.</param>
-        public ApiHealthCheck(HttpClient httpClient)
+        public ApiHealthCheck(HttpClient httpClient, IOptions<FCMBConfig> options)
         {
             _httpClient = httpClient;
+            _options = options.Value;
         }
 
         /// <summary>
@@ -29,6 +33,7 @@ namespace LegalSearch.Api.HealthCheck
             try
             {
                 // Replace with an actual test endpoint in your API
+                _httpClient.BaseAddress = new Uri(_options.ApplicationBaseUrl);
                 var response = await _httpClient.GetAsync("api/health");
 
                 if (response.IsSuccessStatusCode)

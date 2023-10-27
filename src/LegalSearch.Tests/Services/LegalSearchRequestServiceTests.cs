@@ -1,4 +1,4 @@
-﻿//using LegalSearch.Application.Interfaces.FCMBService;
+﻿//using LegalSearch.Application.Interfaces.FcmbService;
 //using LegalSearch.Application.Interfaces.LegalSearchRequest;
 //using LegalSearch.Application.Interfaces.Notification;
 //using LegalSearch.Application.Interfaces.User;

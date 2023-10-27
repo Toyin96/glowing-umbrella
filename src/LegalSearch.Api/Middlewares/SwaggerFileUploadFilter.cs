@@ -1,5 +1,6 @@
 ﻿using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LegalSearch.Api.Middlewares
 {
@@ -7,6 +8,7 @@ namespace LegalSearch.Api.Middlewares
     /// <summary>
     /// Custom Swagger filter to enhance file upload descriptions in Swagger documentation.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class SwaggerFileUploadFilter : IOperationFilter
     {
         /// <summary>
@@ -32,6 +34,4 @@ namespace LegalSearch.Api.Middlewares
             }
         }
     }
-
-
 }

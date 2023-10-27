@@ -1,9 +1,11 @@
 ﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Models.Constants;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LegalSearch.Api.Controllers
 {
+    [ExcludeFromCodeCoverage]
     public class BaseController : ControllerBase
     {
         protected ActionResult<T> HandleResponse<T>(T result) where T : StatusResponse

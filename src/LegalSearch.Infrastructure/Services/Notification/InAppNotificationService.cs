@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace LegalSearch.Infrastructure.Services.Notification
 {
-    internal class InAppNotificationService : IInAppNotificationService
+    public class InAppNotificationService : IInAppNotificationService
     {
         private readonly INotificationManager _notificationManager;
         private readonly UserManager<Domain.Entities.User.User> _userManager;
