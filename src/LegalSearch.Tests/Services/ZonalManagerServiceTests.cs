@@ -22,10 +22,10 @@ namespace LegalSearch.Tests.Services
         {
             // Arrange
             var zonalServiceManagers = new List<ZonalServiceManagerMiniDto>
-        {
-            new ZonalServiceManagerMiniDto { Id = Guid.NewGuid(), Name = "Manager 1", EmailAddress = "test_zsm1@fcmb.com" },
-            new ZonalServiceManagerMiniDto { Id = Guid.NewGuid(), Name = "Manager 2", EmailAddress = "test_zsm2@fcmb.com" }
-        };
+            {
+                new ZonalServiceManagerMiniDto { Id = Guid.NewGuid(), Name = "Manager 1", EmailAddress = "test_zsm1@fcmb.com" },
+                new ZonalServiceManagerMiniDto { Id = Guid.NewGuid(), Name = "Manager 2", EmailAddress = "test_zsm2@fcmb.com" }
+            };
 
             _mockZonalServiceManager.Setup(manager => manager.GetAllZonalServiceManagersInfo())
                 .ReturnsAsync(zonalServiceManagers);
