@@ -8,13 +8,13 @@ using System.Text.Json;
 
 namespace LegalSearch.Infrastructure.Services.FCMB
 {
-    public class FCMBService : IFcmbService
+    public class FcmbService : IFcmbService
     {
         private readonly HttpClient _client;
         private readonly FCMBConfig _fCMBServiceAppConfig;
         private readonly JsonSerializerOptions _jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-        public FCMBService(HttpClient client, IOptions<FCMBConfig> fCMBServiceAppConfig)
+        public FcmbService(HttpClient client, IOptions<FCMBConfig> fCMBServiceAppConfig)
         {
             _client = client;
             _fCMBServiceAppConfig = fCMBServiceAppConfig.Value;

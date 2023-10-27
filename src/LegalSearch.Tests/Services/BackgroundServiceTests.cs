@@ -54,6 +54,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -148,6 +149,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -240,6 +242,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -322,6 +325,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -418,6 +422,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -554,6 +559,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -628,6 +634,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",
@@ -733,6 +740,7 @@ namespace LegalSearch.Test.Services
             var fcmbConfig = new FCMBConfig
             {
                 BaseUrl = "Your BaseUrl",
+                ApplicationBaseUrl = "sample url",
                 ClientId = "Your ClientId",
                 SecretKey = "Your SecretKey",
                 FrontendBaseUrl = "Your FrontendBaseUrl",

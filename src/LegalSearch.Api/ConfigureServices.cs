@@ -77,7 +77,7 @@ namespace LegalSearch.Api
             // added signalR capability
             services.AddSignalR(option => option.EnableDetailedErrors = true);
 
-            services.AddHttpClient<IFcmbService, FCMBService>();
+            services.AddHttpClient<IFcmbService, FcmbService>();
             services.AddOptions<FCMBConfig>()
                     .BindConfiguration(nameof(FCMBConfig))
                     .ValidateDataAnnotations()

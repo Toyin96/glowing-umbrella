@@ -2,6 +2,7 @@
 using LegalSearch.Application.Models.Constants;
 using Microsoft.AspNetCore.Diagnostics;
 using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
 namespace LegalSearch.Api.Middlewares
@@ -9,6 +10,7 @@ namespace LegalSearch.Api.Middlewares
     /// <summary>
     /// Configures A Global Exception Handler To Handle Uncaught Exceptions
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public static class GlobalExceptionHandlerMiddleware
     {
         public static void UseGlobalExceptionHandler(this IApplicationBuilder app)

@@ -1,17 +1,12 @@
 ﻿using LegalSearch.Application.Models.Requests.CSO;
 using LegalSearch.Application.Models.Requests.Solicitor;
 using LegalSearch.Domain.Entities.LegalRequest;
-using LegalSearch.Domain.Entities.Location;
-using LegalSearch.Domain.Entities.User;
-using LegalSearch.Domain.Entities.User.Solicitor;
 using LegalSearch.Domain.Enums.LegalRequest;
 using LegalSearch.Infrastructure.Managers;
 using LegalSearch.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Linq.Expressions;
 
 namespace LegalSearch.Test.Infrastructure.Managers
 {

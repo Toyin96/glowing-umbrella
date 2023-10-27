@@ -164,8 +164,8 @@ namespace LegalSearch.Test.Infrastructure.Managers
                 var solicitorManager = new SolicitorManager(dbContext, logger.Object);
 
                 // Add sample solicitor assignment records to the in-memory database
-                var requestId = Guid.NewGuid(); // Replace with the actual request ID
-                var solicitorId = Guid.NewGuid(); // Replace with the actual solicitor ID
+                var requestId = Guid.NewGuid();
+                var solicitorId = Guid.NewGuid(); 
 
                 var assignment = new SolicitorAssignment { RequestId = requestId, SolicitorId = solicitorId, IsCurrentlyAssigned = true, SolicitorEmail = "sample@email.com" };
 
@@ -227,8 +227,8 @@ namespace LegalSearch.Test.Infrastructure.Managers
                 var solicitorManager = new SolicitorManager(dbContext, logger.Object);
 
                 // Add sample solicitor assignment records to the in-memory database
-                var requestId1 = Guid.NewGuid(); // Replace with the actual request ID
-                var requestId2 = Guid.NewGuid(); // Replace with the actual request ID
+                var requestId1 = Guid.NewGuid();
+                var requestId2 = Guid.NewGuid();
 
                 var assignment1 = new SolicitorAssignment { RequestId = requestId1, IsAccepted = true, IsCurrentlyAssigned = true, AssignedAt = DateTime.UtcNow.AddHours(-73), SolicitorEmail = "sample@email.com" };
                 var assignment2 = new SolicitorAssignment { RequestId = requestId2, IsAccepted = true, IsCurrentlyAssigned = true, AssignedAt = DateTime.UtcNow.AddHours(-25), SolicitorEmail = "sample@email.com" };

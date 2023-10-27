@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LegalSearch.Infrastructure.Services.Location
 {
-    internal class BranchRetrieveService : IBranchRetrieveService
+    public class BranchRetrieveService : IBranchRetrieveService
     {
         private readonly AppDbContext _appDbContext;
 
