@@ -9,5 +9,6 @@ namespace LegalSearch.Application.Interfaces.Auth
         Task<ObjectResponse<RoleResponse>> CreateRoleAsync(RoleRequest roleRequest);
         Task<ListResponse<RoleResponse>> GetAllRolesAsync(FilterRoleRequest request);
         Task<ObjectResponse<RoleResponse>> GetRoleByNameAsync(string roleName);
+        Task<ObjectResponse<RoleResponse>> GetRoleByIdAsync(Guid ID);
     }
 }

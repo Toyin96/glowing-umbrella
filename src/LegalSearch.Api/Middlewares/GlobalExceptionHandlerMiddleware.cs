@@ -1,34 +1,26 @@
-﻿using System.Net;
-using Fcmb.Shared.Models.Responses;
-using Fcmb.Shared.Utilities;
-using LegalSearch.Application.Exceptions;
+﻿using Fcmb.Shared.Models.Responses;
 using LegalSearch.Application.Models.Constants;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
 
 namespace LegalSearch.Api.Middlewares
 {
     /// <summary>
     /// Configures A Global Exception Handler To Handle Uncaught Exceptions
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public static class GlobalExceptionHandlerMiddleware
     {
-        /// <summary>
-        /// Extension Method Handling Global Exceptions
-        /// </summary>
-        /// <param name="app"></param>
         public static void UseGlobalExceptionHandler(this IApplicationBuilder app)
         {
-            app.UseExceptionHandler(appError =>
+            app.UseExceptionHandler(app =>
             {
-                appError.Run(async context =>
+                app.Run(async context =>
                 {
-                    var logger = context.RequestServices.GetRequiredService<ILogger>();
+                    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-
                     context.Response.ContentType = "application/json";
 
                     var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
@@ -37,16 +29,12 @@ namespace LegalSearch.Api.Middlewares
                     {
                         var exception = contextFeature.Error.GetBaseException();
 
-                        logger.LogCritical(exception, "Something went wrong: {Exception}", contextFeature.Error);
+                        logger.LogError(exception, "An unhandled exception occurred: {Exception}", exception);
 
-                        var responseMessage = exception switch
-                        {
-                            InAppException => contextFeature.Error.Message,
-                            _ => "Error Processing Request"
-                        };
+                        var response = new StatusResponse("An error occurred while processing your request.", ResponseCodes.ServiceError);
 
-                        await context.Response.WriteAsync(
-                            new StatusResponse(responseMessage, ResponseCodes.ServiceError).Serialize());
+                        var jsonResponse = JsonConvert.SerializeObject(response);
+                        await context.Response.WriteAsync(jsonResponse);
                     }
                 });
             });

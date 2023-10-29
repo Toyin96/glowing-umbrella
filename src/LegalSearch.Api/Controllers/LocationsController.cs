@@ -6,48 +6,64 @@ using System.Net;
 
 namespace LegalSearch.Api.Controllers
 {
+    /// <summary>
+    /// API controller for managing locations such as states and regions.
+    /// </summary>
     [Route("api/[controller]")]
-    [Consumes("application/json")]
-    [Produces("application/json")]
     [ApiController]
     public class LocationsController : BaseController
     {
         private readonly IStateRetrieveService _stateRetrieveService;
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="LocationsController"/> class.
         /// </summary>
-        /// <param name="stateRetrieveService"></param>
+        /// <param name="stateRetrieveService">The service for retrieving location information.</param>
         public LocationsController(IStateRetrieveService stateRetrieveService)
         {
             _stateRetrieveService = stateRetrieveService;
         }
 
         /// <summary>
-        /// Retrieves the states in the database
+        /// Retrieves all states in Nigeria.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A list of states in Nigeria.</returns>
         [HttpGet("GetStates")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ListResponse<StateResponse>>> GetStates()
+        public async Task<ActionResult<ListResponse<StateResponse>>> GetStatesAsync()
         {
             var response = await _stateRetrieveService.GetStatesAsync();
             return HandleResponse(response);
         }
 
         /// <summary>
-        /// Retrieves the regions in a state
+        /// Retrieves all the regions.
         /// </summary>
-        /// <returns></returns>
-        [HttpGet("GetRegionsUnderState/{stateId}")]
+        /// <returns>A list of regions.</returns>
+        [HttpGet("GetRegions")]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
-        public async Task<ActionResult<ListResponse<LgaResponse>>> GetRegionsUnderState(Guid stateId)
+        public async Task<ActionResult<ListResponse<RegionResponse>>> GetRegionsAsync()
         {
-            var response = await _stateRetrieveService.GetRegionsAsync(stateId);
+            var response = await _stateRetrieveService.GetRegionsAsync();
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Retrieves the states under a region based on the provided region ID.
+        /// </summary>
+        /// <param name="regionId">The unique identifier of the region.</param>
+        /// <returns>A list of states under the specified region.</returns>
+        [HttpGet("GetStatesUnderRegion/{regionId}")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType((int)HttpStatusCode.InternalServerError)]
+        public async Task<ActionResult<ListResponse<StateResponse>>> GetStatesUnderRegionAsync(Guid regionId)
+        {
+            var response = await _stateRetrieveService.GetStatesUnderRegionAsync(regionId);
             return HandleResponse(response);
         }
     }

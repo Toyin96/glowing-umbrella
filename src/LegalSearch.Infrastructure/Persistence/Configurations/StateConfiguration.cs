@@ -23,7 +23,7 @@ namespace LegalSearch.Infrastructure.Persistence.Configurations
             // Add any additional configurations or constraints here
         }
     }
-    public class LgaConfiguration : IEntityTypeConfiguration<Region>
+    public class RegionConfiguration : IEntityTypeConfiguration<Region>
     {
         public void Configure(EntityTypeBuilder<Region> builder)
         {

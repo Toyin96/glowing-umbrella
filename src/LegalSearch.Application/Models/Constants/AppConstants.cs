@@ -2,7 +2,13 @@
 {
     public static class AppConstants
     {
-        public static readonly string DbConnectionString = Environment.GetEnvironmentVariable("CONNECTION_STRING") 
-            ?? "Data Source=WEMA-WDB-L9396;Initial Catalog=LegalSearch;Trusted_Connection=True;TrustServerCertificate=True;Integrated Security=True;Encrypt=False;";
+        public static readonly string AdminEmail = "AdminSettings:Email";
+        public static readonly string AdminPassword = "AdminSettings:Password";
+        public static readonly string AdminFirstName = "AdminSettings:FirstName";
+    }
+
+    public static class ReportConstants
+    {
+        public const string LegalSearchReport = "Legal Search Report";
     }
 }
